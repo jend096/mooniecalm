@@ -323,8 +323,6 @@ async function confirmGoals() {
   const cycleEnd = new Date(today)
   cycleEnd.setDate(cycleEnd.getDate() + 27)
 
-  const toIso = (d: Date) => d.toISOString().slice(0, 10)
-
   const goalRows = selectedGoalIds.value.map(goalTypeId => ({
     user_id: profileId.value,
     goal_type_id: goalTypeId,
@@ -339,8 +337,8 @@ async function confirmGoals() {
 
   const { error: cycleError } = await authed.from('goal_cycles').insert({
     user_id: profileId.value,
-    cycle_start_date: toIso(today),
-    cycle_end_date: toIso(cycleEnd)
+    cycle_start_date: getLocalDateString(today),
+    cycle_end_date: getLocalDateString(cycleEnd)
   })
 
   isSavingGoals.value = false

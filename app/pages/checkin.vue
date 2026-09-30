@@ -91,7 +91,7 @@ const GOAL_CODE_TO_PROGRESS_COLUMN: Record<string, string> = {
 }
 
 const CYCLE_LENGTH_DAYS = 28
-const today = new Date().toISOString().slice(0, 10)
+const today = getLocalDateString()
 
 const isLoading = ref(true)
 const profileId = ref<number | null>(null)

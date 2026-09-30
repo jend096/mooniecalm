@@ -26,15 +26,6 @@ function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
-// คืนค่าวันที่วันนี้ในรูปแบบ YYYY-MM-DD ตามเวลาไทยจริง
-function getTodayLocalDateString() {
-  const d = new Date()
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const date = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${date}`
-}
-
 const isLoading = ref(true)
 const nickname = ref('')
 const profileImageUrl = ref('')
@@ -158,7 +149,7 @@ onMounted(async () => {
   periodDurationDays.value = profile.period_duration_days ?? null
   cycleDurationDays.value = profile.cycle_duration_days ?? null
 
-  const today = getTodayLocalDateString()
+  const today = getLocalDateString()
 
   const [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes] = await Promise.all([
     authed.from('user_avatar_state').select('feature_slot, current_asset_code').eq('user_id', profile.id),

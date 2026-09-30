@@ -11,9 +11,6 @@ let hasCompletedLogin = false
 let unsubscribe: (() => void) | undefined
 const route = useRoute()
 
-// ฟังก์ชันจำลองหรือฟังก์ชันบันทึกโปรไฟล์กรณีไม่มีประกาศไว้ภายนอก
-declare const saveOnboardingProfile: ((userId: string) => Promise<void>) | undefined
-
 // ตรวจสอบสถานะโปรไฟล์ของผู้ใช้
 async function completeLogin(userId: string) {
   if (hasCompletedLogin) return
@@ -41,9 +38,7 @@ async function completeLogin(userId: string) {
     }
 
     // ถ้ายังไม่มีข้อมูล หรือยังไม่เคยตั้งชื่อเล่น (ผู้ใช้ใหม่) -> บันทึกเริ่มต้นแล้วพาไป onboarding
-    if (typeof saveOnboardingProfile === 'function') {
-      await saveOnboardingProfile(userId)
-    }
+    await saveOnboardingProfile(userId)
     await navigateTo('/onboarding/step-1', { replace: true })
 
   } catch (err) {
