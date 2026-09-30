@@ -11,6 +11,9 @@ let hasCompletedLogin = false
 let unsubscribe: (() => void) | undefined
 const route = useRoute()
 
+// ฟังก์ชันจำลองหรือฟังก์ชันบันทึกโปรไฟล์กรณีไม่มีประกาศไว้ภายนอก
+declare const saveOnboardingProfile: ((userId: string) => Promise<void>) | undefined
+
 // ตรวจสอบสถานะโปรไฟล์ของผู้ใช้
 async function completeLogin(userId: string) {
   if (hasCompletedLogin) return
@@ -33,7 +36,7 @@ async function completeLogin(userId: string) {
 
     // ถ้าพบโปรไฟล์ และมีชื่อเล่นบันทึกอยู่แล้ว (เป็นผู้ใช้เดิม) -> พาไปหน้าหลักทันที
     if (profile && profile.nickname) {
-      await navigateTo('/home', { replace: true }) // *เปลี่ยน '/main' เป็น path หน้าหลักที่ต้องการพาไป เช่น '/home'
+      await navigateTo('/home', { replace: true })
       return
     }
 
@@ -96,19 +99,48 @@ onMounted(async () => {
 
   const supabase = useSupabaseClient()
 
-  if (typeof route.query.error === 'string') {
-    statusMessage.value = String(route.query.error_description || route.query.error)
+  // 1. ดักจับ Error ทั้งจาก Query (?) และ Hash (#)
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const hashError = hashParams.get('error_description') || hashParams.get('error')
+  const queryError = route.query.error_description || route.query.error
+
+  if (hashError || queryError) {
+    const rawError = String(hashError || queryError)
+    statusMessage.value = rawError.includes('otp_expired')
+      ? 'ลิงก์เข้าสู่ระบบหมดอายุหรือไม่ถูกต้อง กรุณากรอกอีเมลเพื่อขอรับลิงก์ใหม่อีกครั้ง'
+      : rawError
+    console.error('Auth Error:', rawError)
     return
   }
 
-  // 1. ตรวจสอบ session ปัจจุบัน
+  // 2. ตรวจสอบ Token จาก Hash (#access_token=...&refresh_token=...) แล้วสร้าง Session ทันที
+  const accessToken = hashParams.get('access_token')
+  const refreshToken = hashParams.get('refresh_token')
+
+  if (accessToken && refreshToken) {
+    loading.value = true
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    })
+    loading.value = false
+
+    if (!error && data.session?.user) {
+      // ล้าง hash ออกจาก URL เพื่อความปลอดภัยและความสะอาดของ address bar
+      window.history.replaceState(null, '', window.location.pathname)
+      await completeLogin(data.session.user.id)
+      return
+    }
+  }
+
+  // 3. ตรวจสอบ session ปัจจุบันที่มีอยู่ในเครื่อง
   const { data: { session } } = await supabase.auth.getSession()
   if (session?.user) {
     await completeLogin(session.user.id)
     return
   }
 
-  // 2. ดักรับ event เมื่อคลิกลิงก์ยืนยันตัวตนสำเร็จ
+  // 4. ดักรับ Event เมื่อมี session เข้ามา
   const { data: listener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentSession?.user) {
       await completeLogin(currentSession.user.id)
