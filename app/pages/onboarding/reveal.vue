@@ -335,14 +335,34 @@ async function confirmGoals() {
     return
   }
 
-  const { error: cycleError } = await authed.from('goal_cycles').insert({
-    user_id: profileId.value,
-    cycle_start_date: getLocalDateString(today),
-    cycle_end_date: getLocalDateString(cycleEnd)
-  })
+  // ถ้ามีรอบที่ยังไม่ claim อยู่แล้ว ให้ใช้รอบเดิมต่อ ไม่สร้างซ้ำ
+  const { data: openCycle, error: openCycleError } = await authed
+    .from('goal_cycles')
+    .select('id')
+    .eq('user_id', profileId.value)
+    .is('claimed_at', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (openCycleError) {
+    isSavingGoals.value = false
+    return
+  }
+
+  if (!openCycle) {
+    const { error: cycleError } = await authed.from('goal_cycles').insert({
+      user_id: profileId.value,
+      cycle_start_date: getLocalDateString(today),
+      cycle_end_date: getLocalDateString(cycleEnd)
+    })
+
+    if (cycleError) {
+      isSavingGoals.value = false
+      return
+    }
+  }
 
   isSavingGoals.value = false
-  if (cycleError) return
 
   hasConfirmedGoal.value = true
   isSheetOpen.value = false
