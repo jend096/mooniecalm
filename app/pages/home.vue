@@ -38,10 +38,11 @@ const avatarState = ref<{ eyes: string | null, ears: string | null, body_color: 
 })
 
 const avatarLayers = computed(() => [
-  { slot: 'body_color', code: avatarState.value.body_color },
+  // เรียงตามลำดับ DOM: ตัวแรกอยู่ล่างสุด ตัวสุดท้ายอยู่บนสุด
   { slot: 'fx_overlay', code: avatarState.value.fx_overlay },
+  { slot: 'ears', code: avatarState.value.ears },
   { slot: 'eyes', code: avatarState.value.eyes },
-  { slot: 'ears', code: avatarState.value.ears }
+  { slot: 'body_color', code: avatarState.value.body_color }
 ])
 
 const hiddenLayers = ref<Record<string, boolean>>({})
@@ -187,6 +188,22 @@ onMounted(async () => {
   isLoading.value = false
 })
 
+const toastMessage = ref('')
+let toastTimer: ReturnType<typeof setTimeout> | undefined
+
+async function share() {
+  if (await shareApp(nickname.value) !== 'copied') return
+  toastMessage.value = 'คัดลอกลิงก์แล้ว'
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => {
+    toastMessage.value = ''
+  }, 2000)
+}
+
+onUnmounted(() => {
+  if (toastTimer) clearTimeout(toastTimer)
+})
+
 function goToCheckin() {
   navigateTo('/checkin')
 }
@@ -227,20 +244,6 @@ async function logout() {
       </button>
     </div>
 
-    <div class="mt-6 flex flex-col items-center">
-      <div class="relative h-[160px] w-[160px]">
-        <template v-for="layer in avatarLayers" :key="layer.slot">
-          <img
-            v-if="layer.code && !hiddenLayers[layer.slot]"
-            :src="`/avatar/${layer.code}.png`"
-            alt=""
-            class="absolute inset-0 h-full w-full object-contain"
-            @error="hideLayer(layer.slot)"
-          >
-        </template>
-      </div>
-    </div>
-
     <div v-if="hasPeriodData" class="mt-6 rounded-2xl bg-white p-5 shadow-sm">
       <p class="font-['Anuphan'] text-[13px] font-medium text-slate-800">
         {{ periodStatusText }}
@@ -260,6 +263,30 @@ async function logout() {
             {{ day.dayNumber }}
           </span>
         </div>
+      </div>
+    </div>
+
+    <div class="mt-6 flex flex-col items-center">
+      <div class="relative aspect-square w-[70vw] max-w-[320px]">
+        <template v-for="layer in avatarLayers" :key="layer.slot">
+          <img
+            v-if="layer.code && !hiddenLayers[layer.slot]"
+            :src="`/avatar/${layer.code}.png`"
+            alt=""
+            class="absolute inset-0 h-full w-full object-contain"
+            @error="hideLayer(layer.slot)"
+          >
+        </template>
+        <button
+          type="button"
+          class="absolute left-2 top-[280px] z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
+          aria-label="แชร์"
+          @click="share"
+        >
+          <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
+            <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
     </div>
 
@@ -321,6 +348,15 @@ async function logout() {
     >
       บันทึกอาการ
     </button>
+
+    <div
+      v-if="toastMessage"
+      class="fixed inset-x-0 bottom-24 z-50 flex justify-center px-6"
+    >
+      <div class="rounded-full bg-slate-900 px-4 py-2 font-['Anuphan'] text-[13px] font-normal text-white shadow-lg">
+        {{ toastMessage }}
+      </div>
+    </div>
 
     <BottomNav active="home" />
   </div>

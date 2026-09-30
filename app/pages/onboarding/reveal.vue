@@ -11,7 +11,7 @@
         ยินดีด้วย! {{ nickname }}
       </h1>
 
-      <div class="relative mt-6 h-[240px] w-[240px]">
+      <div class="relative mt-6 aspect-square w-[70vw] max-w-[320px]">
         <template v-for="layer in avatarLayers" :key="layer.slot">
           <img
             v-if="layer.code && !hiddenLayers[layer.slot]"
@@ -21,18 +21,17 @@
             @error="hideLayer(layer.slot)"
           >
         </template>
+        <button
+          type="button"
+          class="absolute left-2 top-[280px] z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
+          aria-label="แชร์"
+          @click="share"
+        >
+          <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
+            <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
+          </svg>
+        </button>
       </div>
-
-      <button
-        type="button"
-        class="mt-2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
-        aria-label="แชร์"
-        @click="share"
-      >
-        <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
-          <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-        </svg>
-      </button>
 
       <div v-if="summaryItems.length" class="mt-8 w-full rounded-2xl bg-white/70 p-4 text-left">
         <ul class="flex flex-col gap-1.5 font-['Anuphan'] text-[13px] font-normal text-slate-600">
@@ -172,20 +171,22 @@ const avatarState = ref<{ eyes: string | null, ears: string | null, body_color: 
   fx_overlay: null
 })
 
-const assetDescriptions = ref<Record<string, string>>({})
+// ข้อความคำตอบล้วนๆ จาก avatar_question_options.result_description (key = result_asset_code)
+const answerDescriptions = ref<Record<string, string>>({})
 
 const summaryItems = computed(() =>
   [avatarState.value.body_color, avatarState.value.fx_overlay, avatarState.value.eyes, avatarState.value.ears]
     .filter((code): code is string => !!code)
-    .map(code => assetDescriptions.value[code])
+    .map(code => answerDescriptions.value[code])
     .filter(Boolean)
 )
 
 const avatarLayers = computed(() => [
-  { slot: 'body_color', code: avatarState.value.body_color },
+  // เรียงตามลำดับ DOM: ตัวแรกอยู่ล่างสุด ตัวสุดท้ายอยู่บนสุด
   { slot: 'fx_overlay', code: avatarState.value.fx_overlay },
+  { slot: 'ears', code: avatarState.value.ears },
   { slot: 'eyes', code: avatarState.value.eyes },
-  { slot: 'ears', code: avatarState.value.ears }
+  { slot: 'body_color', code: avatarState.value.body_color }
 ])
 
 const hiddenLayers = ref<Record<string, boolean>>({})
@@ -258,11 +259,11 @@ onMounted(async () => {
   profileId.value = profile.id
   nickname.value = profile.nickname ?? ''
 
-  const [avatarRowsRes, goalTypesRes, activeGoalsRes, avatarAssetsRes] = await Promise.all([
+  const [avatarRowsRes, goalTypesRes, activeGoalsRes, answerOptionsRes] = await Promise.all([
     authed.from('user_avatar_state').select('feature_slot, current_asset_code').eq('user_id', profile.id),
     authed.from('goal_types').select('id, goal_code, feature_slot, title, display_order').order('display_order'),
     authed.from('user_goals').select('goal_type_id').eq('user_id', profile.id).eq('is_active', true),
-    authed.from('avatar_assets').select('asset_code, description')
+    authed.from('avatar_question_options').select('result_asset_code, result_description')
   ])
 
   for (const row of avatarRowsRes.data ?? []) {
@@ -271,8 +272,10 @@ onMounted(async () => {
     }
   }
 
-  assetDescriptions.value = Object.fromEntries(
-    (avatarAssetsRes.data ?? []).map(a => [a.asset_code, a.description])
+  answerDescriptions.value = Object.fromEntries(
+    (answerOptionsRes.data ?? [])
+      .filter(o => o.result_asset_code && o.result_description)
+      .map(o => [o.result_asset_code, o.result_description])
   )
 
   goalTypes.value = goalTypesRes.data ?? []
@@ -287,23 +290,7 @@ onUnmounted(() => {
 })
 
 async function share() {
-  const shareData = {
-    title: 'MoonieCalm',
-    text: `${nickname.value} ชวนมาดูตัวละครใน MoonieCalm!`,
-    url: window.location.origin
-  }
-
-  if (navigator.share) {
-    try {
-      await navigator.share(shareData)
-    } catch {
-      // user cancelled the share sheet, nothing to do
-    }
-    return
-  }
-
-  await navigator.clipboard.writeText(shareData.url)
-  showToast('คัดลอกลิงก์แล้ว')
+  if (await shareApp(nickname.value) === 'copied') showToast('คัดลอกลิงก์แล้ว')
 }
 
 function toggleGoal(id: number) {
