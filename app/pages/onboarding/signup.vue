@@ -171,7 +171,7 @@ onUnmounted(() => {
         class="w-full rounded-full bg-white px-5 py-3 font-['Anuphan'] text-sm font-normal text-slate-900 shadow-sm outline-none placeholder:text-slate-400"
       >
       <BaseButton
-        :label="isLoginMode ? 'เข้าสู่ระบบ' : 'สร้างบัญชี'"
+        :label="isLoginMode ? 'เข้าสู่ระบบ' : 'ต่อไป'"
         :disabled="!email || loading"
         @click="continueWithEmail"
       />
