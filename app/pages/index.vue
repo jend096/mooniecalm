@@ -3,6 +3,7 @@
     <div class="flex flex-1 flex-col items-center gap-8 overflow-y-auto px-6 pt-16 pb-10">
       <div class="text-center">
         <h1 class="font-['Anuphan'] text-[32px] font-semibold leading-tight text-slate-900">
+          MoonieCalm<br>
           ยินดีต้อนรับ 
           <!-- "{{ onboarding.name }}" -->
         </h1>
