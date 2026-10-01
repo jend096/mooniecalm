@@ -62,7 +62,10 @@ async function continueWithEmail() {
   const { error } = await supabase.auth.signInWithOtp({
     email: email.value,
     options: {
-      emailRedirectTo: `${window.location.origin}/onboarding/signup`
+      emailRedirectTo: `${window.location.origin}/onboarding/signup`,
+      // แนบคำตอบ onboarding ไปกับ user_metadata เผื่อผู้ใช้เปิดลิงก์ในเบราว์เซอร์/แอปอื่น
+      // (Supabase ใช้ค่านี้เฉพาะตอนสร้าง user ใหม่ ผู้ใช้เดิมจะไม่ถูกเขียนทับ)
+      data: { ...buildOnboardingMetadata() }
     }
   })
 
