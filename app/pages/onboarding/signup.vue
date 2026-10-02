@@ -188,13 +188,13 @@ onUnmounted(() => {
       {{ isLoginMode ? 'ยังไม่มีบัญชี MoonieCalm ใช่ไหม ? สร้างบัญชี' : 'มีบัญชีของ MoonieCalm แล้วใช่ไหม ? เข้าสู่ระบบ' }}
     </button>
 
-    <div class="mt-8 flex items-center gap-3">
+    <!-- <div class="mt-8 flex items-center gap-3">
       <div class="h-px flex-1 bg-slate-200" />
       <span class="font-['Anuphan'] text-xs font-normal text-slate-400">หรือ</span>
       <div class="h-px flex-1 bg-slate-200" />
-    </div>
+    </div> -->
 
-    <div class="mt-6 flex flex-col gap-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+    <!-- <div class="mt-6 flex flex-col gap-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
       <button
         type="button"
         class="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 font-['Anuphan'] text-sm font-medium text-slate-700"
@@ -218,6 +218,6 @@ onUnmounted(() => {
         </svg>
         ดำเนินการต่อด้วย Apple
       </button>
-    </div>
+    </div> -->
   </div>
 </template>
