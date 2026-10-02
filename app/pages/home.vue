@@ -266,8 +266,8 @@ async function logout() {
       </div>
     </div>
 
-    <div class="mt-6 flex flex-col items-center">
-      <div class="relative aspect-square w-[70vw] max-w-[320px]">
+    <div class="-mx-6 mt-6 px-[5px]">
+      <div class="relative aspect-square w-full">
         <template v-for="layer in avatarLayers" :key="layer.slot">
           <img
             v-if="layer.code && !hiddenLayers[layer.slot]"
@@ -279,7 +279,7 @@ async function logout() {
         </template>
         <button
           type="button"
-          class="absolute left-2 top-[280px] z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
+          class="absolute bottom-0 left-2 z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
           aria-label="แชร์"
           @click="share"
         >

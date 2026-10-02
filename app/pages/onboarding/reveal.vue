@@ -11,26 +11,28 @@
         ยินดีด้วย! {{ nickname }}
       </h1>
 
-      <div class="relative mt-6 aspect-square w-[70vw] max-w-[320px]">
-        <template v-for="layer in avatarLayers" :key="layer.slot">
-          <img
-            v-if="layer.code && !hiddenLayers[layer.slot]"
-            :src="`/avatar/${layer.code}.png`"
-            alt=""
-            class="absolute inset-0 h-full w-full object-contain"
-            @error="hideLayer(layer.slot)"
+      <div class="-mx-6 mt-6 self-stretch px-[5px]">
+        <div class="relative aspect-square w-full">
+          <template v-for="layer in avatarLayers" :key="layer.slot">
+            <img
+              v-if="layer.code && !hiddenLayers[layer.slot]"
+              :src="`/avatar/${layer.code}.png`"
+              alt=""
+              class="absolute inset-0 h-full w-full object-contain"
+              @error="hideLayer(layer.slot)"
+            >
+          </template>
+          <button
+            type="button"
+            class="absolute bottom-0 left-2 z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
+            aria-label="แชร์"
+            @click="share"
           >
-        </template>
-        <button
-          type="button"
-          class="absolute left-2 top-[280px] z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
-          aria-label="แชร์"
-          @click="share"
-        >
-          <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
-            <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-          </svg>
-        </button>
+            <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
+              <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div v-if="summaryItems.length" class="mt-8 w-full rounded-2xl bg-white/70 p-4 text-left">
@@ -100,24 +102,28 @@
           v-for="goal in goalTypes"
           :key="goal.id"
           type="button"
-          class="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3.5 text-left transition active:scale-[0.98]"
+          class="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-4 text-left shadow-md transition active:scale-[0.98]"
+          :class="selectedGoalIds.includes(goal.id)
+            ? 'bg-slate-900 text-white shadow-slate-900/25 active:bg-slate-800'
+            : 'bg-slate-200 text-slate-800 shadow-slate-400/30 active:bg-slate-300'"
           @click="toggleGoal(goal.id)"
         >
           <span class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <span class="font-['Anuphan'] text-sm font-medium text-slate-800">{{ goal.title }}</span>
+            <span class="font-['Anuphan'] text-sm font-semibold">{{ goal.title }}</span>
             <span
               v-if="recommendedGoalCodes.has(goal.goal_code)"
-              class="rounded-full bg-slate-900 px-2 py-0.5 font-['Anuphan'] text-[10px] font-medium text-white"
+              class="rounded-full px-2 py-0.5 font-['Anuphan'] text-[10px] font-medium"
+              :class="selectedGoalIds.includes(goal.id) ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'"
             >
               แนะนำ
             </span>
           </span>
           <span
             class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2"
-            :class="selectedGoalIds.includes(goal.id) ? 'border-slate-900 bg-slate-900' : 'border-slate-300 bg-white'"
+            :class="selectedGoalIds.includes(goal.id) ? 'border-white bg-white' : 'border-slate-400 bg-white'"
           >
             <svg v-if="selectedGoalIds.includes(goal.id)" class="h-3 w-3" viewBox="0 0 20 20" fill="none">
-              <path d="M4 10.5L8 14.5L16 6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M4 10.5L8 14.5L16 6" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </span>
         </button>
