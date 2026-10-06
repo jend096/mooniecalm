@@ -17,14 +17,14 @@ const WEEKDAY_SHORT = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const MS_PER_DAY = 86400000
 
 // แปลงสตริง YYYY-MM-DD เป็น Date โดยอิงเวลาท้องถิ่น (ไม่โดนชิฟต์เป็น UTC)
-function parseLocalDate(dateStr: string) {
- const [y, m, d] = dateStr.split('-').map(Number) as [number, number, number]
-  return new Date(y, m - 1, d)
-}
+// function parseLocalDate(dateStr: string) {
+//  const [y, m, d] = dateStr.split('-').map(Number) as [number, number, number]
+//   return new Date(y, m - 1, d)
+// }
 
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate())
-}
+// function startOfDay(d: Date) {
+//   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
+// }
 
 const isLoading = ref(true)
 const nickname = ref('')
