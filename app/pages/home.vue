@@ -18,7 +18,7 @@ const MS_PER_DAY = 86400000
 
 // แปลงสตริง YYYY-MM-DD เป็น Date โดยอิงเวลาท้องถิ่น (ไม่โดนชิฟต์เป็น UTC)
 function parseLocalDate(dateStr: string) {
-  const [y, m, d] = dateStr.split('-').map(Number)
+ const [y, m, d] = dateStr.split('-').map(Number) as [number, number, number]
   return new Date(y, m - 1, d)
 }
 
@@ -102,8 +102,17 @@ const periodStrip = computed(() => {
   })
 })
 
+const prediction = computed(() => {
+  if (!lastPeriodDate.value || !cycleDurationDays.value) return null
+  return predictNextPeriod(lastPeriodDate.value, cycleDurationDays.value)
+})
+
 const periodStatusText = computed(() => {
   if (!hasPeriodData.value) return ''
+  if (prediction.value?.isLate) {
+    return `ประจำเดือนเลยกำหนดมา ${prediction.value.daysLate} วันแล้ว`
+  }
+
   const todayCycleDay = dayInCycle(new Date())
   if (todayCycleDay === null || !periodDurationDays.value || !cycleDurationDays.value) return ''
 
