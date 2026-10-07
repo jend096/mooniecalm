@@ -1,0 +1,8 @@
+:root {
+  --color-bg-soft: #FFF1F5;
+  --color-accent-pink: #FAD1DD;
+  --color-accent-peach: #FEC592;
+  --color-ink: #292929;
+  --color-period-soft: #F8C8C4; /* แดงอ่อน: วันที่มีประจำเดือน */
+  --color-period-deep: #D94A50; /* แดงเข้ม: วันนี้ + เส้นประวันที่คาดไว้ */
+}

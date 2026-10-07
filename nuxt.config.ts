@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   modules: ['@nuxtjs/tailwindcss', '@pinia/nuxt', '@nuxtjs/supabase'],
+  css: ['~/assets/css/tokens.css'],
   supabase: {
     useSsrCookies: false,
     redirectOptions: {

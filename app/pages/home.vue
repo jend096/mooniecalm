@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import type { PeriodRow } from '~/utils/period-prediction'
+// import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
+import { estimateCycleLength, getDayKind } from '~/utils/period-prediction'
+
 interface GoalType {
   id: number
   goal_code: string
@@ -73,38 +77,36 @@ const cycleDurationDays = ref<number | null>(null)
 
 function dayInCycle(d: Date): number | null {
   if (!lastPeriodDate.value || !cycleDurationDays.value) return null
+  const cycleLength = effectiveCycleDays.value // ความยาวรอบที่ใช้จริง (เฉลี่ยจากประวัติ)
   const start = parseLocalDate(lastPeriodDate.value)
   const target = startOfDay(d)
   const diffDays = Math.round((target.getTime() - start.getTime()) / MS_PER_DAY)
-  return ((diffDays % cycleDurationDays.value) + cycleDurationDays.value) % cycleDurationDays.value
-}
-
-function isPeriodDay(d: Date): boolean {
-  const cycleDay = dayInCycle(d)
-  if (cycleDay === null || !periodDurationDays.value) return false
-  return cycleDay < periodDurationDays.value
+  return ((diffDays % cycleLength) + cycleLength) % cycleLength
 }
 
 const hasPeriodData = computed(() => !!lastPeriodDate.value && !!periodDurationDays.value && !!cycleDurationDays.value)
 
+// แถบวัน: วันนี้ ± 15 วัน เลื่อนดูได้ ใช้ตัวตัดสินสีตัวเดียวกับหน้าปฏิทิน (สีทึบ = มาจริง, เส้นประ = คาดไว้)
+const STRIP_RADIUS = 15
 const periodStrip = computed(() => {
   const today = startOfDay(new Date())
-  return Array.from({ length: 5 }, (_, i) => {
+  return Array.from({ length: STRIP_RADIUS * 2 + 1 }, (_, i) => {
     const d = new Date(today)
-    d.setDate(d.getDate() + (i - 2))
+    d.setDate(d.getDate() + (i - STRIP_RADIUS))
     return {
       date: d,
+      key: getLocalDateString(d),
       dayNumber: d.getDate(),
       weekday: WEEKDAY_SHORT[d.getDay()],
-      isToday: i === 2,
-      isPeriodDay: isPeriodDay(d)
+      isToday: i === STRIP_RADIUS,
+      kind: getDayKind(d, allRows.value, periodDurationDays.value ?? 5, effectiveCycleDays.value)
     }
   })
 })
 
 const prediction = computed(() => {
   if (!lastPeriodDate.value || !cycleDurationDays.value) return null
-  return predictNextPeriod(lastPeriodDate.value, cycleDurationDays.value)
+  return predictNextPeriod(lastPeriodDate.value, effectiveCycleDays.value)
 })
 
 const periodStatusText = computed(() => {
@@ -120,9 +122,104 @@ const periodStatusText = computed(() => {
     return `อยู่ในช่วงประจำเดือน (วันที่ ${todayCycleDay + 1})`
   }
 
-  const daysUntilNext = cycleDurationDays.value - todayCycleDay
+  const daysUntilNext = effectiveCycleDays.value - todayCycleDay
   return `ประจำเดือนคุณจะมาในอีก ${daysUntilNext} วัน`
 })
+
+// ---------- รอบประจำเดือนที่บันทึกไว้ + เมนูตอนกดวัน ----------
+const profileId = ref<number | null>(null) // id ผู้ใช้ (ตั้งค่าใน onMounted ด้านล่าง)
+const profileLastPeriod = ref<string | null>(null) // วันเริ่มจาก onboarding (ใช้ถ้ายังไม่เคยบันทึกในตาราง)
+const savedRows = ref<PeriodRow[]>([]) // แถวจากตาราง period_cycles
+const selectedDate = ref<Date | null>(null) // วันที่ผู้ใช้กดในแถบ (มีค่า = เมนูเปิดอยู่)
+const periodMessage = ref('') // ข้อความบอกผลหลังบันทึก
+const stripRef = ref<HTMLElement | null>(null) // กล่องแถบวัน ไว้เลื่อนไปหาวันนี้
+
+// แถวที่ใช้แสดงผล: ถ้ายังไม่เคยบันทึกในตาราง ให้ใช้วันเริ่มจาก onboarding เป็นรอบแรก
+const allRows = computed<PeriodRow[]>(() => {
+  if (savedRows.value.length > 0) return savedRows.value
+  if (profileLastPeriod.value) {
+    return [{ cycle_start_date: profileLastPeriod.value, confirmed_end_date: null, predicted_start_date: null }]
+  }
+  return []
+})
+
+// ความยาวรอบที่ใช้จริง: เฉลี่ยจากรอบที่ผู้ใช้บันทึกไว้ (ถ้ายังไม่พอ ใช้ค่าจากโปรไฟล์ หรือ 28)
+const effectiveCycleDays = computed(() =>
+  estimateCycleLength(allRows.value.map(r => r.cycle_start_date), cycleDurationDays.value ?? 28)
+)
+
+// โหลดรอบประจำเดือนทั้งหมดใหม่ แล้วอัปเดตวันเริ่มรอบล่าสุดที่ใช้คำนวณ
+async function loadPeriodRows() {
+  if (profileId.value === null) return
+  const authed = await getAuthedSupabaseClient()
+  const { data } = await authed
+    .from('period_cycles')
+    .select('id, cycle_start_date, confirmed_end_date, predicted_start_date')
+    .eq('user_id', profileId.value)
+    .order('cycle_start_date', { ascending: true })
+  savedRows.value = (data ?? []) as PeriodRow[]
+  lastPeriodDate.value = savedRows.value.at(-1)?.cycle_start_date ?? profileLastPeriod.value
+}
+
+// ---------- ลากแถบวันด้วยเมาส์ (บนมือถือปัดนิ้วได้อยู่แล้ว) ----------
+let dragStartX = 0 // ตำแหน่งเมาส์ตอนเริ่มลาก
+let dragStartScroll = 0 // ตำแหน่งแถบตอนเริ่มลาก
+let isDragging = false // กำลังกดเมาส์ค้างอยู่ไหม
+let didDrag = false // ลากไกลพอจะนับว่า "ลาก" ไหม (ถ้าใช่ ปล่อยแล้วไม่นับเป็นการกด)
+
+function onStripPointerDown(e: PointerEvent) {
+  if (e.pointerType !== 'mouse' || !stripRef.value) return
+  isDragging = true
+  didDrag = false
+  dragStartX = e.clientX
+  dragStartScroll = stripRef.value.scrollLeft
+}
+function onStripPointerMove(e: PointerEvent) {
+  if (!isDragging || !stripRef.value) return
+  const moved = e.clientX - dragStartX
+  if (Math.abs(moved) > 5) didDrag = true
+  stripRef.value.scrollLeft = dragStartScroll - moved // ลากไปทางซ้าย = แถบเลื่อนไปทางขวา
+}
+function onStripPointerEnd() {
+  isDragging = false
+}
+
+// กดวัน (ถ้าเพิ่งลากมา ไม่ต้องเปิดเมนู)
+function onDayClick(date: Date) {
+  if (didDrag) {
+    didDrag = false
+    return
+  }
+  openDay(date)
+}
+
+// ---------- ชื่อเดือนข้างแถบวัน (เปลี่ยนตามวันที่อยู่กลางแถบตอนเลื่อน) ----------
+function monthLabel(d: Date): string {
+  return `${THAI_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`
+}
+const visibleMonthLabel = ref(monthLabel(new Date()))
+
+function updateVisibleMonth() {
+  const el = stripRef.value
+  const first = el?.firstElementChild as HTMLElement | null
+  if (!el || !first) return
+  const itemWidth = first.offsetWidth + 12 // 12px = ช่องว่างระหว่างแคปซูล (gap-3)
+  const centerIndex = Math.floor((el.scrollLeft + el.clientWidth / 2) / itemWidth)
+  const day = periodStrip.value[Math.min(periodStrip.value.length - 1, Math.max(0, centerIndex))]
+  if (day) visibleMonthLabel.value = monthLabel(day.date)
+}
+
+function openDay(date: Date) {
+  periodMessage.value = ''
+  selectedDate.value = date
+}
+
+// เมนูบันทึกสำเร็จ -> โหลดใหม่ ปิดเมนู แสดงข้อความ
+async function onPeriodChanged(text: string) {
+  await loadPeriodRows()
+  periodMessage.value = text
+  selectedDate.value = null
+}
 
 onMounted(async () => {
   const supabase = useSupabaseClient()
@@ -152,7 +249,8 @@ onMounted(async () => {
     isLoading.value = false
     return
   }
-
+  profileId.value = profile.id
+  profileLastPeriod.value = profile.last_period_date ?? null
   nickname.value = profile.nickname ?? ''
   profileImageUrl.value = profile.profile_image_url ?? ''
   lastPeriodDate.value = profile.last_period_date ?? null
@@ -160,11 +258,14 @@ onMounted(async () => {
   cycleDurationDays.value = profile.cycle_duration_days ?? null
 
   const today = getLocalDateString()
-
-  const [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes] = await Promise.all([
+  const [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes, periodRowsRes] = await Promise.all([
+    // 1) ชิ้นส่วนอวตารของผู้ใช้
     authed.from('user_avatar_state').select('feature_slot, current_asset_code').eq('user_id', profile.id),
+    // 2) รายการเป้าหมายทั้งหมด
     authed.from('goal_types').select('id, goal_code, title'),
+    // 3) เป้าหมายที่ผู้ใช้เลือกไว้
     authed.from('user_goals').select('goal_type_id').eq('user_id', profile.id).eq('is_active', true),
+    // 4) รอบเป้าหมาย 28 วันที่ยังไม่กดรับผล
     authed
       .from('goal_cycles')
       .select('cycle_start_date, cycle_end_date, claimed_at')
@@ -173,9 +274,21 @@ onMounted(async () => {
       .order('cycle_start_date', { ascending: false })
       .limit(1)
       .maybeSingle(),
-    authed.from('daily_checkins').select('*').eq('user_id', profile.id).eq('checkin_date', today).maybeSingle()
+    // 5) เช็คอินของวันนี้
+    authed.from('daily_checkins').select('*').eq('user_id', profile.id).eq('checkin_date', today).maybeSingle(),
+    // 6) รอบประจำเดือนทั้งหมดที่บันทึกไว้ (เรียงจากเก่าไปใหม่)
+    authed
+      .from('period_cycles')
+      .select('id, cycle_start_date, confirmed_end_date, predicted_start_date')
+      .eq('user_id', profile.id)
+      .order('cycle_start_date', { ascending: true })
   ])
 
+  // ถ้ามีรอบประจำเดือนที่บันทึกไว้ ให้ใช้วันเริ่มรอบล่าสุดแทนค่าจากโปรไฟล์
+  savedRows.value = (periodRowsRes.data ?? []) as PeriodRow[]
+  if (savedRows.value.length > 0) {
+    lastPeriodDate.value = savedRows.value.at(-1)!.cycle_start_date
+  }
   for (const row of avatarRowsRes.data ?? []) {
     if (row.feature_slot in avatarState.value) {
       avatarState.value[row.feature_slot as keyof typeof avatarState.value] = row.current_asset_code
@@ -195,6 +308,11 @@ onMounted(async () => {
   }
 
   isLoading.value = false
+
+  // รอให้หน้าวาดเสร็จ แล้วเลื่อนแถบวันให้วันนี้อยู่ตรงกลาง
+  await nextTick()
+  stripRef.value?.querySelector('[data-today]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  updateVisibleMonth()
 })
 
 const toastMessage = ref('')
@@ -222,6 +340,7 @@ async function logout() {
   await supabase.auth.signOut()
   navigateTo('/')
 }
+
 </script>
 
 <template>
@@ -253,26 +372,72 @@ async function logout() {
       </button>
     </div>
 
-    <div v-if="hasPeriodData" class="mt-6 rounded-2xl bg-white p-5 shadow-sm">
-      <p class="font-['Anuphan'] text-[13px] font-medium text-slate-800">
-        {{ periodStatusText }}
-      </p>
-      <div class="mt-3 flex justify-between gap-2">
-        <div
-          v-for="day in periodStrip"
-          :key="day.date.toISOString()"
-          class="flex flex-1 flex-col items-center gap-1 rounded-xl py-2"
-          :class="day.isToday ? 'ring-2 ring-slate-900' : ''"
+        <div v-if="hasPeriodData" class="mt-6">
+      <!-- แถวบน: ชื่อเดือน (ซ้าย) + ปุ่มเปิดหน้าปฏิทินเต็ม (ขวา) -->
+      <div class="flex items-center justify-between gap-3">
+        <!-- ชื่อเดือน/ปี ของวันที่อยู่กลางแถบ -->
+        <p class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">{{ visibleMonthLabel }}</p>
+        <button
+          type="button"
+          class="flex items-center gap-3 rounded-full bg-white py-1.5 pl-1.5 pr-5 font-['Anuphan'] text-[15px] font-semibold text-moon-ink shadow-sm transition active:scale-95"
+          @click="navigateTo('/calendar')"
         >
-          <span class="font-['Anuphan'] text-[11px] font-normal text-slate-400">{{ day.weekday }}</span>
+          <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="4.5" width="14" height="12.5" rx="2.5" stroke="currentColor" stroke-width="1.5" />
+              <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+          </span>
+          ปฏิทิน
+        </button>
+      </div>
+
+      <!-- แถบวัน: แคปซูลสีขาวทีละวัน เลื่อนซ้าย-ขวาได้ กดวันไหนก็มีเมนูถามว่าประจำเดือนมา/หมดไหม -->
+      <div
+        ref="stripRef"
+        class="mt-4 flex cursor-grab select-none gap-3 overflow-x-auto pb-1 active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        @pointerdown="onStripPointerDown"
+        @pointermove="onStripPointerMove"
+        @pointerup="onStripPointerEnd"
+        @pointerleave="onStripPointerEnd"
+        @scroll="updateVisibleMonth"
+      >
+        <button
+          v-for="day in periodStrip"
+          :key="day.key"
+          type="button"
+          :data-today="day.isToday ? '' : undefined"
+          class="flex shrink-0 basis-[calc((100%-3rem)/5)] flex-col items-center gap-2 rounded-full bg-white px-1 pb-2 pt-3 shadow-sm transition active:scale-95"
+          @click="onDayClick(day.date)"
+        >
+          <!-- ตัวย่อวัน จ อ พ ... อยู่เหนือตัวเลข -->
+          <span class="font-['Anuphan'] text-[15px] font-medium text-moon-ink">{{ day.weekday }}</span>
+          <!-- วงกลมตัวเลข: วันนี้ = แดงเข้ม, วันที่มีประจำเดือน = แดงอ่อน, คาดไว้ = เส้นประแดงเข้ม, วันธรรมดา = เทาอ่อน -->
           <span
-            class="flex h-8 w-8 items-center justify-center rounded-full font-['Anuphan'] text-[13px] font-medium"
-            :class="day.isPeriodDay ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700'"
+            class="flex h-11 w-11 items-center justify-center rounded-full font-['Anuphan'] text-[17px] font-medium"
+            :class="{
+              'bg-[var(--color-period-deep)] text-white': day.isToday,
+              'bg-[var(--color-period-soft)] text-moon-ink': !day.isToday && day.kind === 'logged',
+              'border-2 border-dashed border-[color:var(--color-period-deep)] text-moon-ink': !day.isToday && day.kind === 'predicted',
+              'bg-slate-100 text-moon-ink': !day.isToday && day.kind === 'none'
+            }"
           >
             {{ day.dayNumber }}
           </span>
-        </div>
+        </button>
       </div>
+
+      <!-- ข้อความสถานะ -->
+      <div class="mt-4 flex justify-center">
+        <p class="rounded-full border border-moon-pink bg-white/90 px-5 py-3 text-center font-['Anuphan'] text-[15px] font-medium text-moon-ink">
+          แสดงสถานะ: {{ periodStatusText }}
+        </p>
+      </div>
+
+      <p class="mt-2 text-center font-['Anuphan'] text-[11px] text-slate-400">แตะที่วันเพื่อบอกว่าประจำเดือนมา/หมด · ปัดหรือลากเพื่อดูวันอื่น</p>
+      <p v-if="periodMessage" class="mt-1 text-center font-['Anuphan'] text-[12px] text-slate-500">
+        {{ periodMessage }}
+      </p>
     </div>
 
     <div class="-mx-6 mt-6 px-[5px]">
@@ -366,6 +531,19 @@ async function logout() {
         {{ toastMessage }}
       </div>
     </div>
+
+    <!-- เมนูที่เด้งขึ้นมาตอนกดวันในแถบ -->
+    <PeriodDaySheet
+      v-if="selectedDate && profileId !== null"
+      :date="selectedDate"
+      :rows="savedRows"
+      :all-rows="allRows"
+      :profile-id="profileId"
+      :period-days="periodDurationDays ?? 5"
+      :cycle-days="effectiveCycleDays"
+      @close="selectedDate = null"
+      @changed="onPeriodChanged"
+    />
 
     <BottomNav active="home" />
   </div>
