@@ -676,7 +676,7 @@ async function logout() {
           class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/snack')"
         >
-          <span aria-hidden="true" class="food-blob absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
+          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
           <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-white">
             <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
@@ -762,8 +762,9 @@ async function logout() {
   animation-delay: inherit;
 }
 
+/* การ์ดอยากทานอะไร: เด้งเหมือนการ์ดปวดตรงไหนทุกอย่าง แค่วงคลื่นที่ขยายออกมาเป็นสีเหลืองตามสีการ์ด */
 .press-hint-food {
-  --ring: #ffa8e6;
+  --ring: #f2ec5c;
 }
 
 .press-hint-pain {
@@ -801,39 +802,6 @@ async function logout() {
   }
 }
 
-/* การ์ด "วันนี้อยากทานอะไร": ตอนวงกลมทำท่าถูกกด สีจะเปลี่ยนเป็นเหลืองโทนเดียวกับการ์ด (ขาว -> ครีมเหลือง -> ขาว)
-   เวลาเดียวกับ press-hint (2.6 วิ) จึงดูเหมือนกดแล้วเปลี่ยนสี */
-.press-hint-food {
-  animation: press-hint 2.6s ease-in-out infinite, press-color-circle 2.6s ease-in-out infinite;
-}
-
-.food-blob {
-  animation: press-color-blob 2.6s ease-in-out infinite;
-}
-
-@keyframes press-color-circle {
-  0%,
-  60%,
-  100% {
-    background-color: #ffffff;
-  }
-  68%,
-  82% {
-    background-color: #f7f8a6; /* เหลืองเข้มขึ้นนิดจากสีครีมของการ์ด ให้เห็นว่าเปลี่ยน */
-  }
-}
-
-@keyframes press-color-blob {
-  0%,
-  60%,
-  100% {
-    background-color: #feffd4; /* ครีมของการ์ด */
-  }
-  72% {
-    background-color: #f7f8a6;
-  }
-}
-
 /* ปุ่มเช็คอิน: ซูมเข้า-ออกเบาๆ เป็นจังหวะ ให้ดูน่ากด
    (ใช้ transform ในอนิเมชัน ส่วนตอนกดจริงยุบด้วย scale แยกต่างหากใน assets/css/press.css จึงไม่ตีกัน) */
 .checkin-pulse {
@@ -853,8 +821,6 @@ async function logout() {
 @media (prefers-reduced-motion: reduce) {
   .press-hint,
   .press-hint::after,
-  .press-hint-food,
-  .food-blob,
   .checkin-pulse {
     animation: none;
   }
