@@ -90,26 +90,6 @@ function drawStar(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   ctx.restore()
 }
 
-function drawDot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
-  ctx.fillStyle = color
-  ctx.beginPath()
-  ctx.arc(x, y, r, 0, Math.PI * 2)
-  ctx.fill()
-}
-
-// เครื่องหมาย +
-function drawPlus(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string) {
-  ctx.strokeStyle = color
-  ctx.lineWidth = 9
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(x - r, y)
-  ctx.lineTo(x + r, y)
-  ctx.moveTo(x, y - r)
-  ctx.lineTo(x, y + r)
-  ctx.stroke()
-}
-
 function drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, rgb: string, alpha: number) {
   const g = ctx.createRadialGradient(x, y, 0, x, y, r)
   g.addColorStop(0, `rgba(${rgb}, ${alpha})`)
@@ -154,11 +134,13 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   }
 
   const images = await Promise.all(input.layerCodes.map(code => loadImage(`/avatar/${code}.png`)))
-  // โลโก้ปัจจุบัน: พระจันทร์ + กระต่าย + ชื่อ MoonieCalm (ไฟล์เดียวกับที่ใช้ในแอป)
-  const [moonImg, rabbitImg, wordmarkImg] = await Promise.all([
+  // โลโก้ปัจจุบัน: พระจันทร์ + กระต่าย (วงกลม) แล้วตามด้วยชื่อ Moonie Calm สองบรรทัดอยู่ข้างขวา
+  // + คิวอาร์โค้ดมุมขวาล่าง (ไฟล์อยู่ที่ public/brand/qr.png)
+  const [moonImg, rabbitImg, wordmarkImg, qrImg] = await Promise.all([
     loadImage('/brand/moon.svg'),
     loadImage('/brand/rabbit.svg'),
-    loadImage('/brand/wordmark-one.svg')
+    loadImage('/brand/wordmark-two.svg'),
+    loadImage('/brand/qr.png')
   ])
 
   const canvas = document.createElement('canvas')
@@ -166,18 +148,19 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   canvas.height = HEIGHT
   const ctx = canvas.getContext('2d')!
 
-  // ----- คำนวณความสูงเนื้อหาทั้งก้อน แล้ววางให้อยู่กึ่งกลางแนวตั้ง -----
-  // ส่วนหัว = โลโก้วงกลม (พระจันทร์+กระต่าย) วางบน ชื่อ MoonieCalm วางล่าง
-  const logoSize = 220
-  const wordW = 400
-  const wordH = Math.round((wordW * 85) / 399) // สัดส่วนไฟล์ wordmark-one.svg คือ 399 x 85
-  const logoGap = 22
-  const brandH = logoSize + logoGap + wordH
-  const frame = 720
-  const gap = 60
+  // ----- คำนวณความสูงเนื้อหาทั้งก้อน แล้ววางให้อยู่กึ่งกลางแนวตั้ง (เว้นที่ด้านล่างไว้ให้คิวอาร์) -----
+  const logoSize = 210 // วงกลมโลโก้
+  const wordW = 210 // ชื่อ Moonie Calm (ไฟล์ wordmark-two.svg สัดส่วน 236 x 159)
+  const wordH = Math.round((wordW * 159) / 236)
+  const logoGap = 28 // ระยะระหว่างวงกลมกับชื่อ
+  const brandH = logoSize
+  const avatarSize = 840 // อวตารไม่มีกรอบ วางเต็มๆ
+  const overlap = 70 // การ์ดข้อความซ้อนทับขอบล่างของอวตาร
+  const gap = 40
   const boxX = 100
   const boxW = WIDTH - boxX * 2
   const textW = boxW - 120
+  const bottomReserve = 120 // พื้นที่ด้านล่างที่เว้นไว้ให้คิวอาร์ + ลิงก์ (ยิ่งน้อย เนื้อหายิ่งขยับลงล่าง)
   const title = `ยินดีด้วย ${input.nickname}!`
   // ชื่อยาวมาก ค่อยๆ ลดขนาดตัวอักษรจนพอดีกรอบ ถ้าเล็กสุดแล้วยังไม่พอก็ตัดขึ้นบรรทัดใหม่
   let titleSize = 76
@@ -192,46 +175,34 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   const subtitleH = 64
   const boxH = 64 + titleLines.length * titleLineH + 20 + subtitleH + 56
 
-  const contentH = brandH + gap + frame + gap + boxH
-  const top = Math.round((HEIGHT - contentH) / 2)
+  const contentH = brandH + gap + avatarSize - overlap + boxH
+  const top = Math.max(60, Math.round((HEIGHT - bottomReserve - contentH) / 2))
   const brandY = top
-  const frameCx = WIDTH / 2
-  const frameCy = brandY + brandH + gap + frame / 2
-  const boxY = frameCy + frame / 2 + gap
+  const avatarX = (WIDTH - avatarSize) / 2
+  const avatarY = brandY + brandH + gap
+  const avatarCy = avatarY + avatarSize / 2
+  const boxY = avatarY + avatarSize - overlap
 
-  // ----- พื้นหลัง: ไล่สีชมพูอ่อน + แสงฟุ้งสีชมพู/ม่วง -----
+  // ----- พื้นหลัง: ตรงกลางสีขาว ไล่ออกไปเป็นชมพูอ่อน (สีแบรนด์) -----
   const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT)
-  bg.addColorStop(0, COLORS.bgStart)
-  bg.addColorStop(0.5, COLORS.bgEnd)
-  bg.addColorStop(1, '#FFE6F0')
+  bg.addColorStop(0, '#FFFFFF')
+  bg.addColorStop(0.5, '#FFF6F9')
+  bg.addColorStop(1, '#FFD7E2')
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, WIDTH, HEIGHT)
+  drawGlow(ctx, WIDTH / 2, avatarCy, 720, '255, 255, 255', 1) // แสงขาวด้านหลังอวตาร ให้ขอบรูปกลืนกับพื้น
+  drawGlow(ctx, 120, 1750, 560, '255, 215, 226', 0.8) // ชมพู ล่างซ้าย
+  drawGlow(ctx, 980, 260, 460, '255, 215, 226', 0.6) // ชมพู ขวาบน
 
-  drawGlow(ctx, 900, 260, 520, '254, 119, 119', 0.25) // โคอรัล มุมขวาบน
-  drawGlow(ctx, 120, 900, 560, '204, 187, 255', 0.45) // ลาเวนเดอร์ ซ้ายกลาง
-  drawGlow(ctx, 960, 1350, 520, '255, 168, 230', 0.3) // ชมพูบานเย็น ขวาล่าง
-  drawGlow(ctx, 300, 1800, 640, '255, 215, 226', 0.7) // ชมพู ล่างซ้าย
+  // ----- ลายตกแต่ง: ประกายดาวแค่ไม่กี่ดวง ไม่ให้รก -----
+  drawStar(ctx, 120, 280, 38, COLORS.coral, -0.2)
+  drawStar(ctx, 960, 400, 28, COLORS.lavender)
+  drawStar(ctx, 110, 1180, 30, COLORS.predicted)
+  drawStar(ctx, 975, 1240, 36, COLORS.lavender, 0.15)
 
-  // ----- ลายตกแต่งด้านหลัง: ประกายดาวกับจุดสีอ่อนๆ กระจายรอบภาพ -----
-  drawStar(ctx, 130, 250, 44, COLORS.coral, -0.2)
-  drawStar(ctx, 950, 170, 34, COLORS.lavender)
-  drawStar(ctx, 90, 760, 38, COLORS.predicted)
-  drawStar(ctx, 990, 1250, 42, COLORS.lavender, 0.15)
-  drawStar(ctx, 80, 1500, 50, COLORS.lavender)
-  drawStar(ctx, 930, 1700, 36, COLORS.coral)
-  drawStar(ctx, 250, 1850, 30, COLORS.predicted)
-  drawStar(ctx, 840, 100, 22, COLORS.coral)
-  drawDot(ctx, 60, 1060, 14, COLORS.coral)
-  drawDot(ctx, 1010, 640, 14, COLORS.lavender)
-  drawDot(ctx, 880, 1810, 12, COLORS.predicted)
-  drawDot(ctx, 200, 150, 10, COLORS.lavender)
-  drawPlus(ctx, 1000, 420, 18, COLORS.coral)
-  drawPlus(ctx, 70, 1300, 16, COLORS.lavender)
-
-  // ----- โลโก้ + ชื่อแอปด้านบน (ไม่มีแคปซูลกระจกแล้ว) -----
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'alphabetic'
-  const logoX = (WIDTH - logoSize) / 2
+  // ----- โลโก้ + ชื่อแอป (วงกลมซ้าย ชื่อขวา) จัดกลุ่มให้อยู่กึ่งกลางการ์ด -----
+  const lockupW = logoSize + logoGap + wordW
+  const logoX = (WIDTH - lockupW) / 2
   if (moonImg) {
     // 1) พระจันทร์
     ctx.drawImage(moonImg, logoX, brandY, logoSize, logoSize)
@@ -239,12 +210,12 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
     if (rabbitImg) {
       ctx.save()
       ctx.beginPath()
-      ctx.arc(WIDTH / 2, brandY + logoSize / 2, logoSize / 2, 0, Math.PI * 2)
+      ctx.arc(logoX + logoSize / 2, brandY + logoSize / 2, logoSize / 2, 0, Math.PI * 2)
       ctx.clip()
       ctx.drawImage(rabbitImg, logoX, brandY, logoSize, logoSize)
       ctx.restore()
     }
-    // 3) ประกายรอบพระจันทร์ (ตำแหน่งตามโลโก้ในแอป วัดบนกรอบ 240 แล้วย่อ/ขยายตามขนาด)
+    // 3) ประกายในวงกลมโลโก้ (ตำแหน่งตามโลโก้ในแอป วัดบนกรอบ 240 แล้วย่อ/ขยายตามขนาด)
     const k = logoSize / 240
     const sparks = [
       { x: 20, y: 130, s: 20, color: COLORS.coral },
@@ -258,53 +229,58 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
       drawStar(ctx, logoX + (sp.x + sp.s / 2) * k, brandY + (sp.y + sp.s / 2) * k, (sp.s / 2) * k * 1.3, sp.color)
     }
   }
+  const wordX = logoX + logoSize + logoGap
   if (wordmarkImg) {
-    ctx.drawImage(wordmarkImg, (WIDTH - wordW) / 2, brandY + logoSize + logoGap, wordW, wordH)
+    ctx.drawImage(wordmarkImg, wordX, brandY + (logoSize - wordH) / 2, wordW, wordH)
   } else {
     // ถ้ารูปชื่อโหลดไม่ได้ ใช้ตัวหนังสือแทน
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
     ctx.font = `700 64px ${FONT_FAMILY}`
-    ctx.fillStyle = COLORS.coral
-    ctx.fillText('MoonieCalm', WIDTH / 2, brandY + logoSize + logoGap + 60)
+    ctx.fillStyle = COLORS.ink
+    ctx.fillText('Moonie', wordX, brandY + logoSize / 2 - 4)
+    ctx.fillText('Calm', wordX, brandY + logoSize / 2 + 64)
   }
 
-  // ----- อวตาร: วางเต็มกรอบมนมุม (ไม่มีกรอบขาวซ้อน) เอียงนิดๆ -----
-  const frameX = -frame / 2
-  const frameY = -frame / 2
-  ctx.save()
-  ctx.translate(frameCx, frameCy)
-  ctx.rotate(-0.03)
-
-  // แสงฟุ้งสีชมพูหลังรูป
-  drawGlow(ctx, 0, 0, 560, '255, 215, 226', 0.9)
-
-  ctx.save()
-  ctx.shadowColor = 'rgba(254, 119, 119, 0.3)'
-  ctx.shadowBlur = 70
-  ctx.shadowOffsetY = 30
-  ctx.fillStyle = '#FFFFFF' // ใช้เป็นฐานให้เงา (ถูกรูปอวตารทับหมด ไม่เห็นเป็นกรอบ)
-  roundedRectPath(ctx, frameX, frameY, frame, frame, 72)
-  ctx.fill()
-  ctx.restore()
-
-  ctx.save()
-  roundedRectPath(ctx, frameX, frameY, frame, frame, 72)
-  ctx.clip()
+  // ----- อวตาร: ไม่มีกรอบ ไม่มีเงา เบลอขอบ 4 ด้านให้กลืนกับพื้นหลัง -----
+  // วาดทุกเลเยอร์ลงผืนผ้าใบแยกก่อน แล้วค่อยทำขอบจางแล้วแปะลงการ์ด
+  const avatarCanvas = document.createElement('canvas')
+  avatarCanvas.width = avatarSize
+  avatarCanvas.height = avatarSize
+  const actx = avatarCanvas.getContext('2d')!
   for (const img of images) {
-    if (img) ctx.drawImage(img, frameX, frameY, frame, frame)
+    if (img) actx.drawImage(img, 0, 0, avatarSize, avatarSize)
   }
-  ctx.restore()
-  ctx.restore()
+  // ขอบจาง: ใช้ destination-in กับไล่สีโปร่งใส -> ทึบ ทีละด้าน (ไม่ใช้ ctx.filter เพราะ Safari บางรุ่นไม่รองรับ)
+  const feather = 90
+  actx.globalCompositeOperation = 'destination-in'
+  const edges: [number, number, number, number][] = [
+    [0, 0, feather, 0], // ซ้าย
+    [avatarSize, 0, avatarSize - feather, 0], // ขวา
+    [0, 0, 0, feather], // บน
+    [0, avatarSize, 0, avatarSize - feather] // ล่าง
+  ]
+  for (const [x0, y0, x1, y1] of edges) {
+    const g = actx.createLinearGradient(x0, y0, x1, y1)
+    g.addColorStop(0, 'rgba(0, 0, 0, 0)')
+    g.addColorStop(1, 'rgba(0, 0, 0, 1)')
+    actx.fillStyle = g
+    actx.fillRect(0, 0, avatarSize, avatarSize)
+  }
+  // จางวงกลมอีกชั้น ให้มุมสี่เหลี่ยมของรูปหายไป เหลือแต่แสงฟุ้งกลมๆ (ตัวละครอยู่กลางภาพ ไม่โดนจาง)
+  const c = avatarSize / 2
+  const radial = actx.createRadialGradient(c, c, avatarSize * 0.42, c, c, avatarSize * 0.68)
+  radial.addColorStop(0, 'rgba(0, 0, 0, 1)')
+  radial.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  actx.fillStyle = radial
+  actx.fillRect(0, 0, avatarSize, avatarSize)
+  ctx.drawImage(avatarCanvas, avatarX, avatarY)
 
-  // ประกายที่ทับมุมรูป ให้ดูเหมือนฟุ้งออกมา
-  drawStar(ctx, frameCx - 350, frameCy - 360, 54, COLORS.coral, 0.2)
-  drawStar(ctx, frameCx + 360, frameCy + 340, 58, COLORS.lavender)
-  drawStar(ctx, frameCx + 385, frameCy - 365, 26, COLORS.predicted)
-  drawStar(ctx, frameCx - 380, frameCy + 320, 24, COLORS.coral)
-
-  // ----- กรอบข้อความกระจก -----
+  // ----- การ์ดข้อความกระจก: ซ้อนอยู่บนขอบล่างของอวตาร -----
   drawGlass(ctx, boxX, boxY, boxW, boxH, 64)
 
   ctx.textAlign = 'center'
+  ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = COLORS.ink
   ctx.font = `700 ${titleSize}px ${FONT_FAMILY}`
   titleLines.forEach((line, i) => {
@@ -314,17 +290,39 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   ctx.font = `500 ${subtitleSize}px ${FONT_FAMILY}`
   ctx.fillText('นี่คืออวตารตัวจิ๋วของคุณ', WIDTH / 2, boxY + 64 + titleLines.length * titleLineH + 20 + subtitleSize + 4)
 
-  // ลายตกแต่งเล็กๆ ที่มุมกรอบข้อความ
-  drawStar(ctx, boxX + boxW - 30, boxY + 20, 34, COLORS.lavender)
-  drawStar(ctx, boxX + 30, boxY + boxH - 14, 26, COLORS.coral)
-
-  // ที่อยู่เว็บใต้การ์ด ให้คนที่เห็นรูป (เช่น แคปไปโพสต์ต่อ) เข้ามาลองเล่นได้ ใช้ที่อยู่เว็บที่เปิดอยู่ตอนกดแชร์
+  // ----- มุมขวาล่าง: คิวอาร์โค้ด (แผ่นขาวรองให้สแกนง่าย) + ที่อยู่เว็บอยู่ฝั่งซ้าย -----
+  const qrPlate = 216
+  const qrX = WIDTH - 80 - qrPlate
+  const qrY = HEIGHT - 60 - qrPlate
+  if (qrImg) {
+    ctx.save()
+    ctx.shadowColor = 'rgba(254, 119, 119, 0.2)'
+    ctx.shadowBlur = 30
+    ctx.shadowOffsetY = 10
+    ctx.fillStyle = '#FFFFFF'
+    roundedRectPath(ctx, qrX, qrY, qrPlate, qrPlate, 28)
+    ctx.fill()
+    ctx.restore()
+    const pad = 14
+    ctx.drawImage(qrImg, qrX + pad, qrY + pad, qrPlate - pad * 2, qrPlate - pad * 2)
+  }
+  // ที่อยู่เว็บ ใช้ที่อยู่ที่เปิดอยู่ตอนกดแชร์ (ถ้าไม่มีคิวอาร์จะอยู่กึ่งกลางล่าง)
+  const hasQr = !!qrImg
+  ctx.textAlign = hasQr ? 'left' : 'center'
+  const textX = hasQr ? 100 : WIDTH / 2
+  const midY = qrY + qrPlate / 2
   ctx.fillStyle = COLORS.muted
   ctx.font = `500 40px ${FONT_FAMILY}`
-  ctx.textAlign = 'center'
-  // วางใต้กรอบข้อความ (เผื่อเนื้อหายาว ไม่ให้ทับกัน)
-  const linkY = Math.min(HEIGHT - 70, top + contentH + 90)
-  ctx.fillText(`ลองเล่นได้ที่ ${window.location.host}`, WIDTH / 2, linkY)
+  ctx.fillText('ลองเล่นได้ที่', textX, midY - 6)
+  let hostSize = 46
+  ctx.font = `700 ${hostSize}px ${FONT_FAMILY}`
+  const maxHostW = hasQr ? qrX - 100 - 30 : WIDTH - 200
+  while (hostSize > 28 && ctx.measureText(window.location.host).width > maxHostW) {
+    hostSize -= 2
+    ctx.font = `700 ${hostSize}px ${FONT_FAMILY}`
+  }
+  ctx.fillStyle = COLORS.ink
+  ctx.fillText(window.location.host, textX, midY + 54)
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(blob => (blob ? resolve(blob) : reject(new Error('สร้างรูปการ์ดไม่สำเร็จ'))), 'image/png')
