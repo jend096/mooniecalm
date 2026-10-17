@@ -98,9 +98,11 @@
       <button
         type="button"
         :disabled="saving || !selectedIds.length"
-        class="w-full rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition active:scale-95 disabled:opacity-40"
+        class="flex w-full items-center justify-center gap-2 rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition disabled:opacity-40"
+        :class="saving ? '!opacity-100' : ''"
         @click="claim"
       >
+        <BrandLogoMark v-if="saving" :size="28" stage="bob" />
         {{ saving ? 'กำลังบันทึก...' : 'รับผลและเริ่มรอบใหม่' }}
       </button>
       <button

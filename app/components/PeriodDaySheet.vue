@@ -155,9 +155,11 @@ async function removeRow() {
           v-if="!rowCovering"
           type="button"
           :disabled="isSaving || isFuture"
-          class="w-full rounded-full bg-moon-coral py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40"
+          class="flex w-full items-center justify-center gap-2 rounded-full bg-moon-coral py-3 text-sm font-semibold text-white transition disabled:opacity-40"
+          :class="isSaving ? '!opacity-100' : ''"
           @click="logStart"
         >
+          <BrandLogoMark v-if="isSaving" :size="28" stage="bob" />
           {{ isSaving ? 'กำลังบันทึก...' : 'ประจำเดือนมาวันนี้' }}
         </button>
         <p v-if="!rowCovering && isFuture" class="text-center text-xs text-moon-muted">ยังไม่ถึงวันนี้ จึงบันทึกไม่ได้</p>

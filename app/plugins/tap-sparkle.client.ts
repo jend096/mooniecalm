@@ -5,6 +5,9 @@
 import { sparkleBurstAt } from '~/utils/sparkle-burst'
 
 export default defineNuxtPlugin(() => {
+  // iOS Safari จะไม่ใช้สไตล์ :active (ปุ่มยุบตอนกด ดู assets/css/press.css) ถ้าหน้าเว็บไม่มีตัวดักการแตะ เลยใส่ตัวว่างๆ ไว้
+  document.addEventListener('touchstart', () => {}, { passive: true })
+
   document.addEventListener(
     'click',
     (e: MouseEvent) => {

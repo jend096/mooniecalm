@@ -170,7 +170,7 @@ onMounted(async () => {
       {{ message }}
     </p>
 
-    <p v-if="isLoading" class="py-10 text-center text-sm text-moon-muted">กำลังโหลดปฏิทิน...</p>
+    <LoadingOverlay v-if="isLoading" text="กำลังโหลดปฏิทิน..." />
 
     <!-- รายการเดือน เลื่อนลงไปเรื่อยๆ -->
     <section v-else class="px-2 pb-32">

@@ -20,6 +20,12 @@
       </svg>
     </div>
 
+    <!-- โลโก้งาน + ชื่อ มุมซ้ายบน (ตัวเล็ก ไม่แย่งความสนใจจากอวตาร) -->
+    <div class="absolute left-4 top-4 z-20 flex items-center gap-2" aria-hidden="true">
+      <BrandLogoMark :size="34" />
+      <BrandWordmark lines="one" :size="20" />
+    </div>
+
     <!-- ประกายดาวจางๆ ลอยกระจายทั่วหน้าจอตลอดเวลา (อยู่หลังเนื้อหา) -->
     <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
       <svg
@@ -57,7 +63,10 @@
           >
             <div class="absolute inset-[-12%] rounded-full bg-moon-pink/60 blur-[36px]" />
             <!-- รูปอวตารมีพื้นหลังเป็นสี่เหลี่ยม เลยมนมุมให้ดูนุ่มนวล -->
-            <div class="absolute inset-0 overflow-hidden rounded-[22px] shadow-[0_10px_28px_rgba(254,119,119,0.3)]">
+            <div
+              class="avatar-frame absolute inset-0 overflow-hidden"
+              :class="stage === 'done' ? 'avatar-frame-on' : ''"
+            >
               <template v-for="layer in avatarLayers" :key="layer.slot">
                 <img
                   v-if="layer.code && !hiddenLayers[layer.slot]"
@@ -97,7 +106,8 @@
           @click="share"
         >
           <span class="flex items-center rounded-full bg-moon-card p-[5px]">
-            <FaIcon name="arrow-up-from-bracket" class="h-5 w-[17px] text-moon-ink" />
+            <BrandLogoMark v-if="isSharing" :size="30" stage="bob" />
+            <FaIcon v-else name="arrow-up-from-bracket" class="h-5 w-[17px] text-moon-ink" />
           </span>
           แชร์
         </button>
@@ -200,7 +210,8 @@
       <div class="px-9 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <BaseButton
           label="ถัดไป"
-          :disabled="selectedGoalIds.length === 0 || isSavingGoals"
+          :loading="isSavingGoals"
+          :disabled="selectedGoalIds.length === 0"
           @click="confirmGoals"
         />
       </div>
@@ -651,6 +662,18 @@ function start() {
     opacity: 0;
     transform: translateY(-70px) scale(1) rotate(70deg);
   }
+}
+
+/* กรอบอวตาร: ตอนอยู่กลางจอ (intro/settle) ไม่มีกรอบ ไม่มีเงา พอวางที่เสร็จ (done) ค่อยๆ มีมุมมนกับเงาขึ้นมา */
+.avatar-frame {
+  border-radius: 0;
+  box-shadow: 0 10px 28px rgba(254, 119, 119, 0);
+  transition: border-radius 0.7s ease, box-shadow 0.7s ease;
+}
+
+.avatar-frame-on {
+  border-radius: 22px;
+  box-shadow: 0 10px 28px rgba(254, 119, 119, 0.3);
 }
 
 /* อวตารขยับขึ้นลงและเอียงเบาๆ ให้ดูมีชีวิต */

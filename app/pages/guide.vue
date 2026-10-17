@@ -266,9 +266,7 @@ onMounted(async () => {
 
     <h1 class="text-center text-2xl font-semibold">คู่มือบรรเทาปวด</h1>
 
-    <div v-if="isLoading" class="mt-20 text-center text-sm text-moon-muted">
-      กำลังโหลด...
-    </div>
+    <LoadingOverlay v-if="isLoading" />
 
     <div v-else-if="loadError" class="mt-20 text-center">
       <p class="text-sm text-moon-muted">
@@ -463,9 +461,11 @@ onMounted(async () => {
             <button
               type="button"
               :disabled="isSaving || selectedLocations.length === 0"
-              class="mt-[32px] flex h-[59px] w-full items-center justify-center rounded-3xl bg-moon-ink text-lg font-semibold text-white transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+              class="mt-[32px] flex h-[59px] w-full items-center justify-center gap-2 rounded-3xl bg-moon-ink text-lg font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+              :class="isSaving ? '!bg-moon-ink' : ''"
               @click="finishSheet"
             >
+              <BrandLogoMark v-if="isSaving" :size="34" stage="bob" />
               {{ isSaving ? 'กำลังบันทึก...' : 'ถัดไป' }}
             </button>
           </template>

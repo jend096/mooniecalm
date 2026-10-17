@@ -5,10 +5,19 @@
 defineProps<{
   text?: string // ข้อความใต้โลโก้ ไม่ใส่ = "กำลังโหลด..."
 }>()
+
+// ถ้ามีหน้ารอโหลดซ้อนกันหลายอัน (เช่น ตอนเปลี่ยนหน้า + หน้านั้นกำลังดึงข้อมูล) ให้โชว์แค่อันที่ขึ้นก่อน
+// อันที่เหลือซ่อนรออยู่ พออันบนหายไปค่อยโผล่ต่อ จะได้ไม่เห็นกระต่ายซ้อนกันสองตัว
+const id = useId()
+const stack = useState<string[]>('loading-overlay-stack', () => [])
+const isTop = computed(() => stack.value.length === 0 || stack.value[0] === id)
+onMounted(() => { stack.value = [...stack.value, id] })
+onBeforeUnmount(() => { stack.value = stack.value.filter(x => x !== id) })
 </script>
 
 <template>
   <div
+    v-show="isTop"
     class="loading-overlay fixed inset-0 z-[60] flex items-center justify-center bg-white/70 px-6 backdrop-blur-[2px]"
     role="status"
     aria-live="polite"

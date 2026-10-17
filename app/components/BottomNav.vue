@@ -28,8 +28,13 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         class="flex flex-1 flex-col items-center justify-center gap-1 py-2"
         :class="active === tab.key ? 'text-moon-period' : 'text-moon-ink'"
       >
-        <FaIcon :name="tab.icon" class="h-6 w-6" />
-        <span class="text-xs font-medium">{{ tab.label }}</span>
+        <!-- หน้าที่เปิดอยู่: ไอคอนขยายใหญ่ขึ้น (ขยายด้วย scale เลยไม่ดันความสูงของแถบเมนู) -->
+        <FaIcon
+          :name="tab.icon"
+          class="h-6 w-6 origin-center transition-transform duration-200"
+          :class="active === tab.key ? 'scale-[1.4]' : ''"
+        />
+        <span class="text-xs" :class="active === tab.key ? 'font-semibold' : 'font-medium'">{{ tab.label }}</span>
       </NuxtLink>
 
       <button

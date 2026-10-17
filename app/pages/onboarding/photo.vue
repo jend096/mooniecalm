@@ -62,7 +62,7 @@ function skip() {
     </div>
 
     <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
-      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'ถัดไป'" :disabled="!hasPhoto || saving" @click="next" />
+      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'ถัดไป'" :loading="saving" :disabled="!hasPhoto" @click="next" />
     </div>
   </div>
 </template>

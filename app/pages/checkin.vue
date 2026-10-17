@@ -262,6 +262,9 @@
 
     <BottomNav active="checkin" />
   </div>
+
+  <!-- ระหว่างดึงข้อมูล: ขึ้นกระต่ายรอโหลด (หน้าจริงโผล่หลังโหลดเสร็จ) -->
+  <LoadingOverlay v-else />
 </template>
 
 <script setup lang="ts">

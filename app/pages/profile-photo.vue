@@ -70,7 +70,7 @@ function cancel() {
     </div>
 
     <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
-      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'บันทึก'" :disabled="!hasPhoto || saving" @click="save" />
+      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'บันทึก'" :loading="saving" :disabled="!hasPhoto" @click="save" />
     </div>
   </div>
 </template>

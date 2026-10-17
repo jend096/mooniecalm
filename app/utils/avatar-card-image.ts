@@ -98,32 +98,6 @@ function drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
   ctx.fillRect(x - r, y - r, r * 2, r * 2)
 }
 
-// กรอบกระจก (glass): ขาวโปร่งไล่เฉด + ขอบขาว + เงาฟุ้งนุ่มๆ
-// (canvas ทำเบลอพื้นหลังจริงไม่ได้ในทุกเบราว์เซอร์ เลยจำลองด้วยสีขาวโปร่ง ซึ่งพื้นหลังเราเป็นแสงฟุ้งอยู่แล้ว)
-function drawGlass(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.save()
-  ctx.shadowColor = 'rgba(254, 119, 119, 0.22)'
-  ctx.shadowBlur = 60
-  ctx.shadowOffsetY = 24
-  const fill = ctx.createLinearGradient(x, y, x + w, y + h)
-  fill.addColorStop(0, 'rgba(255, 255, 255, 0.78)')
-  fill.addColorStop(1, 'rgba(255, 255, 255, 0.38)')
-  ctx.fillStyle = fill
-  roundedRectPath(ctx, x, y, w, h, r)
-  ctx.fill()
-  ctx.restore()
-
-  // ขอบขาวเงาๆ
-  const edge = ctx.createLinearGradient(x, y, x + w, y + h)
-  edge.addColorStop(0, 'rgba(255, 255, 255, 1)')
-  edge.addColorStop(0.5, 'rgba(255, 255, 255, 0.35)')
-  edge.addColorStop(1, 'rgba(255, 255, 255, 0.9)')
-  ctx.strokeStyle = edge
-  ctx.lineWidth = 4
-  roundedRectPath(ctx, x, y, w, h, r)
-  ctx.stroke()
-}
-
 export async function renderAvatarCardImage(input: AvatarCardImageInput): Promise<Blob> {
   // รอให้ฟอนต์ที่ใช้โหลดเสร็จก่อนวาด ไม่งั้นตัวหนังสือจะเป็นฟอนต์สำรอง
   if (document.fonts) {
@@ -155,33 +129,31 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   const logoGap = 28 // ระยะระหว่างวงกลมกับชื่อ
   const brandH = logoSize
   const avatarSize = 840 // อวตารไม่มีกรอบ วางเต็มๆ
-  const overlap = 70 // การ์ดข้อความซ้อนทับขอบล่างของอวตาร
   const gap = 40
-  const boxX = 100
-  const boxW = WIDTH - boxX * 2
-  const textW = boxW - 120
+  const textGap = 14 // ระยะจากรูปอวตารถึงข้อความ (ข้อความอยู่ใต้รูป ไม่ทับตัวอวตาร ไม่มีกรอบ)
+  const textW = WIDTH - 260 // ความกว้างที่ข้อความยินดีด้วยใช้ได้ (ชื่อยาวจะถูกลดขนาดตัวอักษรให้พอดี)
   const bottomReserve = 120 // พื้นที่ด้านล่างที่เว้นไว้ให้คิวอาร์ + ลิงก์ (ยิ่งน้อย เนื้อหายิ่งขยับลงล่าง)
   const title = `ยินดีด้วย ${input.nickname}!`
   // ชื่อยาวมาก ค่อยๆ ลดขนาดตัวอักษรจนพอดีกรอบ ถ้าเล็กสุดแล้วยังไม่พอก็ตัดขึ้นบรรทัดใหม่
-  let titleSize = 76
+  let titleSize = 62
   ctx.font = `700 ${titleSize}px ${FONT_FAMILY}`
-  while (titleSize > 52 && ctx.measureText(title).width > textW) {
+  while (titleSize > 44 && ctx.measureText(title).width > textW) {
     titleSize -= 4
     ctx.font = `700 ${titleSize}px ${FONT_FAMILY}`
   }
   const titleLines = wrapText(ctx, title, textW)
-  const titleLineH = Math.round(titleSize * 1.4)
-  const subtitleSize = 44
-  const subtitleH = 64
-  const boxH = 64 + titleLines.length * titleLineH + 20 + subtitleH + 56
+  const titleLineH = Math.round(titleSize * 1.35)
+  const subtitleSize = 36
+  const subtitleH = 50
+  const textH = titleLines.length * titleLineH + 12 + subtitleH
 
-  const contentH = brandH + gap + avatarSize - overlap + boxH
+  const contentH = brandH + gap + avatarSize + textGap + textH
   const top = Math.max(60, Math.round((HEIGHT - bottomReserve - contentH) / 2))
   const brandY = top
   const avatarX = (WIDTH - avatarSize) / 2
   const avatarY = brandY + brandH + gap
   const avatarCy = avatarY + avatarSize / 2
-  const boxY = avatarY + avatarSize - overlap
+  const textY = avatarY + avatarSize + textGap
 
   // ----- พื้นหลัง: ตรงกลางสีขาว ไล่ออกไปเป็นชมพูอ่อน (สีแบรนด์) -----
   const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT)
@@ -276,19 +248,17 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   actx.fillRect(0, 0, avatarSize, avatarSize)
   ctx.drawImage(avatarCanvas, avatarX, avatarY)
 
-  // ----- การ์ดข้อความกระจก: ซ้อนอยู่บนขอบล่างของอวตาร -----
-  drawGlass(ctx, boxX, boxY, boxW, boxH, 64)
-
+  // ----- ข้อความยินดีด้วย: อยู่ใต้รูปอวตาร (ไม่มีกรอบ ไม่ทับตัวอวตาร) -----
   ctx.textAlign = 'center'
   ctx.textBaseline = 'alphabetic'
   ctx.fillStyle = COLORS.ink
   ctx.font = `700 ${titleSize}px ${FONT_FAMILY}`
   titleLines.forEach((line, i) => {
-    ctx.fillText(line, WIDTH / 2, boxY + 64 + titleSize + i * titleLineH)
+    ctx.fillText(line, WIDTH / 2, textY + titleSize + i * titleLineH)
   })
   ctx.fillStyle = COLORS.muted
   ctx.font = `500 ${subtitleSize}px ${FONT_FAMILY}`
-  ctx.fillText('นี่คืออวตารตัวจิ๋วของคุณ', WIDTH / 2, boxY + 64 + titleLines.length * titleLineH + 20 + subtitleSize + 4)
+  ctx.fillText('นี่คืออวตารตัวจิ๋วของคุณ', WIDTH / 2, textY + titleLines.length * titleLineH + 12 + subtitleSize + 4)
 
   // ----- มุมขวาล่าง: คิวอาร์โค้ด (แผ่นขาวรองให้สแกนง่าย) + ที่อยู่เว็บอยู่ฝั่งซ้าย -----
   const qrPlate = 216

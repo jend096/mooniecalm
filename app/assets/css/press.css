@@ -1,0 +1,16 @@
+/* ===== ปุ่มยุบลงตอนกด (ใช้กับทุกปุ่ม/ลิงก์ทั้งแอป) =====
+   ใช้ properties แยก scale / translate (ไม่ใช้ transform) เพื่อไม่ไปทับ transform ที่ปุ่มบางอันตั้งไว้เอง
+   อยากปิดเฉพาะปุ่มไหน ใส่ data-no-press ที่ปุ่มนั้น */
+button,
+a[href],
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled):not([data-no-press]):active,
+a[href]:not([data-no-press]):active,
+[role='button']:not([data-no-press]):active {
+  scale: 0.94; /* ยุบลงนิดหนึ่ง */
+  translate: 0 2px; /* จมลงนิดหนึ่งเหมือนถูกกดจริง */
+  filter: brightness(0.93); /* สีเข้มขึ้นเล็กน้อย */
+}

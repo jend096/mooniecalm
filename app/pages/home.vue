@@ -620,7 +620,8 @@ async function logout() {
           :disabled="isSharing"
           @click="share"
         >
-          <FaIcon name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
+          <BrandLogoMark v-if="isSharing" :size="38" stage="bob" />
+          <FaIcon v-else name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
         </button>
       </div>
 
@@ -658,7 +659,7 @@ async function logout() {
         <!-- ปุ่มเช็คอิน -->
         <button
           type="button"
-          class="absolute inset-x-[13px] bottom-[12px] flex h-[51px] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-medium text-white transition active:scale-[0.98]"
+          class="checkin-pulse absolute inset-x-[13px] bottom-[12px] flex h-[51px] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-bold text-white"
           @click="goToCheckin"
         >
           เช็คอินกันเถอะ
@@ -675,10 +676,10 @@ async function logout() {
           class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/snack')"
         >
-          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
+          <span aria-hidden="true" class="food-blob absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
           <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-white">
-            <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
+            <svg viewBox="0 0 41.67 37.5" class="food-icon h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
               <path d="M 35.4167 33.3333 L 2.0833 33.3333 C 0.9375 33.3333 0 34.2708 0 35.4167 C 0 36.5625 0.9375 37.5 2.0833 37.5 L 35.4167 37.5 C 36.5625 37.5 37.5 36.5625 37.5 35.4167 C 37.5 34.2708 36.5625 33.3333 35.4167 33.3333 Z M 37.5 0 L 14.5833 0 L 14.5833 5 L 18.3542 8.0208 C 18.6042 8.2083 18.75 8.5208 18.75 8.8333 L 18.75 17.7083 C 18.75 18.2917 18.2917 18.75 17.7083 18.75 L 9.375 18.75 C 8.7917 18.75 8.3333 18.2917 8.3333 17.7083 L 8.3333 8.8333 C 8.3333 8.5208 8.4792 8.2083 8.7292 8.0208 L 12.5 5 L 12.5 0 L 8.3333 0 C 6.0417 0 4.1667 1.875 4.1667 4.1667 L 4.1667 20.8333 C 4.1667 25.4375 7.8958 29.1667 12.5 29.1667 L 25 29.1667 C 29.6042 29.1667 33.3333 25.4375 33.3333 20.8333 L 33.3333 14.5833 L 37.5 14.5833 C 39.7917 14.5833 41.6667 12.7083 41.6667 10.4167 L 41.6667 4.1667 C 41.6667 1.875 39.7917 0 37.5 0 Z M 37.5 10.4167 L 33.3333 10.4167 L 33.3333 4.1667 L 37.5 4.1667 L 37.5 10.4167 Z" />
             </svg>
           </span>
@@ -736,6 +737,9 @@ async function logout() {
 
     <BottomNav active="home" />
   </div>
+
+  <!-- ระหว่างดึงข้อมูล: ขึ้นกระต่ายรอโหลด (หน้าจริงโผล่หลังโหลดเสร็จ) -->
+  <LoadingOverlay v-else />
 </template>
 
 <style scoped>
@@ -797,9 +801,82 @@ async function logout() {
   }
 }
 
+/* การ์ด "วันนี้อยากทานอะไร": ตอนวงกลมทำท่าถูกกด สีจะเปลี่ยนด้วย (ใช้สีที่อยู่บนการ์ดนี้: ครีม -> ชมพู -> ขาว)
+   เวลาเดียวกับ press-hint (2.6 วิ) จึงดูเหมือนกดแล้วเปลี่ยนสี */
+.press-hint-food {
+  animation: press-hint 2.6s ease-in-out infinite, press-color-circle 2.6s ease-in-out infinite;
+}
+
+.press-hint-food .food-icon {
+  animation: press-color-icon 2.6s ease-in-out infinite;
+}
+
+.food-blob {
+  animation: press-color-blob 2.6s ease-in-out infinite;
+}
+
+@keyframes press-color-circle {
+  0%,
+  60%,
+  100% {
+    background-color: #ffffff;
+  }
+  68% {
+    background-color: #feffd4; /* ครีม */
+  }
+  82% {
+    background-color: #ffd7e2; /* ชมพู */
+  }
+}
+
+@keyframes press-color-icon {
+  0%,
+  60%,
+  100% {
+    color: #ffa8e6;
+  }
+  68% {
+    color: #fe7777; /* โคเรล */
+  }
+  82% {
+    color: #ff6e8a;
+  }
+}
+
+@keyframes press-color-blob {
+  0%,
+  60%,
+  100% {
+    background-color: #feffd4;
+  }
+  75% {
+    background-color: #ffd7e2;
+  }
+}
+
+/* ปุ่มเช็คอิน: ซูมเข้า-ออกเบาๆ เป็นจังหวะ ให้ดูน่ากด
+   (ใช้ transform ในอนิเมชัน ส่วนตอนกดจริงยุบด้วย scale แยกต่างหากใน assets/css/press.css จึงไม่ตีกัน) */
+.checkin-pulse {
+  animation: checkin-pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes checkin-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .press-hint,
-  .press-hint::after {
+  .press-hint::after,
+  .press-hint-food,
+  .press-hint-food .food-icon,
+  .food-blob,
+  .checkin-pulse {
     animation: none;
   }
 }

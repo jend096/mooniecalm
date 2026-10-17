@@ -357,9 +357,7 @@ onMounted(async () => {
 
     <h1 class="text-center text-2xl font-semibold">อยากทานอะไรตอนนี้ดี</h1>
 
-    <div v-if="isLoading" class="mt-20 text-center text-sm text-moon-muted">
-      กำลังโหลด...
-    </div>
+    <LoadingOverlay v-if="isLoading" />
 
     <div v-else-if="loadError" class="mt-20 text-center">
       <p class="text-sm text-moon-muted">
