@@ -20,12 +20,14 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
 </script>
 
 <template>
-  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around border-t border-moon-pink-soft bg-moon-card px-2 pb-[env(safe-area-inset-bottom)]">
+  <!-- แถบโค้งตามฟิกม่า: พื้นขาว มุมบนซ้าย-ขวาโค้ง 50 ไม่มีเส้นขอบ มีเงาบางๆ ด้านบนให้ลอยขึ้นจากพื้นหลัง
+       px-5 กันไม่ให้ปุ่มซ้ายสุด/ขวาสุดไปชนส่วนโค้งของมุม -->
+  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around rounded-t-[50px] bg-moon-card px-5 pb-[env(safe-area-inset-bottom)] pt-1 shadow-[0_-6px_20px_rgba(41,41,41,0.08)]">
     <template v-for="tab in tabs" :key="tab.key">
       <NuxtLink
         v-if="tab.to"
         :to="tab.to"
-        class="flex flex-1 flex-col items-center justify-center gap-1 py-2"
+        class="flex flex-1 flex-col items-center justify-center gap-1 py-3"
         :class="active === tab.key ? 'text-moon-period' : 'text-moon-ink'"
       >
         <!-- หน้าที่เปิดอยู่: ไอคอนขยายใหญ่ขึ้น (ขยายด้วย scale เลยไม่ดันความสูงของแถบเมนู) -->
@@ -41,7 +43,7 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         v-else
         type="button"
         disabled
-        class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-moon-ink opacity-40"
+        class="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-moon-ink opacity-40"
       >
         <FaIcon :name="tab.icon" class="h-6 w-6" />
         <span class="text-xs font-medium">{{ tab.label }}</span>

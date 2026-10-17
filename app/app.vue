@@ -1,11 +1,13 @@
 <script setup lang="ts">
 // ===== โครงหน้าทั้งแอป + หน้ารอโหลดตอนเปลี่ยนหน้า =====
 // ทุกครั้งที่เปลี่ยนหน้า จะมีกระต่ายโผล่ขึ้น-หุบลง (LoadingOverlay) ขึ้นคลุมจออย่างน้อย ~0.6 วินาที จะได้เห็นว่ากำลังเปลี่ยนหน้า
-// ข้ามหน้าแรก (index มีแอนิเมชันเปิดแอปของตัวเอง) กับหน้า onboarding/loading (มีกระต่ายให้แตะอยู่แล้ว)
+// ข้าม: หน้าแรก (index มีแอนิเมชันเปิดแอปของตัวเอง) / onboarding/loading (มีกระต่ายให้แตะอยู่แล้ว)
+//       และช่วงหน้าคำถามของ onboarding (step-2..6, allergy, question-1..4) ซึ่งให้กระต่ายไปขึ้นที่ปุ่ม "ถัดไป" แทน (ดู BaseButton.vue)
 const nuxtApp = useNuxtApp()
 const router = useRouter()
 
 const SKIP_PATHS = ['/', '/onboarding/loading']
+const QUESTION_PAGE = /^\/onboarding\/(step-[2-6]|allergy|question-\d)$/
 const MIN_VISIBLE_MS = 500
 
 const navLoading = ref(false)
@@ -18,7 +20,8 @@ nuxtApp.hook('app:mounted', () => { appReady = true })
 // เริ่มเปลี่ยนหน้า -> ขึ้นหน้ารอโหลด
 nuxtApp.hook('page:start', () => {
   if (!appReady) return
-  if (SKIP_PATHS.includes(router.currentRoute.value.path)) return
+  const path = router.currentRoute.value.path
+  if (SKIP_PATHS.includes(path) || QUESTION_PAGE.test(path)) return
   clearTimeout(hideTimer)
   navLoading.value = true
   shownAt = Date.now()
