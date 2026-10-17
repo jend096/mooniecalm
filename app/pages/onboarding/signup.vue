@@ -3,8 +3,9 @@ const config = useRuntimeConfig()
 const isSupabaseConfigured = Boolean(config.public.supabase?.url && config.public.supabase?.key)
 
 const email = ref('')
-const isLoginMode = ref(false)
 const loading = ref(false)
+const showConsent = ref(false) // true = กำลังโชว์ป๊อปอัพขอความยินยอม
+const sendingLink = ref(false) // true = กำลังส่งอีเมล (ไว้เลือกข้อความบนหน้ารอโหลด)
 const statusMessage = ref('')
 
 let hasCompletedLogin = false
@@ -21,11 +22,13 @@ async function completeLogin(userId: string) {
 
   try {
     // ดึงข้อมูลจาก user_profiles โดยหาจาก auth_user_id ที่ตรงกับรหัส Auth ของผู้ใช้
-    const { data: profile, error } = await supabase
+    const { data, error } = await supabase
       .from('user_profiles')
       .select('id, nickname')
       .eq('auth_user_id', userId)
       .maybeSingle()
+    // ระบุหน้าตาแถวเอง เพราะโปรเจกต์ยังไม่มีไฟล์ชนิดตารางของ Supabase (ไม่ระบุจะขึ้นแดงตอนอ่าน profile.nickname)
+    const profile = data as { id: number, nickname: string | null } | null
 
     if (error) {
       console.error('Supabase query error:', error)
@@ -47,8 +50,19 @@ async function completeLogin(userId: string) {
   }
 }
 
+// ยังไม่เคยยินยอม -> โชว์ป๊อปอัพ พอกดยินยอมค่อยส่งลิงก์ต่อ
+function acceptConsentAndSend() {
+  saveConsent()
+  showConsent.value = false
+  continueWithEmail()
+}
+
 async function continueWithEmail() {
   if (!email.value || loading.value) return
+  if (!readConsent()) {
+    showConsent.value = true
+    return
+  }
 
   if (!isSupabaseConfigured) {
     statusMessage.value = 'ยังไม่ได้ตั้งค่า Supabase'
@@ -56,6 +70,7 @@ async function continueWithEmail() {
   }
 
   loading.value = true
+  sendingLink.value = true
   statusMessage.value = ''
 
   const supabase = useSupabaseClient()
@@ -70,6 +85,7 @@ async function continueWithEmail() {
   })
 
   loading.value = false
+  sendingLink.value = false
   if (error) {
     statusMessage.value = error.message
   } else {
@@ -132,8 +148,9 @@ onMounted(async () => {
   }
 
   // 3. ตรวจสอบ session ปัจจุบันที่มีอยู่ในเครื่อง
+  // (เช็คกับเซิร์ฟเวอร์ด้วยว่าผู้ใช้ยังมีอยู่ ไม่งั้นถ้าลบผู้ใช้ใน Supabase ไปแล้ว session เก่าที่ค้างจะพาข้ามหน้าอีเมล)
   const { data: { session } } = await supabase.auth.getSession()
-  if (session?.user) {
+  if (session?.user && await isSessionStillValid()) {
     await completeLogin(session.user.id)
     return
   }
@@ -141,7 +158,11 @@ onMounted(async () => {
   // 4. ดักรับ Event เมื่อมี session เข้ามา
   const { data: listener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
     if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentSession?.user) {
-      await completeLogin(currentSession.user.id)
+      const userId = currentSession.user.id
+      // เลื่อนไปทำนอก callback (setTimeout) เพราะ Supabase ไม่แนะนำให้เรียกคำสั่ง auth อื่นซ้อนใน callback นี้ (อาจค้าง)
+      setTimeout(async () => {
+        if (await isSessionStillValid()) await completeLogin(userId)
+      }, 0)
     }
   })
   unsubscribe = () => listener.subscription.unsubscribe()
@@ -153,40 +174,38 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-slate-50 to-white px-6">
-    <div class="flex flex-col items-center pt-16 text-center">
-      <h1 class="font-['Anuphan'] text-[30px] font-semibold leading-tight text-slate-900">
-        {{ isLoginMode ? 'เข้าสู่ระบบ' : 'สร้างบัญชี' }}<br>MoonieCalm
+  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6">
+    <!-- กดส่งอีเมลแล้ว (หรือกำลังเช็คลิงก์ที่กลับมา) ขึ้นหน้ารอโหลดคลุมจอ -->
+    <!-- เครื่องนี้ยังไม่เคยกดยินยอมเก็บข้อมูลสุขภาพ (เช่นกดมาที่หน้านี้ตรงๆ) -> ถามก่อนส่งลิงก์ -->
+    <ConsentDialog v-if="showConsent" @accept="acceptConsentAndSend" @decline="showConsent = false" />
+
+    <LoadingOverlay v-if="loading" :text="sendingLink ? 'กำลังส่งลิงก์ไปที่อีเมล...' : 'กำลังเข้าสู่ระบบ...'" />
+
+    <div class="flex flex-col items-center pt-[162px] text-center">
+      <h1 class="text-3xl font-semibold text-moon-ink">
+        เข้าสู่ระบบ<br>MoonieCalm
       </h1>
-      <p class="mt-3 font-['Anuphan'] text-[14px] font-normal text-slate-500">
-        {{ isLoginMode ? 'ยินดีต้อนรับกลับมา เข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพ ติดตามรอบเดือน และดูแลพฤติกรรมของคุณได้อย่างต่อเนื่อง' : 'เข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพ และเริ่มต้นปรับพฤติกรรมบรรเทาอาการปวดประจำเดือนไปด้วยกัน' }}
+      <p class="mt-3 text-sm font-normal text-moon-muted">
+        เข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพ ติดตามรอบเดือน และดูแลพฤติกรรมของคุณได้อย่างต่อเนื่อง
       </p>
     </div>
 
-    <div class="mt-10 flex flex-col gap-4">
+    <div class="mt-[43px] flex flex-col gap-[22px] px-3">
       <input
         v-model="email"
         type="email"
         placeholder="อีเมล"
-        class="w-full rounded-full bg-white px-5 py-3 font-['Anuphan'] text-sm font-normal text-slate-900 shadow-sm outline-none placeholder:text-slate-400"
+        class="h-[52px] w-full rounded-2xl border border-moon-pink-soft bg-moon-card px-4 text-lg font-normal text-moon-ink outline-none placeholder:text-moon-muted focus:border-moon-pink"
       >
       <BaseButton
-        :label="isLoginMode ? 'เข้าสู่ระบบ' : 'ต่อไป'"
+        label="เข้าสู่ระบบ"
         :disabled="!email || loading"
         @click="continueWithEmail"
       />
-      <p v-if="statusMessage" class="text-center font-['Anuphan'] text-xs font-normal text-slate-500">
+      <p v-if="statusMessage" class="text-center text-xs font-normal text-moon-muted">
         {{ statusMessage }}
       </p>
     </div>
-
-    <button
-      type="button"
-      class="mt-4 text-center font-['Anuphan'] text-xs font-normal text-slate-400"
-      @click="isLoginMode = !isLoginMode"
-    >
-      {{ isLoginMode ? 'ยังไม่มีบัญชี MoonieCalm ใช่ไหม ? สร้างบัญชี' : 'มีบัญชีของ MoonieCalm แล้วใช่ไหม ? เข้าสู่ระบบ' }}
-    </button>
 
     <!-- <div class="mt-8 flex items-center gap-3">
       <div class="h-px flex-1 bg-slate-200" />

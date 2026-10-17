@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { PeriodRow } from '~/utils/period-prediction'
+import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
-import { estimateCycleLength, getDayKind } from '~/utils/period-prediction'
+import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
 
 interface GoalType {
   id: number
@@ -115,6 +115,30 @@ const periodStatusText = computed(() => {
     return `ประจำเดือนเลยกำหนดมา ${prediction.value.daysLate} วันแล้ว`
   }
 
+  // รอบล่าสุดที่บันทึก: ดูว่าผู้ใช้กด "หมดแล้ว" ไปหรือยัง / วันนี้ยังอยู่ในช่วงมีประจำเดือนไหม
+  // (ต้องเช็คก่อนสูตรเดิมด้านล่าง เพราะสูตรเดิมนับแค่จากจำนวนวันที่ตั้งไว้ ไม่รู้ว่าผู้ใช้กดหมดไปแล้ว)
+  const latestRow = allRows.value.at(-1)
+  if (latestRow) {
+    const today = startOfDay(new Date())
+    const sinceStart = daysBetween(parseLocalDate(latestRow.cycle_start_date), today)
+
+    // กดวันหมดไว้แล้ว และวันนี้ถึงหรือเลยวันหมดนั้นแล้ว -> หมดแล้ว
+    const hasEnded =
+      !!latestRow.confirmed_end_date &&
+      daysBetween(parseLocalDate(latestRow.confirmed_end_date), today) >= 0
+    if (hasEnded && prediction.value) {
+      return `ประจำเดือนหมดแล้ว (รอบหน้าอีก ${prediction.value.daysUntil} วัน)`
+    }
+
+    // ยังไม่ถึงวันหมด (ใช้ getRowEnd ตัวเดียวกับปฏิทิน จึงตรงกันและขยายต่อได้ถ้ายังไม่หมด)
+    const stillInPeriod =
+      sinceStart >= 0 &&
+      daysBetween(today, getRowEnd(latestRow, periodDurationDays.value ?? 5)) >= 0
+    if (stillInPeriod) {
+      return `อยู่ในช่วงประจำเดือน (วันที่ ${sinceStart + 1})`
+    }
+  }
+
   const todayCycleDay = dayInCycle(new Date())
   if (todayCycleDay === null || !periodDurationDays.value || !cycleDurationDays.value) return ''
 
@@ -123,7 +147,7 @@ const periodStatusText = computed(() => {
   }
 
   const daysUntilNext = effectiveCycleDays.value - todayCycleDay
-  return `ประจำเดือนคุณจะมาในอีก ${daysUntilNext} วัน`
+  return `คาดว่าประจำเดือนคุณจะมาในอีก ${daysUntilNext} วัน`
 })
 
 // ---------- รอบประจำเดือนที่บันทึกไว้ + เมนูตอนกดวัน ----------
@@ -203,8 +227,8 @@ function updateVisibleMonth() {
   const el = stripRef.value
   const first = el?.firstElementChild as HTMLElement | null
   if (!el || !first) return
-  const itemWidth = first.offsetWidth + 12 // 12px = ช่องว่างระหว่างแคปซูล (gap-3)
-  const centerIndex = Math.floor((el.scrollLeft + el.clientWidth / 2) / itemWidth)
+  const itemWidth = first.offsetWidth + 13 // 13px = ช่องว่างระหว่างแคปซูล (gap-[13px])
+  const centerIndex = Math.floor((el.scrollLeft + el.clientWidth / 2 - 38) / itemWidth) // 38 = ขอบซ้ายของแถบ
   const day = periodStrip.value[Math.min(periodStrip.value.length - 1, Math.max(0, centerIndex))]
   if (day) visibleMonthLabel.value = monthLabel(day.date)
 }
@@ -219,6 +243,112 @@ async function onPeriodChanged(text: string) {
   await loadPeriodRows()
   periodMessage.value = text
   selectedDate.value = null
+}
+
+// ---------- ป๊อปอัพถามผู้ใช้ (หมดหรือยัง / มาหรือยัง / ใกล้ถึงรอบ) ----------
+// ข้อความของแต่ละป๊อปอัพ (เนื้อหาตรงกับตาราง notification_types ใช้ code เดียวกัน ทีหลังผูกแจ้งเตือนจริงได้ง่าย)
+const PROMPT_COPY: Record<
+  PeriodPromptCode,
+  (days?: number) => { title: string, message: string, primaryLabel: string, secondaryLabel?: string }
+> = {
+  period_end_popup: () => ({
+    title: 'ประจำเดือนหมดหรือยัง',
+    message: 'ประจำเดือนรอบนี้หมดแล้วหรือยังคะ ถ้าหมดแล้วกดยืนยันเพื่อบันทึกไว้ได้เลย',
+    primaryLabel: 'หมดแล้ว',
+    secondaryLabel: 'ยังไม่หมด'
+  }),
+  period_arrival_popup: () => ({
+    title: 'ประจำเดือนมาหรือยัง',
+    message: 'วันนี้ประจำเดือนมาหรือยังคะ กดยืนยันได้เลยถ้ามาแล้ว',
+    primaryLabel: 'มาแล้ว',
+    secondaryLabel: 'ยังไม่มา'
+  }),
+  pre_period_info: days => ({
+    title: 'ใกล้ถึงรอบแล้วนะ',
+    message: `อีกประมาณ ${days} วัน ประจำเดือนรอบหน้าอาจจะมาแล้ว เตรียมตัวไว้ก่อนได้เลย`,
+    primaryLabel: 'รับทราบ'
+  })
+}
+
+// ป๊อปอัพที่ผู้ใช้กดปิดไปแล้ว "วันนี้" (จำไว้ในเบราว์เซอร์ ไม่ให้เด้งซ้ำทั้งวัน พรุ่งนี้ถามใหม่)
+const dismissedPromptCodes = ref<string[]>([])
+const promptStorageKey = computed(() => `moonie-dismissed-prompts-${profileId.value}`)
+
+function loadDismissedPrompts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(promptStorageKey.value) ?? 'null')
+    // ใช้ได้เฉพาะที่จดไว้ของ "วันนี้" ถ้าเป็นของเมื่อวานก็ทิ้ง
+    if (saved && saved.date === getLocalDateString()) dismissedPromptCodes.value = saved.codes ?? []
+  } catch {
+    // อ่านไม่ได้ก็ไม่เป็นไร แค่อาจถามซ้ำ
+  }
+}
+
+function dismissPrompt(code: string) {
+  dismissedPromptCodes.value = [...dismissedPromptCodes.value, code]
+  try {
+    localStorage.setItem(
+      promptStorageKey.value,
+      JSON.stringify({ date: getLocalDateString(), codes: dismissedPromptCodes.value })
+    )
+  } catch {
+    // เก็บไม่ได้ก็ไม่เป็นไร
+  }
+}
+
+// ตอนนี้ควรถามอะไร (ตัดสินด้วย getPeriodPrompt ที่ไฟล์ period-prediction.ts)
+const currentPrompt = computed(() => {
+  if (!hasPeriodData.value || allRows.value.length === 0) return null
+  const prompt = getPeriodPrompt(allRows.value, periodDurationDays.value ?? 5, effectiveCycleDays.value)
+
+  // "หมดหรือยัง" ต้องมีแถวจริงในตาราง (มี id) ถึงจะบันทึกวันหมดได้
+  // ถ้ายังไม่เคยบันทึกเลย allRows คือแถวสมมติจาก onboarding -> ไม่ถาม
+  if (prompt?.code === 'period_end_popup' && savedRows.value.length === 0) return null
+  return prompt
+})
+
+// ป๊อปอัพที่ "แสดงจริง": ต้องโหลดเสร็จแล้ว ไม่มีเมนูอื่นเปิดอยู่ และวันนี้ยังไม่ได้กดปิด
+const visiblePrompt = computed(() => {
+  const prompt = currentPrompt.value
+  if (isLoading.value || selectedDate.value || !prompt) return null
+  if (dismissedPromptCodes.value.includes(prompt.code)) return null
+  return { code: prompt.code, ...PROMPT_COPY[prompt.code](prompt.days) }
+})
+
+// ผู้ใช้กด "หมดแล้ว" -> บันทึกวันหมดเป็นวันนี้ลงรอบล่าสุด
+async function confirmPeriodEndToday() {
+  const row = savedRows.value.at(-1)
+  if (!row?.id) return
+  const authed = await getAuthedSupabaseClient()
+  const { error } = await authed
+    .from('period_cycles')
+    .update({ confirmed_end_date: getLocalDateString() })
+    .eq('id', row.id)
+  if (error) {
+    periodMessage.value = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ'
+    return
+  }
+  await onPeriodChanged('บันทึกวันที่หมดแล้ว')
+}
+
+// กดปุ่มหลัก: แต่ละป๊อปอัพทำไม่เหมือนกัน
+async function onPromptPrimary() {
+  const code = visiblePrompt.value?.code
+  if (code === 'period_end_popup') {
+    await confirmPeriodEndToday()
+  } else if (code === 'period_arrival_popup') {
+    // เปิดเมนูของวันนี้ ให้ผู้ใช้กด "ประจำเดือนมาวันนี้" (โค้ดบันทึกอยู่ที่เมนูนั้นที่เดียว)
+    dismissPrompt(code)
+    openDay(startOfDay(new Date()))
+  } else if (code === 'pre_period_info') {
+    dismissPrompt(code) // แค่รับทราบ
+  }
+}
+
+// กดปุ่มรอง ("ยังไม่หมด" / "ยังไม่มา"): ปิด วันนี้ไม่ถามซ้ำ
+function onPromptSecondary() {
+  const code = visiblePrompt.value?.code
+  if (code) dismissPrompt(code)
 }
 
 onMounted(async () => {
@@ -307,6 +437,7 @@ onMounted(async () => {
     checkedGoals.value[goal.goal_code] = column ? Boolean(checkinRes.data?.[column]) : false
   }
 
+  loadDismissedPrompts()
   isLoading.value = false
 
   // รอให้หน้าวาดเสร็จ แล้วเลื่อนแถบวันให้วันนี้อยู่ตรงกลาง
@@ -318,13 +449,32 @@ onMounted(async () => {
 const toastMessage = ref('')
 let toastTimer: ReturnType<typeof setTimeout> | undefined
 
-async function share() {
-  if (await shareApp(nickname.value) !== 'copied') return
-  toastMessage.value = 'คัดลอกลิงก์แล้ว'
+function showToast(message: string) {
+  toastMessage.value = message
   if (toastTimer) clearTimeout(toastTimer)
   toastTimer = setTimeout(() => {
     toastMessage.value = ''
   }, 2000)
+}
+
+// แชร์เหมือนหน้า reveal: รูปการ์ดอวตาร + ข้อความชวนเล่นที่มีลิงก์ (ดู shareAvatarCard ใน ~/utils/share-app.ts)
+const isSharing = ref(false)
+async function share() {
+  if (isSharing.value) return
+  isSharing.value = true
+  try {
+    const blob = await renderAvatarCardImage({
+      nickname: nickname.value,
+      layerCodes: avatarLayers.value
+        .filter(layer => layer.code && !hiddenLayers.value[layer.slot])
+        .map(layer => layer.code as string)
+    }).catch(() => null)
+    const result = await shareAvatarCard(nickname.value, blob)
+    if (result === 'copied') showToast('คัดลอกลิงก์แล้ว')
+    else if (result === 'saved') showToast('บันทึกรูปการ์ดและคัดลอกลิงก์แล้ว')
+  } finally {
+    isSharing.value = false
+  }
 }
 
 onUnmounted(() => {
@@ -344,104 +494,116 @@ async function logout() {
 </script>
 
 <template>
-  <div v-if="!isLoading" class="flex min-h-dvh flex-col bg-gradient-to-b from-slate-50 to-white px-6 pt-12 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-    <div class="flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <img
-          v-if="profileImageUrl"
-          :src="profileImageUrl"
-          alt=""
-          class="h-10 w-10 flex-shrink-0 rounded-full object-cover"
-        >
-        <div v-else class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-slate-200">
-          <svg class="h-5 w-5 text-slate-400" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="7" r="3" stroke="currentColor" stroke-width="1.4" />
-            <path d="M4 17c0-3 2.7-5 6-5s6 2 6 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
-          </svg>
+  <div
+    v-if="!isLoading"
+    class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end font-['Anuphan'] text-moon-ink"
+  >
+    <!-- ลายเบลอตกแต่งด้านหลัง (ตามฟิกม่า: วงกลมโคเรลเบลอ + แถบขาวเบลอ) -->
+    <div aria-hidden="true" class="pointer-events-none absolute left-[37%] top-[134px] h-[155px] w-[97px] rounded-full bg-moon-coral blur-[100px]" />
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-white blur-[25px]" />
+
+    <!-- ประกายดาวจางๆ ลอยอยู่หลังเนื้อหา -->
+    <AmbientSparkles />
+
+    <div class="relative z-10 flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <!-- หัวหน้า: รูปโปรไฟล์ + ทักทาย (ซ้าย) / ออกจากระบบ (ขวา) -->
+      <div class="flex items-center justify-between gap-3 px-[38px] pt-[59px]">
+        <div class="flex min-w-0 items-center gap-[14px]">
+          <!-- กดรูปเพื่อไปหน้าเปลี่ยนรูปโปรไฟล์ -->
+          <NuxtLink to="/profile-photo" class="flex-shrink-0" aria-label="เปลี่ยนรูปโปรไฟล์">
+            <img
+              v-if="profileImageUrl"
+              :src="profileImageUrl"
+              alt=""
+              class="h-[35px] w-[35px] rounded-full object-cover"
+            >
+            <div v-else class="flex h-[35px] w-[35px] items-center justify-center rounded-full bg-moon-chip">
+              <FaIcon name="user" class="h-4 w-4 text-moon-muted" />
+            </div>
+          </NuxtLink>
+          <p class="flex min-w-0 items-baseline gap-1 text-lg font-medium">
+            สวัสดี
+            <span class="truncate text-xl">{{ nickname }}</span>
+          </p>
         </div>
-        <h1 class="font-['Anuphan'] text-[24px] font-semibold text-slate-900">
-          สวัสดี {{ nickname }}
-        </h1>
-      </div>
-      <button
-        type="button"
-        class="flex-shrink-0 rounded-full bg-white px-3 py-1.5 font-['Anuphan'] text-[12px] font-medium text-slate-500 shadow-sm"
-        @click="logout"
-      >
-        ออกจากระบบ
-      </button>
-    </div>
-
-        <div v-if="hasPeriodData" class="mt-6">
-      <!-- แถวบน: ชื่อเดือน (ซ้าย) + ปุ่มเปิดหน้าปฏิทินเต็ม (ขวา) -->
-      <div class="flex items-center justify-between gap-3">
-        <!-- ชื่อเดือน/ปี ของวันที่อยู่กลางแถบ -->
-        <p class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">{{ visibleMonthLabel }}</p>
         <button
           type="button"
-          class="flex items-center gap-3 rounded-full bg-white py-1.5 pl-1.5 pr-5 font-['Anuphan'] text-[15px] font-semibold text-moon-ink shadow-sm transition active:scale-95"
-          @click="navigateTo('/calendar')"
+          class="flex-shrink-0 text-xs font-medium text-moon-muted"
+          @click="logout"
         >
-          <span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
-              <rect x="3" y="4.5" width="14" height="12.5" rx="2.5" stroke="currentColor" stroke-width="1.5" />
-              <path d="M3 8.5h14M7 3v3M13 3v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-          </span>
-          ปฏิทิน
+          ออกจากระบบ
         </button>
       </div>
 
-      <!-- แถบวัน: แคปซูลสีขาวทีละวัน เลื่อนซ้าย-ขวาได้ กดวันไหนก็มีเมนูถามว่าประจำเดือนมา/หมดไหม -->
-      <div
-        ref="stripRef"
-        class="mt-4 flex cursor-grab select-none gap-3 overflow-x-auto pb-1 active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        @pointerdown="onStripPointerDown"
-        @pointermove="onStripPointerMove"
-        @pointerup="onStripPointerEnd"
-        @pointerleave="onStripPointerEnd"
-        @scroll="updateVisibleMonth"
-      >
-        <button
-          v-for="day in periodStrip"
-          :key="day.key"
-          type="button"
-          :data-today="day.isToday ? '' : undefined"
-          class="flex shrink-0 basis-[calc((100%-3rem)/5)] flex-col items-center gap-2 rounded-full bg-white px-1 pb-2 pt-3 shadow-sm transition active:scale-95"
-          @click="onDayClick(day.date)"
-        >
-          <!-- ตัวย่อวัน จ อ พ ... อยู่เหนือตัวเลข -->
-          <span class="font-['Anuphan'] text-[15px] font-medium text-moon-ink">{{ day.weekday }}</span>
-          <!-- วงกลมตัวเลข: วันนี้ = แดงเข้ม, วันที่มีประจำเดือน = แดงอ่อน, คาดไว้ = เส้นประแดงเข้ม, วันธรรมดา = เทาอ่อน -->
-          <span
-            class="flex h-11 w-11 items-center justify-center rounded-full font-['Anuphan'] text-[17px] font-medium"
-            :class="{
-              'bg-[var(--color-period-deep)] text-white': day.isToday,
-              'bg-[var(--color-period-soft)] text-moon-ink': !day.isToday && day.kind === 'logged',
-              'border-2 border-dashed border-[color:var(--color-period-deep)] text-moon-ink': !day.isToday && day.kind === 'predicted',
-              'bg-slate-100 text-moon-ink': !day.isToday && day.kind === 'none'
-            }"
+      <div v-if="hasPeriodData">
+        <!-- แถวบน: ชื่อเดือน (ซ้าย) + ปุ่มเปิดหน้าปฏิทินเต็ม (ขวา) -->
+        <div class="mt-[19px] flex items-center justify-between gap-3 pl-[47px] pr-[36px]">
+          <p class="text-base font-semibold">{{ visibleMonthLabel }}</p>
+          <button
+            type="button"
+            class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-pink-soft bg-white py-[5px] pl-[5px] pr-3 text-sm font-medium transition active:scale-95"
+            @click="navigateTo('/calendar')"
           >
-            {{ day.dayNumber }}
-          </span>
-        </button>
-      </div>
+            <span class="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-moon-chip">
+              <FaIcon name="calendar-days-regular" class="h-[15px] w-[13px] text-moon-period" />
+            </span>
+            ปฏิทิน
+          </button>
+        </div>
 
-      <!-- ข้อความสถานะ -->
-      <div class="mt-4 flex justify-center">
-        <p class="rounded-full border border-moon-pink bg-white/90 px-5 py-3 text-center font-['Anuphan'] text-[15px] font-medium text-moon-ink">
-          แสดงสถานะ: {{ periodStatusText }}
+        <!-- แถบวัน: แคปซูลทีละวัน เลื่อนซ้าย-ขวาได้ กดวันไหนก็มีเมนูถามว่าประจำเดือนมา/หมดไหม -->
+        <div
+          ref="stripRef"
+          class="mt-[5px] flex cursor-grab select-none gap-[13px] overflow-x-auto px-[38px] py-3 active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          @pointerdown="onStripPointerDown"
+          @pointermove="onStripPointerMove"
+          @pointerup="onStripPointerEnd"
+          @pointerleave="onStripPointerEnd"
+          @scroll="updateVisibleMonth"
+        >
+          <button
+            v-for="day in periodStrip"
+            :key="day.key"
+            type="button"
+            :data-today="day.isToday ? '' : undefined"
+            class="flex h-[90px] shrink-0 basis-[calc((100%-52px)/5)] flex-col items-center rounded-[28px] pt-[5px] shadow-[0_1px_9px_rgba(107,98,100,0.19)] transition active:scale-95"
+            :class="day.isToday ? 'bg-moon-coral' : 'bg-white'"
+            @click="onDayClick(day.date)"
+          >
+            <!-- ตัวย่อวัน อา จ อ ... อยู่เหนือตัวเลข (วันนี้ = ตัวขาวใหญ่ขึ้น) -->
+            <span
+              class="font-medium"
+              :class="day.isToday ? 'text-base leading-6 text-white' : 'text-sm leading-[22px]'"
+            >{{ day.weekday }}</span>
+            <!-- วงกลมตัวเลข: วันนี้ = ขาวนวลบนพื้นโคเรล / วันที่มีประจำเดือน = ชมพูอ่อน / วันที่คาดไว้ = เส้นประโคเรล / วันธรรมดา = เทาอ่อน -->
+            <span
+              class="flex shrink-0 items-center justify-center rounded-full text-sm font-medium tabular-nums"
+              :class="{
+                'mt-[5px] h-[42px] w-[42px] bg-moon-bg': day.isToday,
+                'mt-[10px] h-[42px] w-[42px] bg-moon-pink-soft': !day.isToday && day.kind === 'logged',
+                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-coral bg-moon-chip': !day.isToday && day.kind === 'predicted',
+                'mt-[10px] h-[42px] w-[42px] bg-moon-chip': !day.isToday && day.kind === 'none'
+              }"
+            >
+              {{ day.dayNumber }}
+            </span>
+          </button>
+        </div>
+
+        <!-- ข้อความสถานะ -->
+        <div class="mt-px flex justify-center">
+          <p class="flex min-h-[44px] items-center rounded-[24px] border border-moon-coral bg-moon-bg px-[11px] text-center text-sm font-medium">
+            {{ periodStatusText }}
+          </p>
+        </div>
+
+        <p v-if="periodMessage" class="mt-2 px-[38px] text-center text-xs text-moon-muted">
+          {{ periodMessage }}
         </p>
       </div>
 
-      <p class="mt-2 text-center font-['Anuphan'] text-[11px] text-slate-400">แตะที่วันเพื่อบอกว่าประจำเดือนมา/หมด · ปัดหรือลากเพื่อดูวันอื่น</p>
-      <p v-if="periodMessage" class="mt-1 text-center font-['Anuphan'] text-[12px] text-slate-500">
-        {{ periodMessage }}
-      </p>
-    </div>
-
-    <div class="-mx-6 mt-6 px-[5px]">
-      <div class="relative aspect-square w-full">
+      <!-- รูปอวตารเต็มความกว้าง + ปุ่มแชร์มุมขวาล่าง -->
+      <div class="relative mt-[6px] aspect-square w-full">
         <template v-for="layer in avatarLayers" :key="layer.slot">
           <img
             v-if="layer.code && !hiddenLayers[layer.slot]"
@@ -453,88 +615,115 @@ async function logout() {
         </template>
         <button
           type="button"
-          class="absolute bottom-0 left-2 z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
+          class="absolute bottom-2 right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-white shadow-[0_1px_6px_rgba(107,98,100,0.2)]"
           aria-label="แชร์"
+          :disabled="isSharing"
           @click="share"
         >
-          <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
-            <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-          </svg>
+          <FaIcon name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
+        </button>
+      </div>
+
+      <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
+      <div class="relative mx-[35px] mt-[22px] min-h-[242px] rounded-[15px] bg-white/55 pb-[75px] shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+        <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
+
+        <!-- ซ้าย: จำนวนวันที่เช็คอิน -->
+        <p class="absolute left-[23px] top-[94px] flex items-baseline gap-[6px]">
+          <span class="text-lg">วัน</span>
+          <span class="text-[48px] font-semibold leading-none text-moon-period">{{ String(daysLogged).padStart(2, '0') }}</span>
+          <span class="text-lg text-moon-ink/[0.27]">/{{ CYCLE_LENGTH_DAYS }}</span>
+        </p>
+
+        <!-- ขวา: เส้นเวลาเป้าหมาย + สถานะ -->
+        <div v-if="activeGoals.length" class="absolute bottom-[75px] left-[165px] right-[13px] top-[59px] overflow-hidden">
+          <div class="relative flex flex-col gap-[2px]">
+            <!-- เส้นตั้งสีประจำเดือน -->
+            <span aria-hidden="true" class="absolute bottom-[11px] left-0 top-[11px] w-px bg-moon-period" />
+            <div
+              v-for="goal in activeGoals"
+              :key="goal.id"
+              class="relative flex h-[22px] items-center gap-[6px]"
+            >
+              <span aria-hidden="true" class="h-px w-[10px] shrink-0 bg-moon-period" />
+              <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
+              <span class="flex w-[34px] shrink-0 justify-start">
+                <span v-if="checkedGoals[goal.goal_code]" class="text-xs">สำเร็จ</span>
+                <span v-else aria-hidden="true" class="h-[15px] w-[15px] rounded-full border border-dashed border-moon-period" />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ปุ่มเช็คอิน -->
+        <button
+          type="button"
+          class="absolute inset-x-[13px] bottom-[12px] flex h-[51px] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-medium text-white transition active:scale-[0.98]"
+          @click="goToCheckin"
+        >
+          เช็คอินกันเถอะ
+          <span class="absolute right-[10px] flex h-[31px] w-[31px] items-center justify-center rounded-full bg-moon-coral">
+            <FaIcon name="chevron-right" class="h-3 w-[7px] text-white" />
+          </span>
+        </button>
+      </div>
+
+      <!-- การ์ดลัด 2 ใบ: อยากทานอะไร / ปวดตรงไหน -->
+      <div class="mt-[31px] flex gap-[21px] pl-[33px] pr-[42px]">
+        <button
+          type="button"
+          class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
+          @click="navigateTo('/snack')"
+        >
+          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
+          <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
+          <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-white">
+            <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
+              <path d="M 35.4167 33.3333 L 2.0833 33.3333 C 0.9375 33.3333 0 34.2708 0 35.4167 C 0 36.5625 0.9375 37.5 2.0833 37.5 L 35.4167 37.5 C 36.5625 37.5 37.5 36.5625 37.5 35.4167 C 37.5 34.2708 36.5625 33.3333 35.4167 33.3333 Z M 37.5 0 L 14.5833 0 L 14.5833 5 L 18.3542 8.0208 C 18.6042 8.2083 18.75 8.5208 18.75 8.8333 L 18.75 17.7083 C 18.75 18.2917 18.2917 18.75 17.7083 18.75 L 9.375 18.75 C 8.7917 18.75 8.3333 18.2917 8.3333 17.7083 L 8.3333 8.8333 C 8.3333 8.5208 8.4792 8.2083 8.7292 8.0208 L 12.5 5 L 12.5 0 L 8.3333 0 C 6.0417 0 4.1667 1.875 4.1667 4.1667 L 4.1667 20.8333 C 4.1667 25.4375 7.8958 29.1667 12.5 29.1667 L 25 29.1667 C 29.6042 29.1667 33.3333 25.4375 33.3333 20.8333 L 33.3333 14.5833 L 37.5 14.5833 C 39.7917 14.5833 41.6667 12.7083 41.6667 10.4167 L 41.6667 4.1667 C 41.6667 1.875 39.7917 0 37.5 0 Z M 37.5 10.4167 L 33.3333 10.4167 L 33.3333 4.1667 L 37.5 4.1667 L 37.5 10.4167 Z" />
+            </svg>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          class="relative h-[188px] flex-[162] overflow-hidden rounded-[20px] bg-moon-lavender-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
+          @click="navigateTo('/guide')"
+        >
+          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[114px] w-[118px] rounded-full bg-moon-lavender/[0.29]" />
+          <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">ตอนนี้<br>ปวดตรงไหน</span>
+          <span class="press-hint press-hint-pain absolute bottom-[29px] right-[49px] flex h-[65px] w-[65px] items-center justify-center rounded-full bg-white">
+            <svg viewBox="0 0 35 35" class="h-[35px] w-[35px] text-moon-lavender" fill="currentColor" aria-hidden="true">
+              <path d="M 29.4691 0 L 33.1466 9.66 C 36.3322 18.0367 35.3718 27.4167 30.57 35 L 18.9754 35 L 18.9754 27.8367 L 25.37 21.4433 L 23.3088 19.39 L 17.4998 25.1533 L 11.7142 19.39 L 9.6529 21.4433 L 16.0475 27.8367 L 16.0475 35 L 4.4295 35 C 2.0594 31.2635 0.593 27.0297 0.1458 22.6322 C -0.3013 18.2348 0.2831 13.794 1.8529 9.66 L 5.507 0 L 29.4691 0 Z M 18.0151 2.8933 L 16.6799 2.8933 C 13.4944 2.8933 11.8781 6.6967 14.0565 8.9833 L 15.4151 10.3833 L 11.5502 14.5833 L 13.7052 16.5433 L 15.8836 14.1867 L 17.4529 12.5067 L 21.3412 16.5667 L 23.4493 14.56 L 19.4439 10.3833 L 20.6385 9.1467 C 22.8403 6.86 21.2944 2.8933 18.0151 2.8933 Z M 18.0151 5.81 C 18.3196 5.81 18.5538 5.9733 18.6709 6.2767 C 18.8115 6.58 18.7646 6.8833 18.5304 7.1167 L 17.4295 8.26 L 16.1881 6.9533 C 15.7664 6.5333 16.0709 5.81 16.6799 5.81 L 18.0151 5.81 Z" />
+            </svg>
+          </span>
         </button>
       </div>
     </div>
-
-    <div class="mt-6 rounded-2xl bg-white p-5 shadow-sm">
-      <h2 class="font-['Anuphan'] text-[16px] font-semibold text-slate-900">
-        เป้าหมายของฉัน
-      </h2>
-
-      <p class="mt-3 font-['Anuphan'] text-[28px] font-semibold text-slate-900">
-        {{ daysLogged }} <span class="text-base font-normal text-slate-400">/ {{ CYCLE_LENGTH_DAYS }} วัน</span>
-      </p>
-      <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div class="h-full rounded-full bg-slate-900" :style="{ width: `${progressPercent}%` }" />
-      </div>
-
-      <div v-if="activeGoals.length" class="mt-4 flex flex-col gap-2">
-        <div
-          v-for="goal in activeGoals"
-          :key="goal.id"
-          class="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
-        >
-          <span class="font-['Anuphan'] text-[14px] font-medium text-slate-800">{{ goal.title }}</span>
-          <span
-            class="font-['Anuphan'] text-[12px] font-normal"
-            :class="checkedGoals[goal.goal_code] ? 'text-slate-900' : 'text-slate-400'"
-          >
-            {{ checkedGoals[goal.goal_code] ? 'สำเร็จวันนี้แล้ว' : 'ยังไม่เช็คอินวันนี้' }}
-          </span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        class="mt-4 w-full rounded-full bg-slate-900 py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition active:scale-95"
-        @click="goToCheckin"
-      >
-        วันนี้เช็คอินหรือยัง
-      </button>
-    </div>
-
-    <div class="mt-4 flex gap-3">
-      <button
-        type="button"
-        class="flex-1 rounded-2xl bg-white px-4 py-4 text-center font-['Anuphan'] text-sm font-medium text-slate-800 shadow-sm"
-      >
-        อยากทานอะไรตอนนี้ดี
-      </button>
-      <button
-        type="button"
-        class="flex-1 rounded-2xl bg-white px-4 py-4 text-center font-['Anuphan'] text-sm font-medium text-slate-800 shadow-sm"
-      >
-        ปวดตรงไหนไหม
-      </button>
-    </div>
-
-    <button
-      type="button"
-      class="mt-4 w-full rounded-2xl bg-white px-4 py-4 text-center font-['Anuphan'] text-sm font-medium text-slate-800 shadow-sm"
-    >
-      บันทึกอาการ
-    </button>
 
     <div
       v-if="toastMessage"
       class="fixed inset-x-0 bottom-24 z-50 flex justify-center px-6"
     >
-      <div class="rounded-full bg-slate-900 px-4 py-2 font-['Anuphan'] text-[13px] font-normal text-white shadow-lg">
+      <div class="rounded-full bg-moon-ink px-4 py-2 text-[13px] font-normal text-white shadow-lg">
         {{ toastMessage }}
       </div>
     </div>
 
+    <!-- ป๊อปอัพถาม: หมดหรือยัง / มาหรือยัง / ใกล้ถึงรอบ (เลือกข้อความจาก visiblePrompt) -->
+    <PromptDialog
+      v-if="visiblePrompt"
+      :title="visiblePrompt.title"
+      :message="visiblePrompt.message"
+      :primary-label="visiblePrompt.primaryLabel"
+      :secondary-label="visiblePrompt.secondaryLabel"
+      @primary="onPromptPrimary"
+      @secondary="onPromptSecondary"
+    />
+
     <!-- เมนูที่เด้งขึ้นมาตอนกดวันในแถบ -->
     <PeriodDaySheet
       v-if="selectedDate && profileId !== null"
+      popup
       :date="selectedDate"
       :rows="savedRows"
       :all-rows="allRows"
@@ -548,3 +737,70 @@ async function logout() {
     <BottomNav active="home" />
   </div>
 </template>
+
+<style scoped>
+/* วงกลมไอคอนบนการ์ดลัด: ทำท่าเหมือนถูกกดเบาๆ เป็นจังหวะ (ยุบนิดหนึ่งแล้วเด้งกลับ) + วงคลื่นขยายออกจากวงกลม ใบ้ให้รู้ว่ากดได้
+   การ์ดสองใบเหลื่อมจังหวะกัน (ใบที่สองช้ากว่า 1.3 วิ) จะได้ไม่กะพริบพร้อมกัน */
+.press-hint {
+  animation: press-hint 2.6s ease-in-out infinite;
+  box-shadow: 0 2px 6px rgba(41, 41, 41, 0.12);
+}
+
+.press-hint::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--ring);
+  opacity: 0;
+  pointer-events: none;
+  animation: press-ring 2.6s ease-out infinite;
+  animation-delay: inherit;
+}
+
+.press-hint-food {
+  --ring: #ffa8e6;
+}
+
+.press-hint-pain {
+  --ring: #ccbbff;
+  animation-delay: 1.3s;
+}
+
+@keyframes press-hint {
+  0%,
+  55%,
+  100% {
+    transform: scale(1);
+  }
+  68% {
+    transform: scale(0.9);
+  }
+  82% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes press-ring {
+  0%,
+  62% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  68% {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press-hint,
+  .press-hint::after {
+    animation: none;
+  }
+}
+</style>

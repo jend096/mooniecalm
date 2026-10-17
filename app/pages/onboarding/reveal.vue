@@ -1,148 +1,243 @@
 <template>
-  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-    <div class="pointer-events-none absolute -right-16 -top-16 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -left-16 top-1/2 z-0 h-56 w-56 -translate-y-1/2 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -right-16 top-1/2 z-0 h-56 w-56 -translate-y-1/2 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -left-10 -top-10 z-0 h-48 w-48 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -bottom-20 -right-10 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
+  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end">
+    <!-- ประกายดาวตอนอวตารลอยขึ้น (อยู่กลางจอ ตรงกับที่อวตารลอยอยู่) จางหายไปตอนอวตารเลื่อนลงมาวาง -->
+    <div
+      v-if="!isLoading"
+      class="pointer-events-none fixed inset-0 z-20 transition-opacity duration-500"
+      :class="stage === 'intro' ? 'opacity-100' : 'opacity-0'"
+      aria-hidden="true"
+    >
+      <svg
+        v-for="(s, i) in sparkles"
+        :key="i"
+        viewBox="0 0 24 24"
+        class="sparkle absolute"
+        :class="s.color"
+        :style="{ left: `calc(50% + ${s.x}px)`, top: `calc(50% + ${s.y}px)`, width: `${s.size}px`, height: `${s.size}px`, animationDelay: `${s.delay}s` }"
+        fill="currentColor"
+      >
+        <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
+      </svg>
+    </div>
 
-    <div v-if="!isLoading" class="relative z-10 flex flex-1 flex-col items-center overflow-y-auto px-6 pt-16 pb-8 text-center">
-      <h1 class="font-['Anuphan'] text-[26px] font-semibold leading-tight text-slate-900">
-        ยินดีด้วย! {{ nickname }}
-      </h1>
+    <!-- ประกายดาวจางๆ ลอยกระจายทั่วหน้าจอตลอดเวลา (อยู่หลังเนื้อหา) -->
+    <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+      <svg
+        v-for="(s, i) in ambientSparkles"
+        :key="i"
+        viewBox="0 0 24 24"
+        class="ambient absolute"
+        :class="s.color"
+        :style="{ left: s.left, top: s.top, width: `${s.size}px`, height: `${s.size}px`, '--op': s.op, animationDuration: `${s.dur}s`, animationDelay: `${s.delay}s` }"
+        fill="currentColor"
+      >
+        <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
+      </svg>
+    </div>
 
-      <div class="-mx-6 mt-6 self-stretch px-[5px]">
-        <div class="relative aspect-square w-full">
-          <template v-for="layer in avatarLayers" :key="layer.slot">
-            <img
-              v-if="layer.code && !hiddenLayers[layer.slot]"
-              :src="`/avatar/${layer.code}.png`"
-              alt=""
-              class="absolute inset-0 h-full w-full object-contain"
-              @error="hideLayer(layer.slot)"
-            >
-          </template>
+    <div v-if="!isLoading" class="relative z-10 flex flex-1 flex-col items-center overflow-y-auto px-6 pt-10 pb-6 text-center">
+      <!-- อวตารลอยลงมาวางที่ตำแหน่งของมัน แล้วข้อความค่อยขึ้นข้างใต้ (ไม่มีกรอบการ์ดครอบ) -->
+      <div class="relative w-full max-w-[340px] px-2 pt-6">
+        <h1
+          class="relative text-lg font-semibold leading-8 text-moon-ink transition-all duration-700"
+          :class="stage === 'done' ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
+        >
+          ยินดีด้วย!<br>{{ nickname }} ได้อวตารตัวจิ๋วแล้ว
+        </h1>
+
+        <!-- อวตาร: ตอนเริ่มถูกเลื่อนไปกลางจอ (ตัวใหญ่ขึ้นนิดหน่อย) แล้วค่อยเลื่อนกลับมาวางที่ของมัน -->
+        <div ref="avatarRef" class="relative mx-auto mt-6 aspect-square w-[200px]" :style="avatarStyle">
+          <!-- ตัวที่กดได้: ขยับขึ้นลง/เอียงเบาๆ ตลอด (แยกจาก div ด้านนอกที่ใช้เลื่อนตอนแอนิเมชันเริ่ม) -->
           <button
             type="button"
-            class="absolute bottom-0 left-2 z-29 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md"
-            aria-label="แชร์"
-            @click="share"
+            class="avatar-float absolute inset-0 block cursor-pointer"
+            aria-label="ดูอวตารขนาดใหญ่"
+            :disabled="stage !== 'done'"
+            @click="isZoomed = true"
           >
-            <svg class="h-4 w-4 text-slate-700" viewBox="0 0 20 20" fill="none">
-              <path d="M14 6.5a2 2 0 1 0-1.94-2.5L7.9 6.6a2 2 0 1 0 0 2.8l4.16 2.6a2 2 0 1 0 .53-.85L8.44 8.55a2 2 0 0 0 0-1.1l4.15-2.6c.13.11.27.2.41.28Z" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" />
-            </svg>
+            <div class="absolute inset-[-12%] rounded-full bg-moon-pink/60 blur-[36px]" />
+            <!-- รูปอวตารมีพื้นหลังเป็นสี่เหลี่ยม เลยมนมุมให้ดูนุ่มนวล -->
+            <div class="absolute inset-0 overflow-hidden rounded-[22px] shadow-[0_10px_28px_rgba(254,119,119,0.3)]">
+              <template v-for="layer in avatarLayers" :key="layer.slot">
+                <img
+                  v-if="layer.code && !hiddenLayers[layer.slot]"
+                  :src="`/avatar/${layer.code}.png`"
+                  alt=""
+                  class="absolute inset-0 h-full w-full object-contain"
+                  @error="hideLayer(layer.slot)"
+                >
+              </template>
+            </div>
           </button>
+        </div>
+
+        <!-- สรุปคำตอบ: ขึ้นต้นด้วย -- ตาม Figma -->
+        <div
+          v-if="summaryItems.length"
+          class="relative mt-7 flex flex-col gap-2 rounded-2xl border border-white/80 bg-white/45 py-4 pl-5 pr-4 text-left shadow-[0_8px_24px_rgba(254,119,119,0.12)] backdrop-blur-md transition-all delay-150 duration-700"
+          :class="stage === 'done' ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
+        >
+          <div v-for="(item, i) in summaryItems" :key="i" class="flex gap-1.5">
+            <span class="text-[13px] font-normal leading-6 text-moon-ink">--</span>
+            <span class="text-[13px] font-medium leading-6 text-moon-ink">{{ item }}</span>
+          </div>
         </div>
       </div>
 
-      <div v-if="summaryItems.length" class="mt-8 w-full rounded-2xl bg-white/70 p-4 text-left">
-        <ul class="flex flex-col gap-1.5 font-['Anuphan'] text-[13px] font-normal text-slate-600">
-          <li v-for="(item, i) in summaryItems" :key="i" class="flex gap-2">
-            <span class="text-slate-400">•</span>
-            <span>{{ item }}</span>
-          </li>
-        </ul>
-      </div>
-
-      <button
-        type="button"
-        class="mt-4 w-full rounded-2xl bg-white/70 p-4 text-left"
-        @click="isSheetOpen = true"
+      <!-- ส่วนด้านล่างการ์ด (แชร์ + เป้าหมาย) โผล่หลังการ์ดเสร็จ -->
+      <div
+        class="flex w-full max-w-[340px] flex-col transition-opacity duration-500"
+        :class="stage === 'done' ? 'opacity-100' : 'pointer-events-none opacity-0'"
       >
-        <template v-if="hasConfirmedGoal">
-          <p class="font-['Anuphan'] text-[13px] font-medium text-slate-800">
+        <!-- ปุ่มแชร์: แคปซูลดำชิดขวา ตาม Figma (แชร์เป็นรูปการ์ดทั้งใบ) -->
+        <button
+          type="button"
+          class="mt-5 flex items-center gap-2.5 self-end rounded-full bg-moon-ink py-[5px] pl-[5px] pr-3 text-xl font-medium text-white disabled:opacity-60"
+          :disabled="isSharing"
+          @click="share"
+        >
+          <span class="flex items-center rounded-full bg-moon-card p-[5px]">
+            <FaIcon name="arrow-up-from-bracket" class="h-5 w-[17px] text-moon-ink" />
+          </span>
+          แชร์
+        </button>
+
+        <!-- เลือกเป้าหมายแล้ว: แสดงเป้าหมายที่เลือก กดเพื่อเปลี่ยนได้ -->
+        <button
+          v-if="hasConfirmedGoal"
+          type="button"
+          class="mt-4 w-full rounded-2xl border border-moon-pink-soft bg-moon-card p-4 text-left"
+          @click="isSheetOpen = true"
+        >
+          <p class="text-sm font-medium text-moon-ink">
             เป้าหมายของคุณ
           </p>
-          <p class="mt-1 font-['Anuphan'] text-[13px] font-normal text-slate-500">
+          <p class="mt-1 text-xs font-normal text-moon-muted">
             {{ selectedGoalTitles.join(' • ') }}
           </p>
-        </template>
-        <p v-else class="font-['Anuphan'] text-[13px] font-normal leading-relaxed text-slate-600">
-          เลือกเป้าหมายที่คุณอยากปรับเปลี่ยนได้เลย โดยมีระยะเวลาในการทำ 28 วัน
-        </p>
-      </button>
+        </button>
+      </div>
     </div>
 
-    <div class="relative z-10 px-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
-      <BaseButton label="เริ่มใช้งาน" :disabled="!hasConfirmedGoal" @click="start" />
+    <div
+      class="relative z-10 px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))] transition-opacity duration-500"
+      :class="stage === 'done' || isLoading ? 'opacity-100' : 'pointer-events-none opacity-0'"
+    >
+      <BaseButton
+        :label="hasConfirmedGoal ? 'เริ่มใช้งาน' : 'เลือกเป้าหมาย'"
+        :disabled="isLoading"
+        @click="hasConfirmedGoal ? start() : (isSheetOpen = true)"
+      />
     </div>
 
     <div
       v-if="isSheetOpen"
-      class="fixed inset-0 z-30 bg-black/30"
+      class="fixed inset-0 z-30 bg-moon-ink/30"
       @click="isSheetOpen = false"
     />
 
+    <!-- แผ่นเลือกเป้าหมาย: พื้นขาว มุมบนโค้ง 24 มีแถบจับด้านบน ตาม Figma -->
     <div
-      class="fixed inset-x-0 bottom-0 z-40 flex h-[58vh] flex-col rounded-t-3xl bg-white shadow-xl transition-transform duration-300 ease-out"
+      class="fixed inset-x-0 bottom-0 z-40 mx-auto flex h-[70vh] max-w-[430px] flex-col rounded-t-3xl bg-moon-card shadow-xl transition-transform duration-300 ease-out"
       :class="isSheetOpen ? 'translate-y-0' : 'pointer-events-none translate-y-full'"
     >
-      <div class="flex items-center justify-between px-5 pt-4">
-        <h2 class="font-['Anuphan'] text-base font-semibold text-slate-900">
-          เลือกเป้าหมาย
+      <div class="flex items-center justify-between px-9 pt-5">
+        <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+      </div>
+
+      <div class="flex items-start justify-between gap-3 px-9 pt-3">
+        <h2 class="text-lg font-semibold text-moon-ink">
+          เลือกเป้าหมายที่คุณอยากปรับเปลี่ยนได้เลย
         </h2>
         <button
           type="button"
-          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-100"
+          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-moon-pink-soft"
           aria-label="ปิด"
           @click="isSheetOpen = false"
         >
-          <svg class="h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="none">
-            <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-          </svg>
+          <FaIcon name="xmark" class="h-4 w-4 text-moon-muted" />
         </button>
       </div>
 
-      <p class="px-5 pt-1.5 font-['Anuphan'] text-xs font-normal leading-relaxed text-slate-500">
+      <p class="px-9 pt-1.5 text-xs font-normal text-moon-muted">
         ระยะเวลาในการทำ 28 วัน
       </p>
 
-      <div class="mt-3 flex flex-1 flex-col gap-2.5 overflow-y-auto px-5 pb-4">
+      <div class="mt-3 flex flex-1 flex-col gap-3 overflow-y-auto px-9 pb-4">
         <button
           v-for="goal in goalTypes"
           :key="goal.id"
           type="button"
-          class="flex w-full items-center justify-between gap-3 rounded-2xl px-4 py-4 text-left shadow-md transition active:scale-[0.98]"
+          class="flex w-full items-center justify-between gap-3 rounded-2xl border px-4 py-3.5 text-left transition active:scale-[0.98]"
           :class="selectedGoalIds.includes(goal.id)
-            ? 'bg-slate-900 text-white shadow-slate-900/25 active:bg-slate-800'
-            : 'bg-slate-200 text-slate-800 shadow-slate-400/30 active:bg-slate-300'"
+            ? 'border-moon-period bg-moon-card'
+            : 'border-moon-pink-soft bg-moon-card'"
           @click="toggleGoal(goal.id)"
         >
-          <span class="flex min-w-0 flex-1 flex-col items-start gap-1">
-            <span class="font-['Anuphan'] text-sm font-semibold">{{ goal.title }}</span>
+          <span class="flex min-w-0 flex-1 items-center justify-between gap-2">
+            <span class="text-base font-medium text-moon-ink">{{ goal.title }}</span>
             <span
               v-if="recommendedGoalCodes.has(goal.goal_code)"
-              class="rounded-full px-2 py-0.5 font-['Anuphan'] text-[10px] font-medium"
-              :class="selectedGoalIds.includes(goal.id) ? 'bg-white text-slate-900' : 'bg-slate-900 text-white'"
+              class="flex flex-shrink-0 items-center gap-1 rounded-full bg-moon-lavender-soft px-3 py-0.5 text-sm font-normal text-moon-ink"
             >
               แนะนำ
+              <!-- ประกายดาว 4 แฉก (ใหญ่ 1 + เล็ก 1) วาดเอง ไม่ใช่ไอคอนจาก Font Awesome -->
+              <svg viewBox="0 0 28 28" class="h-4 w-4 text-moon-coral" fill="currentColor" aria-hidden="true">
+                <path d="M11 7 Q12.8 15.2 21 17 Q12.8 18.8 11 27 Q9.2 18.8 1 17 Q9.2 15.2 11 7Z" />
+                <path d="M22 1 Q22.9 5.1 27 6 Q22.9 6.9 22 11 Q21.1 6.9 17 6 Q21.1 5.1 22 1Z" />
+              </svg>
             </span>
           </span>
           <span
             class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2"
-            :class="selectedGoalIds.includes(goal.id) ? 'border-white bg-white' : 'border-slate-400 bg-white'"
+            :class="selectedGoalIds.includes(goal.id) ? 'border-moon-period bg-moon-period' : 'border-moon-pink-soft bg-moon-card'"
           >
-            <svg v-if="selectedGoalIds.includes(goal.id)" class="h-3 w-3" viewBox="0 0 20 20" fill="none">
-              <path d="M4 10.5L8 14.5L16 6" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <FaIcon name="check" v-if="selectedGoalIds.includes(goal.id)" class="text-white h-3 w-3" />
           </span>
         </button>
       </div>
 
-      <div class="px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div class="px-9 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         <BaseButton
-          label="ยืนยัน"
+          label="ถัดไป"
           :disabled="selectedGoalIds.length === 0 || isSavingGoals"
           @click="confirmGoals"
         />
       </div>
     </div>
 
+    <!-- ดูอวตารขนาดใหญ่: กดที่ว่างๆ (พื้นมืด) เพื่อปิด / กดที่ตัวอวตารเองจะไม่ปิด -->
+    <Transition name="zoom">
+      <div
+        v-if="isZoomed"
+        class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-5 bg-moon-ink/45 backdrop-blur-sm"
+        @click="isZoomed = false"
+      >
+        <div class="zoom-card relative aspect-square w-[min(88vw,380px)]" @click.stop>
+          <div class="avatar-float absolute inset-0">
+            <div class="absolute inset-0 overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(254,119,119,0.45)]">
+              <template v-for="layer in avatarLayers" :key="layer.slot">
+                <img
+                  v-if="layer.code && !hiddenLayers[layer.slot]"
+                  :src="`/avatar/${layer.code}.png`"
+                  alt=""
+                  class="absolute inset-0 h-full w-full object-contain"
+                >
+              </template>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm font-normal text-white/80">
+          แตะที่ว่างๆ เพื่อปิด
+        </p>
+      </div>
+    </Transition>
+
     <div
       v-if="toastMessage"
       class="fixed inset-x-0 bottom-24 z-50 flex justify-center px-6"
     >
-      <div class="rounded-full bg-slate-900 px-4 py-2 font-['Anuphan'] text-[13px] font-normal text-white shadow-lg">
+      <div class="rounded-full bg-moon-ink px-4 py-2 text-[13px] font-normal text-white shadow-lg">
         {{ toastMessage }}
       </div>
     </div>
@@ -230,6 +325,127 @@ function showToast(message: string) {
   }, 2000)
 }
 
+// ===== จังหวะแอนิเมชันตอนได้การ์ด =====
+// intro  = อวตารล้วนๆ ลอยขึ้นกลางจอพร้อมประกาย
+// settle = อวตารเลื่อนลงมาวางในการ์ด พื้นการ์ดค่อยๆ โผล่
+// done   = ข้อความขึ้นข้างใต้ ปุ่มต่างๆ โผล่
+type Stage = 'intro' | 'settle' | 'done'
+const stage = ref<Stage>('intro')
+
+const INTRO_SCALE = 1.35 // ตอนอยู่กลางจอ ให้ตัวใหญ่ขึ้นนิดหน่อย
+const avatarRef = ref<HTMLElement | null>(null)
+const introOffset = ref({ dx: 0, dy: 0 }) // ระยะที่ต้องเลื่อนจากที่ของมันในการ์ด ไปกลางจอ
+const introStarted = ref(false) // false = ยังอยู่ต่ำลงมาและจาง, true = ลอยขึ้นมาถึงกลางจอแล้ว
+let stageTimers: ReturnType<typeof setTimeout>[] = []
+
+const avatarStyle = computed(() => {
+  if (stage.value !== 'intro') {
+    // เลื่อนกลับมาที่การ์ด
+    return { transform: 'none', opacity: 1, transition: 'transform 900ms cubic-bezier(0.22, 1, 0.36, 1)' }
+  }
+  const { dx, dy } = introOffset.value
+  if (!introStarted.value) {
+    // จุดเริ่ม: อยู่ต่ำกว่ากลางจอเล็กน้อยและยังมองไม่เห็น
+    return { transform: `translate(${dx}px, ${dy + 56}px) scale(${INTRO_SCALE})`, opacity: 0, transition: 'none' }
+  }
+  // ค่อยๆ ลอยขึ้นมากลางจอ
+  return {
+    transform: `translate(${dx}px, ${dy}px) scale(${INTRO_SCALE})`,
+    opacity: 1,
+    transition: 'transform 1400ms cubic-bezier(0.22, 1, 0.36, 1), opacity 900ms ease-out'
+  }
+})
+
+// ตำแหน่งประกายรอบอวตาร (px จากกลางจอ) — สีใช้โทนเดียวกับแอป
+const sparkles = [
+  { x: -120, y: -70, size: 22, delay: 0.2, color: 'text-moon-coral' },
+  { x: 110, y: -110, size: 28, delay: 0.5, color: 'text-moon-lavender' },
+  { x: -150, y: 40, size: 16, delay: 0.9, color: 'text-moon-period-predicted' },
+  { x: 140, y: 30, size: 20, delay: 0.35, color: 'text-moon-coral' },
+  { x: -60, y: -150, size: 14, delay: 1.1, color: 'text-moon-lavender' },
+  { x: 50, y: 140, size: 18, delay: 0.7, color: 'text-moon-period-predicted' },
+  { x: -110, y: 130, size: 24, delay: 1.3, color: 'text-moon-lavender' },
+  { x: 160, y: -10, size: 12, delay: 1.0, color: 'text-moon-coral' }
+]
+
+// ประกายที่ลอยทั่วหน้าจอ (ตำแหน่งเป็น % ของจอ, op = ความเข้มสูงสุด, dur/delay = วินาที)
+// มีทั้งดวงเล็กและดวงใหญ่ วางไว้ตามขอบจอ/ช่องว่างข้างอวตาร และอยู่หลังเนื้อหา เลยไม่บังการ์ดกับข้อความ
+// ใช้แค่โทนชมพู/ม่วงให้ไม่รก
+const ambientSparkles = [
+  { left: '3%', top: '5%', size: 30, dur: 9, delay: 0, color: 'text-moon-coral', op: 0.75 },
+  { left: '88%', top: '4%', size: 20, dur: 8, delay: 1.5, color: 'text-moon-lavender', op: 0.95 },
+  { left: '48%', top: '2%', size: 10, dur: 7, delay: 3.4, color: 'text-moon-period-predicted', op: 0.8 },
+  { left: '12%', top: '22%', size: 16, dur: 8, delay: 2.6, color: 'text-moon-period-predicted', op: 0.8 },
+  { left: '86%', top: '20%', size: 34, dur: 11, delay: 0.8, color: 'text-moon-coral', op: 0.65 },
+  { left: '5%', top: '34%', size: 24, dur: 10, delay: 4.2, color: 'text-moon-lavender', op: 0.95 },
+  { left: '90%', top: '36%', size: 12, dur: 7, delay: 2.2, color: 'text-moon-coral', op: 0.8 },
+  { left: '15%', top: '44%', size: 9, dur: 8, delay: 5.5, color: 'text-moon-coral', op: 0.8 },
+  { left: '2%', top: '60%', size: 14, dur: 9, delay: 1, color: 'text-moon-period-predicted', op: 0.8 },
+  { left: '93%', top: '56%', size: 26, dur: 10, delay: 5, color: 'text-moon-lavender', op: 0.95 },
+  { left: '4%', top: '78%', size: 32, dur: 11, delay: 2.8, color: 'text-moon-coral', op: 0.65 },
+  { left: '92%', top: '76%', size: 14, dur: 8, delay: 0.4, color: 'text-moon-coral', op: 0.8 },
+  { left: '10%', top: '92%', size: 10, dur: 7, delay: 3.6, color: 'text-moon-lavender', op: 0.95 },
+  { left: '88%', top: '92%', size: 22, dur: 9, delay: 1.9, color: 'text-moon-period-predicted', op: 0.8 },
+  { left: '30%', top: '96%', size: 8, dur: 8, delay: 4.6, color: 'text-moon-coral', op: 0.8 },
+  { left: '66%', top: '95%', size: 12, dur: 9, delay: 0.2, color: 'text-moon-lavender', op: 0.95 }
+]
+
+function startIntro() {
+  // คนที่ตั้งค่าลดแอนิเมชันไว้ ข้ามไปแสดงการ์ดเลย
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    stage.value = 'done'
+    return
+  }
+
+  // วัดตำแหน่งอวตารที่วางอยู่ในการ์ด แล้วคำนวณว่าต้องเลื่อนไปกลางจอเท่าไหร่
+  const rect = avatarRef.value?.getBoundingClientRect()
+  if (rect) {
+    introOffset.value = {
+      dx: window.innerWidth / 2 - (rect.left + rect.width / 2),
+      dy: window.innerHeight / 2 - (rect.top + rect.height / 2)
+    }
+  }
+
+  // รอ 2 เฟรมเพื่อให้เบราว์เซอร์วาดจุดเริ่มก่อน แล้วค่อยสั่งให้ลอยขึ้น
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      introStarted.value = true
+    })
+  })
+
+  stageTimers = [
+    setTimeout(() => { stage.value = 'settle' }, 2600),
+    setTimeout(() => {
+      stage.value = 'done'
+      prepareCardImage() // เตรียมรูปการ์ดไว้ล่วงหน้า กดแชร์แล้วจะได้ไม่ต้องรอ
+    }, 3500)
+  ]
+}
+
+// ===== แชร์เป็นรูปการ์ด =====
+// กดที่อวตารเพื่อดูขนาดใหญ่
+const isZoomed = ref(false)
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') isZoomed.value = false
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
+const isSharing = ref(false)
+let cardImagePromise: Promise<Blob | null> | null = null
+
+function prepareCardImage() {
+  if (!cardImagePromise) {
+    cardImagePromise = renderAvatarCardImage({
+      nickname: nickname.value,
+      layerCodes: avatarLayers.value
+        .filter(layer => layer.code && !hiddenLayers.value[layer.slot])
+        .map(layer => layer.code as string)
+    }).catch(() => null)
+  }
+  return cardImagePromise
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -258,6 +474,7 @@ onMounted(async () => {
   }
 
   if (profileError || !profile) {
+    stage.value = 'done'
     isLoading.value = false
     return
   }
@@ -289,14 +506,27 @@ onMounted(async () => {
   hasConfirmedGoal.value = selectedGoalIds.value.length > 0
 
   isLoading.value = false
+  await nextTick()
+  startIntro()
 })
 
 onUnmounted(() => {
   if (toastTimer) clearTimeout(toastTimer)
+  stageTimers.forEach(clearTimeout)
 })
 
+// แชร์รูปการ์ดทั้งใบ + ลิงก์ชวนเล่น (ตัวเดียวกับปุ่มแชร์หน้า home ดู shareAvatarCard ใน ~/utils/share-app.ts)
 async function share() {
-  if (await shareApp(nickname.value) === 'copied') showToast('คัดลอกลิงก์แล้ว')
+  if (isSharing.value) return
+  isSharing.value = true
+
+  try {
+    const result = await shareAvatarCard(nickname.value, await prepareCardImage())
+    if (result === 'copied') showToast('คัดลอกลิงก์แล้ว')
+    else if (result === 'saved') showToast('บันทึกรูปการ์ดและคัดลอกลิงก์แล้ว')
+  } finally {
+    isSharing.value = false
+  }
 }
 
 function toggleGoal(id: number) {
@@ -322,9 +552,15 @@ async function confirmGoals() {
     is_active: true
   }))
 
-  const { error: goalsError } = await authed.from('user_goals').insert(goalRows)
+  // upsert แทน insert: ตาราง user_goals ห้ามมี (ผู้ใช้, เป้าหมาย) ซ้ำกัน
+  // ถ้าเคยเลือกเป้าหมายนี้ไว้แล้ว (เช่นบัญชีทดสอบ) จะบันทึกทับของเดิมแทนที่จะ error แล้วค้างอยู่หน้าเดิม
+  const { error: goalsError } = await authed
+    .from('user_goals')
+    .upsert(goalRows, { onConflict: 'user_id,goal_type_id' })
   if (goalsError) {
+    console.error('บันทึกเป้าหมายไม่สำเร็จ', goalsError)
     isSavingGoals.value = false
+    showToast('บันทึกเป้าหมายไม่สำเร็จ ลองใหม่อีกครั้งนะ')
     return
   }
 
@@ -338,7 +574,9 @@ async function confirmGoals() {
     .maybeSingle()
 
   if (openCycleError) {
+    console.error('อ่านรอบเป้าหมายไม่สำเร็จ', openCycleError)
     isSavingGoals.value = false
+    showToast('บันทึกเป้าหมายไม่สำเร็จ ลองใหม่อีกครั้งนะ')
     return
   }
 
@@ -350,15 +588,17 @@ async function confirmGoals() {
     })
 
     if (cycleError) {
+      console.error('สร้างรอบเป้าหมายไม่สำเร็จ', cycleError)
       isSavingGoals.value = false
+      showToast('บันทึกเป้าหมายไม่สำเร็จ ลองใหม่อีกครั้งนะ')
       return
     }
   }
 
   isSavingGoals.value = false
 
-  hasConfirmedGoal.value = true
-  isSheetOpen.value = false
+  // บันทึกเป้าหมายเสร็จแล้วไปหน้าหลักเลย (ไม่ต้องกลับมากด "เริ่มใช้งาน" อีกที)
+  navigateTo('/home')
 }
 
 function start() {
@@ -366,3 +606,105 @@ function start() {
   navigateTo('/home')
 }
 </script>
+
+<style scoped>
+/* ประกายดาว: โผล่ขึ้นมา หมุนเล็กน้อย แล้วลอยขึ้นและจางหาย วนซ้ำระหว่างอวตารลอยขึ้น */
+.sparkle {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  animation: sparkle-float 1.9s ease-out infinite;
+}
+
+@keyframes sparkle-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1) rotate(30deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -150%) scale(0.4) rotate(80deg);
+  }
+}
+
+/* ประกายจางๆ ลอยทั่วจอ: ค่อยๆ ปรากฏ หมุนเบาๆ ลอยขึ้น แล้วจางหาย แต่ละดวงเริ่มไม่พร้อมกัน */
+.ambient {
+  opacity: 0;
+  animation-name: ambient-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes ambient-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.5) rotate(0deg);
+  }
+  30%,
+  70% {
+    opacity: var(--op);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-70px) scale(1) rotate(70deg);
+  }
+}
+
+/* อวตารขยับขึ้นลงและเอียงเบาๆ ให้ดูมีชีวิต */
+.avatar-float {
+  animation: avatar-bob 4.2s ease-in-out infinite;
+}
+
+@keyframes avatar-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.2deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(1.2deg);
+  }
+}
+
+/* ตอนเปิด/ปิดหน้าขยาย: พื้นมืดค่อยๆ ขึ้น ตัวอวตารเด้งใหญ่ขึ้นมา */
+.zoom-enter-active,
+.zoom-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.zoom-enter-from,
+.zoom-leave-to {
+  opacity: 0;
+}
+
+.zoom-enter-active .zoom-card {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.zoom-leave-active .zoom-card {
+  transition: transform 0.2s ease;
+}
+
+.zoom-enter-from .zoom-card {
+  transform: scale(0.6);
+}
+
+.zoom-leave-to .zoom-card {
+  transform: scale(0.85);
+}
+
+/* คนที่ตั้งค่าลดแอนิเมชันไว้ ให้ประกายนิ่งๆ ไม่ขยับ */
+@media (prefers-reduced-motion: reduce) {
+  .ambient,
+  .sparkle,
+  .avatar-float {
+    animation: none;
+  }
+
+  .ambient {
+    opacity: 0.3;
+  }
+}
+</style>

@@ -134,33 +134,30 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-moon-bg font-['Anuphan'] text-moon-ink">
-    <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + คำอธิบายสัญลักษณ์ -->
-    <header class="sticky top-0 z-20 border-b border-moon-pink/30 bg-moon-bg/95 px-4 pb-2 pt-3 backdrop-blur">
-      <div class="flex items-center gap-3">
+  <main class="min-h-screen bg-gradient-to-b from-moon-bg to-moon-bg-end font-['Anuphan'] text-moon-ink">
+    <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + คำอธิบายสัญลักษณ์ + หัวตารางวัน -->
+    <header class="sticky top-0 z-20 border-b border-moon-pink-soft bg-white px-2 pb-2 pt-3">
+      <div class="flex h-10 items-center gap-3 px-2">
         <button
           type="button"
           aria-label="กลับหน้าหลัก"
-          class="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm transition active:scale-90"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition active:scale-90"
           @click="navigateTo('/home')"
         >
-          <svg class="h-5 w-5" viewBox="0 0 20 20" fill="none">
-            <path d="M12 4l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+          <FaIcon name="chevron-left" class="h-[14px] w-2" />
         </button>
         <h1 class="text-lg font-semibold">ปฏิทิน</h1>
         <div class="ml-auto flex items-center gap-3 text-xs">
           <span class="flex items-center gap-1">
-            <span class="h-3 w-3 rounded-full bg-[var(--color-period-soft)]" /> มาแล้ว
+            <span class="h-3 w-3 rounded-full bg-moon-pink-soft" /> มาแล้ว
           </span>
           <span class="flex items-center gap-1">
-            <span class="h-3 w-3 rounded-full border-2 border-dashed border-[color:var(--color-period-deep)]" /> คาดไว้
+            <span class="h-3 w-3 rounded-full border-2 border-dashed border-moon-coral" /> คาดไว้
           </span>
         </div>
       </div>
-      <!-- หัวตารางวันในสัปดาห์ -->
-      <!-- -mx-2 ทำให้กว้างเท่าตารางวันด้านล่าง (ตารางใช้ px-2, แถบบนใช้ px-4) ตัวอักษรวันจะได้ตรงคอลัมน์ -->
-      <div class="-mx-2 mt-3 grid grid-cols-7 text-center text-xs text-moon-ink/60">
+      <!-- หัวตารางวันในสัปดาห์ (7 คอลัมน์เท่ากับตารางด้านล่าง) -->
+      <div class="mt-3 grid grid-cols-7 text-center text-xs text-moon-muted">
         <span v-for="w in WEEKDAY_HEAD" :key="w">{{ w }}</span>
       </div>
     </header>
@@ -173,15 +170,15 @@ onMounted(async () => {
       {{ message }}
     </p>
 
-    <p v-if="isLoading" class="py-10 text-center text-sm text-moon-ink/60">กำลังโหลดปฏิทิน...</p>
+    <p v-if="isLoading" class="py-10 text-center text-sm text-moon-muted">กำลังโหลดปฏิทิน...</p>
 
     <!-- รายการเดือน เลื่อนลงไปเรื่อยๆ -->
     <section v-else class="px-2 pb-32">
       <div v-for="month in months" :key="month.key" :id="month.isCurrent ? 'month-current' : undefined" class="scroll-mt-28 pt-4">
-        <!-- ชื่อเดือนชิดซ้ายของปฏิทิน -->
-        <h2 class="mb-2 px-3 text-left text-lg font-semibold">{{ month.title }}</h2>
+        <!-- ชื่อเดือน มีเส้นสีประจำเดือนคาดด้านบน -->
+        <h2 class="border-t border-moon-period px-3 py-2 text-left text-lg font-semibold">{{ month.title }}</h2>
 
-        <div class="grid grid-cols-7 gap-y-1">
+        <div class="mt-0 grid grid-cols-7 gap-y-1">
           <template v-for="(cell, i) in month.cells" :key="i">
             <!-- ช่องว่างก่อนวันที่ 1 -->
             <div v-if="!cell" />
@@ -194,11 +191,11 @@ onMounted(async () => {
               @click="openSheet(cell.date)"
             >
               <span
-                class="flex h-10 w-10 items-center justify-center rounded-full text-[15px]"
+                class="flex h-10 w-10 items-center justify-center rounded-full text-base"
                 :class="[
-                  cell.isToday ? 'bg-[var(--color-period-deep)] font-bold text-white' : '',
-                  !cell.isToday && cell.kind === 'logged' ? 'bg-[var(--color-period-soft)] font-semibold' : '',
-                  !cell.isToday && cell.kind === 'predicted' ? 'border-2 border-dashed border-[color:var(--color-period-deep)]' : ''
+                  cell.isToday ? 'bg-moon-coral text-moon-bg' : '',
+                  !cell.isToday && cell.kind === 'logged' ? 'bg-moon-pink-soft' : '',
+                  !cell.isToday && cell.kind === 'predicted' ? 'border-2 border-dashed border-moon-coral' : ''
                 ]"
               >
                 {{ cell.label }}

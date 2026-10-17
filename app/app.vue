@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-dvh bg-slate-100 flex justify-center">
-    <div class="w-full max-w-[430px] min-h-dvh bg-white shadow-xl">
+  <div class="flex min-h-dvh justify-center bg-moon-pink-soft">
+    <div class="min-h-dvh w-full max-w-[430px] bg-moon-bg shadow-xl">
       <NuxtRouteAnnouncer />
       <NuxtPage />
     </div>

@@ -61,13 +61,37 @@ export type DayKind = 'logged' | 'predicted' | 'none'
 
 const MAX_PREDICTED_CYCLES = 12 // คาดล่วงหน้าสูงสุดกี่รอบ
 
-// วันสุดท้ายของช่วงมีประจำเดือนของแถวนี้
-// ถ้าผู้ใช้กดบอกวันหมดแล้วใช้วันนั้น ถ้ายังไม่บอกให้ประมาณจากจำนวนวันที่ตั้งไว้
-export function getRowEnd(row: PeriodRow, periodDays: number): Date {
+// ประจำเดือนที่ "ยังไม่กดบอกว่าหมด" ยอมให้ขยายต่อได้สูงสุดกี่วัน (นับวันเริ่มเป็นวันที่ 1)
+// กันไม่ให้รอบเก่าที่ไม่เคยกดหมด ถูกแรเงายาวไปเรื่อยๆ
+const MAX_PERIOD_DAYS = 10
+
+// วันสุดท้ายของช่วงมีประจำเดือนของแถวนี้ มี 3 กรณี (ดูตามลำดับ เจอข้อไหนก่อนใช้ข้อนั้น)
+// 1) ผู้ใช้กดบอกวันหมดแล้ว                         -> ใช้วันนั้น
+// 2) ยังไม่กดหมด แต่วันนี้เลย "วันสุดท้ายที่ตั้งไว้" มาแล้ว
+//    และยังไม่เกินเพดาน 10 วัน                      -> ถือว่ายังไม่จบ ขยายต่อถึง "วันนี้"
+// 3) นอกนั้น                                       -> ใช้วันสุดท้ายที่ตั้งไว้ (วันเริ่ม + จำนวนวัน - 1)
+// today ใส่ค่าเองได้ เพื่อทดสอบด้วยวันที่สมมติ (ถ้าไม่ใส่ ใช้วันนี้จริง)
+export function getRowEnd(row: PeriodRow, periodDays: number, today: Date = startOfDay(new Date())): Date {
+  // กรณี 1
   if (row.confirmed_end_date) return parseLocalDate(row.confirmed_end_date)
-  const end = parseLocalDate(row.cycle_start_date)
-  end.setDate(end.getDate() + periodDays - 1)
-  return end
+
+  const start = parseLocalDate(row.cycle_start_date)
+
+  // วันสุดท้ายที่ตั้งไว้ = วันเริ่ม + จำนวนวัน - 1 (-1 เพราะวันเริ่มนับเป็นวันที่ 1)
+  const expectedEnd = new Date(start)
+  expectedEnd.setDate(expectedEnd.getDate() + periodDays - 1)
+
+  // เพดาน = วันเริ่ม + 9 (รวมวันเริ่มเป็นวันที่ 10)
+  const hardLimit = new Date(start)
+  hardLimit.setDate(hardLimit.getDate() + MAX_PERIOD_DAYS - 1)
+
+  // กรณี 2: วันนี้อยู่หลังวันสุดท้ายที่ตั้งไว้ และยังไม่เลยเพดาน
+  const isPastExpectedEnd = daysBetween(expectedEnd, today) > 0
+  const isWithinLimit = daysBetween(today, hardLimit) >= 0
+  if (isPastExpectedEnd && isWithinLimit) return new Date(today)
+
+  // กรณี 3
+  return expectedEnd
 }
 
 export function getDayKind(
@@ -138,4 +162,68 @@ export function estimateCycleLength(starts: string[], fallback: number): number 
   const recent = valid.slice(-3)
   const total = recent.reduce((sum, gap) => sum + gap, 0)
   return Math.round(total / recent.length)
+}
+
+// ===== ตัดสินว่า "ตอนนี้ควรเด้งป๊อปอัพอะไรให้ผู้ใช้" =====
+// ผลลัพธ์: null = ไม่ต้องถามอะไร  |  { code, days? } = ควรเด้งป๊อปอัพนี้
+// code ใช้ชื่อเดียวกับ notif_code ในตาราง notification_types (ทีหลังผูกกับระบบแจ้งเตือนได้เลย)
+export type PeriodPromptCode = 'period_end_popup' | 'period_arrival_popup' | 'pre_period_info'
+
+export function getPeriodPrompt(
+  rows: PeriodRow[],
+  periodDays: number,
+  cycleDays: number,
+  today: Date = startOfDay(new Date())
+): { code: PeriodPromptCode; days?: number } | null {
+  if (rows.length === 0) return null
+  // ---------- ขั้น 1: เตรียมข้อมูล 3 อย่างไว้ใช้ ----------
+  // แถวล่าสุด = แถวที่วันเริ่มรอบใหม่ที่สุด
+  const latest = [...rows]
+    .sort((a, b) =>
+      a.cycle_start_date.localeCompare(b.cycle_start_date)
+    )
+    .at(-1)!
+  // sinceStart = วันนี้ห่างจาก "วันเริ่มรอบล่าสุด" กี่วัน
+  // วันเริ่ม = 0, วันถัดไป = 1, ...
+  const sinceStart = daysBetween(
+    parseLocalDate(latest.cycle_start_date),
+    today
+  )
+  // next = ผลคำนวณรอบหน้า
+  const next = predictNextPeriod(
+    latest.cycle_start_date,
+    cycleDays,
+    today
+  )
+  // ---------- ขั้น 2: ถามว่า "ประจำเดือนหมดหรือยัง" ----------
+  // ยังไม่เคยกดว่าประจำเดือนหมด
+  const hasNoEndDate = !latest.confirmed_end_date
+  const reachedLastDay = sinceStart >= periodDays - 1
+  // จำกัดไม่ให้ถามเรื่อง "หมดหรือยัง" ถ้าเลยวันเริ่มมาเกิน 10 วัน
+  // วันเริ่มนับเป็นวันที่ 1 ดังนั้น sinceStart สูงสุด = 9
+  const notTooLate = sinceStart <= 9
+  if (hasNoEndDate && reachedLastDay && notTooLate) {
+    return { code: 'period_end_popup' }
+  }
+  // ---------- ขั้น 3: ถามว่า "ประจำเดือนมาหรือยัง" ----------
+  // ถึงวันที่คาดว่าจะมาแล้ว หรือเลยวันที่คาดมาแล้ว
+  const reachedPredictedDay =
+    next.isLate || next.daysUntil === 0
+
+  if (reachedPredictedDay) {
+    return { code: 'period_arrival_popup' }
+  }
+  // ---------- ขั้น 4: แจ้งล่วงหน้า "ใกล้ถึงรอบแล้วนะ" ----------
+  // เหลือ 1–3 วันก่อนวันที่คาด
+  const isNear =
+    next.daysUntil >= 1 &&
+    next.daysUntil <= 3
+  if (isNear) {
+    return {
+      code: 'pre_period_info',
+      days: next.daysUntil
+    }
+  }
+  // ไม่เข้าเงื่อนไขไหนเลย -> ไม่ต้องเด้งอะไร
+  return null
 }

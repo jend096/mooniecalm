@@ -24,12 +24,13 @@ function selectDay(day: number | null) {
 </script>
 
 <template>
-  <div class="rounded-3xl bg-white p-4 shadow-md">
+  <!-- การ์ดปฏิทิน: พื้นขาว ขอบชมพูอ่อน มุมโค้ง 24 ตาม Figma / วันที่เลือกเป็นวงกลมสีโคเรล -->
+  <div class="rounded-3xl border border-moon-pink-soft bg-moon-card p-4">
     <div class="grid grid-cols-7 gap-y-2 text-center">
       <span
         v-for="w in THAI_WEEKDAYS"
         :key="w"
-        class="font-['Anuphan'] text-[11px] font-normal text-slate-400"
+        class="text-xxs font-normal text-moon-muted"
       >
         {{ w }}
       </span>
@@ -38,10 +39,10 @@ function selectDay(day: number | null) {
         <button
           v-if="cell !== null"
           type="button"
-          class="mx-auto flex h-9 w-9 items-center justify-center rounded-full font-['Anuphan'] text-sm"
+          class="mx-auto flex h-9 w-9 items-center justify-center rounded-full text-sm"
           :class="cell === modelValue
-            ? 'bg-slate-900 font-bold text-white'
-            : 'font-medium text-slate-700'"
+            ? 'bg-moon-coral font-bold text-white'
+            : 'font-medium text-moon-ink'"
           @click="selectDay(cell)"
         >
           {{ cell }}

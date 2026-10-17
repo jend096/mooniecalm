@@ -14,6 +14,7 @@ const props = defineProps<{
   profileId: number
   periodDays: number // ประจำเดือนมากี่วัน
   cycleDays: number // ความยาวรอบ
+  popup?: boolean // true = โชว์เป็นป๊อปอัพกลางจอ (หน้า home) / ไม่ใส่ = แผ่นเด้งขึ้นจากด้านล่าง (หน้าปฏิทิน)
 }>()
 
 const emit = defineEmits<{
@@ -25,7 +26,9 @@ const isSaving = ref(false)
 const errorText = ref('')
 const today = startOfDay(new Date())
 
-const dateLabel = computed(() => `${props.date.getDate()} ${THAI_MONTHS[props.date.getMonth()]} ${props.date.getFullYear() + 543}`)
+// ชื่อวันเต็ม (THAI_WEEKDAYS ในระบบเขียนย่อ "พฤหัส" เลยใช้ชุดเต็มตรงนี้ให้ตรงฟิกม่า)
+const WEEKDAYS_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+const dateLabel = computed(() => `วัน${WEEKDAYS_FULL[props.date.getDay()]}ที่ ${props.date.getDate()} ${THAI_MONTHS[props.date.getMonth()]} ${props.date.getFullYear() + 543}`)
 const isFuture = computed(() => daysBetween(today, props.date) > 0)
 
 // แถวที่ "วันที่กดอยู่ในช่วงมีประจำเดือนของแถวนั้น" -> โชว์ปุ่มลบ
@@ -129,30 +132,42 @@ async function removeRow() {
 
 <template>
   <!-- พื้นหลังมืด: กดตรงนี้เพื่อปิดเมนู -->
-  <div class="fixed inset-0 z-50 flex items-end bg-black/30" @click.self="emit('close')">
-    <div class="w-full rounded-t-3xl bg-white px-5 pb-8 pt-4 shadow-2xl">
-      <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-moon-ink/15" />
-      <p class="mb-4 text-center font-['Anuphan'] text-base font-semibold text-moon-ink">{{ dateLabel }}</p>
+  <div
+    class="fixed inset-0 z-50 flex bg-moon-ink/30"
+    :class="popup ? 'items-center justify-center px-6' : 'items-end'"
+    @click.self="emit('close')"
+  >
+    <div
+      class="w-full bg-white font-['Anuphan'] text-moon-ink"
+      :class="popup
+        ? 'max-w-sm rounded-3xl px-6 pb-6 pt-7 text-center shadow-2xl'
+        : 'rounded-t-[24px] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3'"
+    >
+      <!-- ขีดจับด้านบน (เฉพาะแบบแผ่นจากด้านล่าง) -->
+      <div v-if="!popup" class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+      <p
+        :class="popup ? 'text-lg font-semibold' : 'mt-7 text-sm font-medium text-moon-muted'"
+      >{{ dateLabel }}</p>
 
-      <div class="flex flex-col gap-3 font-['Anuphan']">
+      <div class="flex flex-col gap-3" :class="popup ? 'mt-5' : 'mt-[19px]'">
         <!-- ปุ่มหลัก: ประจำเดือนมา (ใช้ได้เฉพาะวันที่ถึงแล้ว) -->
         <button
           v-if="!rowCovering"
           type="button"
           :disabled="isSaving || isFuture"
-          class="w-full rounded-full bg-moon-pink py-3.5 font-semibold text-moon-ink shadow-sm transition active:scale-95 disabled:opacity-40"
+          class="w-full rounded-full bg-moon-coral py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40"
           @click="logStart"
         >
           {{ isSaving ? 'กำลังบันทึก...' : 'ประจำเดือนมาวันนี้' }}
         </button>
-        <p v-if="!rowCovering && isFuture" class="text-center text-xs text-moon-ink/60">ยังไม่ถึงวันนี้ จึงบันทึกไม่ได้</p>
+        <p v-if="!rowCovering && isFuture" class="text-center text-xs text-moon-muted">ยังไม่ถึงวันนี้ จึงบันทึกไม่ได้</p>
 
         <!-- ปุ่มรอง: ประจำเดือนหมด -->
         <button
           v-if="rowToEnd && !isFuture"
           type="button"
           :disabled="isSaving"
-          class="w-full rounded-full border-2 border-moon-pink bg-white py-3.5 font-semibold text-moon-ink transition active:scale-95 disabled:opacity-40"
+          class="w-full rounded-full border-2 border-moon-pink-soft bg-white py-3 text-sm font-medium transition active:scale-95 disabled:opacity-40"
           @click="logEnd"
         >
           ประจำเดือนหมดวันนี้
@@ -163,16 +178,24 @@ async function removeRow() {
           v-if="rowCovering"
           type="button"
           :disabled="isSaving"
-          class="w-full rounded-full py-2.5 text-sm text-red-500 transition active:scale-95 disabled:opacity-40"
+          class="w-full rounded-full py-2.5 text-sm text-moon-coral transition active:scale-95 disabled:opacity-40"
           @click="removeRow"
         >
           ลบการบันทึกประจำเดือนครั้งนี้
         </button>
 
-        <p v-if="errorText" class="text-center text-sm text-red-500">{{ errorText }}</p>
-
-        <button type="button" class="w-full py-2 text-sm text-moon-ink/60" @click="emit('close')">ปิด</button>
+        <p v-if="errorText" class="text-center text-sm text-moon-coral">{{ errorText }}</p>
       </div>
+
+      <!-- ปุ่มปิด -->
+      <button
+        type="button"
+        class="w-full rounded-full bg-moon-ink py-3 text-base font-medium text-white transition active:scale-95"
+        :class="popup ? 'mt-5' : 'mt-[42px]'"
+        @click="emit('close')"
+      >
+        ปิด
+      </button>
     </div>
   </div>
 </template>

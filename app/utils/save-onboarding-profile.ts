@@ -13,6 +13,8 @@ export interface OnboardingMetadata {
   period_duration_days: number | null
   food_allergies: string[]
   avatar_selections: AvatarSelections
+  consent_at: string | null // เวลาที่กดยินยอมเก็บข้อมูลสุขภาพ (ดู ~/utils/consent.ts)
+  consent_version: string | null // ฉบับข้อความที่ผู้ใช้เห็นตอนกดยินยอม
 }
 
 const AVATAR_SLOTS: (keyof AvatarSelections)[] = ['eyes', 'ears', 'body_color', 'fx_overlay']
@@ -37,7 +39,9 @@ export function buildOnboardingMetadata(): OnboardingMetadata {
     last_period_date: onboarding.lastPeriodDate || null,
     period_duration_days: onboarding.periodDurationDays,
     food_allergies: [...onboarding.foodAllergies],
-    avatar_selections: { ...avatarSelections.value }
+    avatar_selections: { ...avatarSelections.value },
+    consent_at: readConsent()?.at ?? null,
+    consent_version: readConsent()?.version ?? null
   }
 }
 
@@ -79,7 +83,9 @@ export function resolveOnboardingData(
     last_period_date: stringOrNull(meta.last_period_date) ?? local.last_period_date,
     period_duration_days: numberOrNull(meta.period_duration_days) ?? local.period_duration_days,
     food_allergies: metaAllergies ?? local.food_allergies,
-    avatar_selections: isEmptySelections(metaSelections) ? local.avatar_selections : metaSelections
+    avatar_selections: isEmptySelections(metaSelections) ? local.avatar_selections : metaSelections,
+    consent_at: stringOrNull(meta.consent_at) ?? local.consent_at,
+    consent_version: stringOrNull(meta.consent_version) ?? local.consent_version
   }
 }
 
@@ -107,6 +113,15 @@ export async function saveOnboardingProfile(userId: string) {
   }, { onConflict: 'auth_user_id' }).select('id').single()
 
   if (error) throw error
+
+  // เก็บหลักฐานความยินยอมแยกอีกคำสั่ง (ถ้ายังไม่ได้รัน SQL เพิ่มคอลัมน์ จะแค่เตือนในคอนโซล ไม่ให้สมัครพัง)
+  if (data.consent_at) {
+    const { error: consentError } = await supabase
+      .from('user_profiles')
+      .update({ consent_health_at: data.consent_at, consent_version: data.consent_version })
+      .eq('id', profile.id)
+    if (consentError) console.warn('[saveOnboardingProfile] เก็บความยินยอมไม่สำเร็จ (รัน consent-columns.sql แล้วหรือยัง?)', consentError)
+  }
 
   const selections = data.avatar_selections
 

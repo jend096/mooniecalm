@@ -1,0 +1,12 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="240" height="240" rx="120" fill="url(#paint0_linear_moon)"/>
+<circle cx="47" cy="75" r="17" fill="white" fill-opacity="0.55"/>
+<circle cx="201" cy="97" r="9" fill="white" fill-opacity="0.55"/>
+<circle cx="45" cy="126" r="6" fill="white" fill-opacity="0.55"/>
+<defs>
+<linearGradient id="paint0_linear_moon" x1="120" y1="0" x2="120" y2="240" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFEBF1"/>
+<stop offset="1" stop-color="#FFC9D8"/>
+</linearGradient>
+</defs>
+</svg>

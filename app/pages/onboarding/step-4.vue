@@ -15,25 +15,25 @@ function next() {
 </script>
 
 <template>
-  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-    <div class="pointer-events-none absolute -right-16 -top-16 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -left-16 top-10 z-0 h-56 w-56 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -bottom-20 -right-10 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-
-    <div class="relative z-10 flex flex-1 flex-col px-6 pt-16">
-      <h1 class="text-left font-['Anuphan'] text-[28px] font-semibold leading-tight text-slate-900">
+  <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end">
+    <div class="flex flex-1 flex-col px-6 pt-24">
+      <h1 class="text-left text-2xl font-semibold text-moon-ink">
         ตอนนี้คุณน้ำหนักส่วนสูง<br>เท่าไหร่แล้ว?
       </h1>
+    </div>
 
-      <div class="relative mt-10 flex justify-center gap-10">
-        <div class="pointer-events-none absolute inset-x-0 top-[88px] h-11 border-y border-slate-200" />
-
-        <WheelPicker v-model="weightIndex" :items="weights" unit="kg" width="w-24" />
-        <WheelPicker v-model="heightIndex" :items="heights" unit="cm" width="w-24" />
+    <!-- วงล้อ 2 คอลัมน์: กึ่งกลางคอลัมน์ 114 / 266 px จากขอบกล่อง (ซ้าย-ขวาสมมาตรรอบกลางจอ) -->
+    <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
+      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] border-y border-moon-ink/15" />
+      <div class="absolute left-[calc(50%-76px)] top-0 -translate-x-1/2">
+        <WheelPicker v-model="weightIndex" :items="weights" unit="kg" width="w-32" />
+      </div>
+      <div class="absolute left-[calc(50%+76px)] top-0 -translate-x-1/2">
+        <WheelPicker v-model="heightIndex" :items="heights" unit="cm" width="w-32" />
       </div>
     </div>
 
-    <div class="relative z-10 px-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+    <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
       <BaseButton @click="next" />
     </div>
   </div>

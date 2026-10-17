@@ -5,30 +5,28 @@ const durations = Array.from({ length: 14 }, (_, i) => i + 1) // 1-14 days
 const durationIndex = ref(Math.max(durations.indexOf(5), 0))
 
 function next() {
-  onboarding.periodDurationDays = durations[durationIndex.value]
+  onboarding.periodDurationDays = durations[durationIndex.value] ?? 5 // ถ้าหาค่าไม่เจอ ใช้ 5 วัน (ค่าเริ่มต้นของหน้านี้)
   navigateTo('/onboarding/allergy')
 }
 </script>
 
 <template>
-  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-slate-50 to-white">
-    <div class="pointer-events-none absolute -right-16 -top-16 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -left-16 top-1/2 z-0 h-56 w-56 -translate-y-1/2 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -right-16 top-1/2 z-0 h-56 w-56 -translate-y-1/2 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-    <div class="pointer-events-none absolute -bottom-20 -right-10 z-0 h-64 w-64 rounded-full bg-slate-200 opacity-60 blur-3xl" />
-
-    <div class="relative z-10 flex flex-1 flex-col px-6 pt-16">
-      <h1 class="text-left font-['Anuphan'] text-[28px] font-semibold leading-tight text-slate-900">
+  <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end">
+    <div class="flex flex-1 flex-col px-6 pt-24">
+      <h1 class="text-left text-2xl font-semibold text-moon-ink">
         โดยปกติประจำเดือนของคุณ<br>มีระยะเวลาเท่าไหร่ ?
       </h1>
+    </div>
 
-      <div class="relative mt-10 flex flex-1 items-center justify-center">
-        <div class="pointer-events-none absolute inset-x-0 top-1/2 h-11 -translate-y-1/2 border-y border-slate-200" />
-        <WheelPicker v-model="durationIndex" :items="durations" unit="วัน" width="w-24" />
+    <!-- วงล้อ 1 คอลัมน์: กึ่งกลางจอ -->
+    <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
+      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] border-y border-moon-ink/15" />
+      <div class="absolute left-1/2 top-0 -translate-x-1/2">
+        <WheelPicker v-model="durationIndex" :items="durations" unit="วัน" width="w-32" />
       </div>
     </div>
 
-    <div class="relative z-10 px-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+    <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
       <BaseButton @click="next" />
     </div>
   </div>

@@ -1,0 +1,24 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g>
+<path d="M74.3016 51.9484C27.6848 57.1649 73.2675 175.076 73.2675 175.076L95.8927 173.39C95.8927 173.39 121.078 46.7139 74.3016 51.9484Z" fill="url(#paint0_linear_rabbit)"/>
+<path d="M161.205 56.8942C114.339 57.7182 149.202 179.463 149.202 179.463L171.872 179.906C171.872 179.906 208.232 56.0674 161.205 56.8942Z" fill="url(#paint1_linear_rabbit)"/>
+<path d="M161.359 80.1487C130.402 80.3943 152.879 160.559 152.879 160.559L167.851 160.993C167.851 160.993 192.422 79.9022 161.359 80.1487Z" fill="#FE7777"/>
+<path d="M83.0542 76.5257C52.097 76.7713 74.5746 156.936 74.5746 156.936L89.5459 157.37C89.5459 157.37 114.118 76.2792 83.0542 76.5257Z" fill="#FE7777"/>
+<ellipse cx="120" cy="208" rx="88" ry="80" fill="white"/>
+<ellipse cx="93" cy="182" rx="7" ry="10" fill="#292929"/>
+<ellipse cx="147" cy="182" rx="7" ry="10" fill="#292929"/>
+<ellipse cx="75" cy="203" rx="13" ry="7" fill="#FE7777" fill-opacity="0.94"/>
+<ellipse cx="167" cy="203" rx="13" ry="7" fill="#FE7777" fill-opacity="0.94"/>
+<path d="M106 196C110.667 202 115.333 202 120 196C124.667 202 129.333 202 134 196" stroke="#292929" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_rabbit" x1="82.5565" y1="52.2067" x2="71.1685" y2="174.881" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFF4F3"/>
+<stop offset="1" stop-color="white"/>
+</linearGradient>
+<linearGradient id="paint1_linear_rabbit" x1="169.399" y1="57.926" x2="146.556" y2="178.963" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFF4F3"/>
+<stop offset="1" stop-color="white"/>
+</linearGradient>
+</defs>
+</svg>

@@ -18,25 +18,31 @@ function next() {
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-slate-50 to-white">
-    <div class="flex flex-1 flex-col px-6 pt-16">
-      <h1 class="text-left font-['Anuphan'] text-[28px] font-semibold leading-tight text-slate-900">
+  <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end">
+    <div class="flex flex-1 flex-col px-6 pt-24">
+      <h1 class="text-left text-2xl font-semibold text-moon-ink">
         โปรดบันทึกวันเกิดของคุณ
       </h1>
-      <p class="mt-2 text-left font-['Anuphan'] text-[14px] font-normal text-slate-500">
+      <p class="mt-0.5 text-left text-base font-normal text-moon-muted">
         วัน / เดือน / ปี เกิดของคุณ
       </p>
+    </div>
 
-      <div class="relative mt-10 flex justify-center gap-2">
-        <div class="pointer-events-none absolute inset-x-0 top-[88px] h-11 border-y border-slate-200" />
-
-        <WheelPicker v-model="dayIndex" :items="days" width="w-16" />
-        <WheelPicker v-model="monthIndex" :items="thaiMonths" width="w-28" />
-        <WheelPicker v-model="yearIndex" :items="years" width="w-20" />
+    <!-- วงล้อ 3 คอลัมน์: อยู่กึ่งกลางจอ สูง 300px (5 แถว x 60px) กึ่งกลางคอลัมน์ = 78 / 190 / 302 px จากขอบกล่อง (เดือนอยู่กลางจอพอดี วัน-ปีห่างจากเดือนเท่ากันข้างละ 112px) -->
+    <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
+      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] border-y border-moon-ink/15" />
+      <div class="absolute left-[calc(50%-112px)] top-0 -translate-x-1/2">
+        <WheelPicker v-model="dayIndex" :items="days" width="w-24" />
+      </div>
+      <div class="absolute left-1/2 top-0 -translate-x-1/2">
+        <WheelPicker v-model="monthIndex" :items="thaiMonths" width="w-[124px]" />
+      </div>
+      <div class="absolute left-[calc(50%+112px)] top-0 -translate-x-1/2">
+        <WheelPicker v-model="yearIndex" :items="years" width="w-24" />
       </div>
     </div>
 
-    <div class="px-6 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+    <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
       <BaseButton @click="next" />
     </div>
   </div>
