@@ -32,8 +32,16 @@ watch(currentIndex, (val) => {
   try { navigator.vibrate?.(6) } catch { /* ไม่รองรับก็ข้าม */ }
 })
 
+// นิ้วมือถือ: ให้เบราว์เซอร์เลื่อนเอง (นุ่ม มีแรงเหวี่ยงจริงแบบเดียวกับแอปทั่วไป และหยุดล็อกที่แถวด้วย scroll-snap)
+// เราแค่อ่านตำแหน่งมาอัปเดตหน้าตาแถว รวมเป็นครั้งละ 1 เฟรม ไม่คำนวณถี่เกินจอ
+let rafId = 0
 function onScroll(e: Event) {
-  scrollTop.value = (e.target as HTMLElement).scrollTop
+  const el = e.target as HTMLElement
+  if (rafId) return
+  rafId = requestAnimationFrame(() => {
+    rafId = 0
+    scrollTop.value = el.scrollTop
+  })
 }
 
 let isDragging = false
@@ -89,22 +97,6 @@ function onMouseUp() {
   settle()
 }
 
-function onTouchStart(e: TouchEvent) {
-  if (!listEl.value) return
-  isDragging = true
-  dragStartY = e.touches[0].clientY
-  dragStartScrollTop = listEl.value.scrollTop
-  samples = []
-  trackSample(e.touches[0].clientY)
-}
-
-function onTouchMove(e: TouchEvent) {
-  if (!isDragging || !listEl.value) return
-  e.preventDefault()
-  listEl.value.scrollTop = dragStartScrollTop - (e.touches[0].clientY - dragStartY)
-  trackSample(e.touches[0].clientY)
-}
-
 // สไตล์ของแต่ละแถว "เปลี่ยนต่อเนื่องตามระยะที่เลื่อน" ให้วงล้อดูเป็นทรงกระบอก (เหมือนวงล้อเลือกค่าในมือถือ)
 // แถวกลางหันตรงมาที่เรา ใหญ่ เข้ม แถวที่อยู่ไกลออกไปเหมือนโค้งหนีไป: เตี้ยลง จางลง และขยับเข้าหาแถวกลาง
 const STEP_DEG = 30 // แต่ละแถวห่างกันกี่องศาบนทรงกระบอก ยิ่งมากยิ่งโค้งเยอะ
@@ -150,15 +142,12 @@ onMounted(() => {
     ref="listEl"
     :class="width"
     :style="{ height: `${rows * ITEM_HEIGHT}px` }"
-    class="cursor-grab touch-none select-none snap-y snap-mandatory overflow-y-scroll [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
+    class="cursor-grab touch-pan-y select-none snap-y snap-mandatory overflow-y-scroll overscroll-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] active:cursor-grabbing [&::-webkit-scrollbar]:hidden"
     @scroll="onScroll"
     @mousedown="onMouseDown"
     @mousemove="onMouseMove"
     @mouseup="onMouseUp"
     @mouseleave="onMouseUp"
-    @touchstart="onTouchStart"
-    @touchmove="onTouchMove"
-    @touchend="onMouseUp"
   >
     <div :style="{ paddingTop: `${PAD}px`, paddingBottom: `${PAD}px` }">
       <div
