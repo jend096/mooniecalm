@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // ===== หน้า "อยากทานอะไรตอนนี้ดี" (/snack) =====
-// ลำดับการทำงาน: แตะเลือกหมวด (หรือ "สุ่มทั้งหมด") -> ระบบสุ่มเมนูที่ไม่มีของที่แพ้ -> กด "สุ่มใหม่" ได้ไม่จำกัด -> กด "บันทึก" ถึงจะนับว่าเลือกแล้ว
+// ลำดับการทำงาน: แตะเลือกหมวด (หรือ "สุ่มทั้งหมด") แล้วกด "ถัดไป" -> ระบบสุ่มเมนูที่ไม่มีของที่แพ้ -> กด "สุ่มใหม่" ได้ไม่จำกัด -> กด "บันทึก" ถึงจะนับว่าเลือกแล้ว
 // วันหนึ่งบันทึกได้หลายเมนู (เมนูที่บันทึกไปแล้ววันนี้จะไม่ถูกสุ่มซ้ำ พอข้ามวันก็กลับมาให้สุ่มได้ใหม่)
 // ตัวคิดว่าจะโชว์เมนูไหนอยู่ใน ~/utils/snack-picker.ts (ทดสอบแยกแล้ว) หน้านี้ดูแลแค่ดึงข้อมูล + หน้าจอ
 import type { SnackChoice, SnackItem } from '~/utils/snack-picker'
@@ -43,6 +43,18 @@ const goalCodes = ref<string[]>([]) // เป้าหมายที่กำ�
 const todayIds = ref<number[]>([]) // เมนูที่บันทึกไปแล้ว "วันนี้" (ไม่สุ่มซ้ำในวันเดียวกัน)
 
 const choice = ref<SnackChoice | null>(null) // หมวดที่เลือกอยู่ (null = ยังไม่เลือก)
+const picked = ref<SnackChoice | null>(null) // หมวดที่แตะเลือกไว้ (ยังไม่ไปต่อจนกว่าจะกด "ถัดไป")
+const nextBtnEl = ref<HTMLElement | null>(null)
+const nextBounceKey = ref(0) // เพิ่มค่าทุกครั้งที่แตะเลือกหมวด เพื่อให้ปุ่มถัดไปเด้งใหม่ทุกครั้ง
+
+// แตะเลือกหมวด: ไฮไลต์หมวดนั้น แล้วให้ปุ่ม "ถัดไป" ด้านล่าง "เด้ง" เพื่อบอกว่ามีปุ่มให้กดต่อ
+// (เพื่อนหลายคนไม่เห็นว่ามีปุ่มถัดไปอยู่ด้านล่าง) ถ้าปุ่มอยู่นอกจอก็เลื่อนหน้าลงมาให้เห็น
+async function pickChoice(value: SnackChoice) {
+  picked.value = value
+  nextBounceKey.value++
+  await nextTick()
+  nextBtnEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
 const current = ref<SnackItem | null>(null) // เมนูที่กำลังโชว์
 const noResult = ref(false) // เลือกหมวดแล้วแต่ไม่มีเมนูที่ปลอดภัยเลย
 // ขั้นตอนตอนกดบันทึก: idle = ปกติ / saving = กำลังบันทึก (ดาวหมุน) / saved = บันทึกแล้ว (ติ๊กถูก + ป๊อปอัพถามว่าจะสุ่มอีกหรือถัดไป)
@@ -178,6 +190,7 @@ function backToChoose() {
   clearTimeout(rollTimer)
   isRolling.value = false
   choice.value = null
+  picked.value = null
   current.value = null
   noResult.value = false
 }
@@ -388,7 +401,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- ขั้นที่ 1: เลือกหมวด (แตะหมวดไหน ก็ไปขั้นสุ่มเมนูทันที ไม่ต้องกดถัดไป) -->
+      <!-- ขั้นที่ 1: เลือกหมวด (แตะเลือก ปุ่มถัดไปด้านล่างเด้งบอก แล้วกด "ถัดไป") -->
       <div v-if="!choice" class="flex flex-1 flex-col">
         <p class="mt-[35px] pl-[9px] text-sm text-moon-muted">
           วันนี้อยากได้แบบไหน
@@ -399,7 +412,8 @@ onMounted(async () => {
             :key="c.value"
             type="button"
             class="relative h-[176px] overflow-hidden rounded-[24px] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition active:scale-[0.98]"
-            @click="selectChoice(c.value)"
+            :class="picked === c.value ? 'ring-2 ring-moon-period' : ''"
+            @click="pickChoice(c.value)"
           >
             <!-- ลายหัวกระต่ายเงาสีประจำหมวด -->
             <RabbitBlob class="pointer-events-none absolute left-[34px] top-[53px] h-[190px] w-[190px]" :class="c.blob" />
@@ -414,11 +428,17 @@ onMounted(async () => {
         <div class="mt-[13px] flex justify-end">
           <button
             type="button"
-            class="rounded-[24px] border border-[#FFED88] bg-moon-cream-soft px-[26px] py-[10px] text-sm font-medium leading-[21px] transition active:scale-95"
-            @click="selectChoice('any')"
+            class="rounded-[24px] border bg-moon-cream-soft px-[26px] py-[10px] text-sm font-medium leading-[21px] transition active:scale-95"
+            :class="picked === 'any' ? 'border-moon-period ring-2 ring-moon-period' : 'border-[#FFED88]'"
+            @click="pickChoice('any')"
           >
             สุ่มทั้งหมด
           </button>
+        </div>
+
+        <!-- ปุ่มถัดไป: ห่างจากด้านบนและแถบเมนูล่างตามฟิกม่า ยังไม่เลือกหมวดกดไม่ได้ พอเลือกแล้วเด้งหนึ่งที (key เปลี่ยนทุกครั้งที่แตะ ให้เล่นใหม่) -->
+        <div :key="nextBounceKey" ref="nextBtnEl" class="mt-auto px-[14px] pt-[64px]" :class="picked ? 'next-bounce' : ''">
+          <BaseButton :disabled="picked === null" @click="picked && selectChoice(picked)" />
         </div>
       </div>
 
@@ -687,6 +707,21 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+/* ปุ่มถัดไปเด้งขึ้นลงเล็กน้อย 2 ที ตอนผู้ใช้แตะเลือกหมวด */
+.next-bounce {
+  animation: next-bounce 0.7s ease-out;
+}
+@keyframes next-bounce {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-14px); }
+  50% { transform: translateY(0); }
+  70% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .next-bounce { animation: none; }
+}
+
 /* การ์ดผลลัพธ์เด้งขึ้นมาตอนได้เมนูใหม่ */
 .result-pop {
   animation: result-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);

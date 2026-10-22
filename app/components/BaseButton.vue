@@ -21,10 +21,11 @@ const emit = defineEmits<{ click: [] }>()
 const nuxtApp = useNuxtApp()
 let lastClickAt = 0
 const navPending = ref(false)
-const stopStart = nuxtApp.hook('page:start', () => {
+// ใช้สัญญาณเริ่ม/จบการเปลี่ยนหน้าของ router (มาทุกครั้ง) ไม่ใช้ page:start ซึ่งมาเฉพาะหน้าที่ต้องรอโหลด จะทำให้บางครั้งกระต่ายไม่ขึ้น
+const stopStart = nuxtApp.hook('page:loading:start', () => {
   if (Date.now() - lastClickAt < 2000) navPending.value = true
 })
-const stopFinish = nuxtApp.hook('page:finish', () => { navPending.value = false })
+const stopFinish = nuxtApp.hook('page:loading:end', () => { navPending.value = false })
 onBeforeUnmount(() => {
   stopStart()
   stopFinish()

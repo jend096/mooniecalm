@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { savePendingOnboarding } from '~/utils/save-onboarding-profile'
 const config = useRuntimeConfig()
 const isSupabaseConfigured = Boolean(config.public.supabase?.url && config.public.supabase?.key)
 
