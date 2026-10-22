@@ -71,17 +71,18 @@ function onTouchMove(e: TouchEvent) {
   listEl.value.scrollTop = dragStartScrollTop - (e.touches[0].clientY - dragStartY)
 }
 
+// สไตล์ของแต่ละแถว "เปลี่ยนต่อเนื่องตามระยะที่เลื่อน" (ไม่กระโดดเป็นขั้น) ผู้ใช้จะเห็นตัวเลขค่อยๆ โตขึ้น/เข้มขึ้นตอนเลื่อนเข้ามาตรงกลาง
+// และค่อยๆ เล็กลง/จางลงตอนเลื่อนออกไป เห็นชัดว่าวงล้อกำลังขยับจริงและตอนนี้อันไหนถูกเลือก
 function rowStyle(i: number) {
-  const distance = i - scrollTop.value / ITEM_HEIGHT
-  const abs = Math.abs(distance)
-  const opacity = abs < 0.5 ? 1 : Math.max(1 - (abs - 1) * 0.3, 0.4)
-  const scale = abs < 0.5 ? 1 : Math.max(1 - abs * 0.04, 0.9)
+  const d = Math.abs(i - scrollTop.value / ITEM_HEIGHT) // ระยะห่างจากแถวกลาง นับเป็นจำนวนแถว (0 = อยู่กลางพอดี)
+  const scale = Math.max(1.25 - d * 0.25, 0.8) // แถวกลางขยาย 25% แถวถัดไปขนาดปกติ แถวไกลๆ เล็กลง
+  const inkPercent = Math.max(100 - d * 72, 28) // สีตัวหนังสือ: กลาง = เข้มเต็ม ห่างออกไป = จางลงถึง 28% (ตาม Figma)
   return {
-    opacity,
+    opacity: Math.max(1 - d * 0.2, 0.55),
     transform: `scale(${scale})`,
-    // แถวที่เลือก: ตัวหนาสีเข้ม / แถวอื่น: ตัวบางสีเข้มจาง 28% (ตาม Figma)
-    fontWeight: abs < 0.5 ? 600 : 400,
-    color: abs < 0.5 ? 'var(--color-ink)' : 'color-mix(in srgb, var(--color-ink) 28%, transparent)'
+    // แถวที่เลือก: ตัวหนา / แถวอื่น: ตัวบาง
+    fontWeight: d < 0.5 ? 600 : 400,
+    color: `color-mix(in srgb, var(--color-ink) ${inkPercent}%, transparent)`
   }
 }
 

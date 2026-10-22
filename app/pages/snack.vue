@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // ===== หน้า "อยากทานอะไรตอนนี้ดี" (/snack) =====
-// ลำดับการทำงาน: เลือกหมวด (หรือ "ไม่รู้") -> ระบบสุ่มเมนูที่ไม่มีของที่แพ้ -> กด "สุ่มใหม่" ได้ไม่จำกัด -> กด "บันทึก" ถึงจะนับว่าเลือกแล้ว
+// ลำดับการทำงาน: แตะเลือกหมวด (หรือ "สุ่มทั้งหมด") -> ระบบสุ่มเมนูที่ไม่มีของที่แพ้ -> กด "สุ่มใหม่" ได้ไม่จำกัด -> กด "บันทึก" ถึงจะนับว่าเลือกแล้ว
 // วันหนึ่งบันทึกได้หลายเมนู (เมนูที่บันทึกไปแล้ววันนี้จะไม่ถูกสุ่มซ้ำ พอข้ามวันก็กลับมาให้สุ่มได้ใหม่)
 // ตัวคิดว่าจะโชว์เมนูไหนอยู่ใน ~/utils/snack-picker.ts (ทดสอบแยกแล้ว) หน้านี้ดูแลแค่ดึงข้อมูล + หน้าจอ
 import type { SnackChoice, SnackItem } from '~/utils/snack-picker'
@@ -32,7 +32,6 @@ const CHOICES: { value: SnackChoice, title: string, hint: string, blob: string, 
   { value: 'refreshing', title: 'สดชื่น', hint: 'เบาๆ ชื่นใจ', blob: 'text-moon-period-predicted opacity-50', ring: 'border-moon-period-predicted' },
   { value: 'sweet', title: 'อิ่มท้อง', hint: 'ให้พลังงาน', blob: 'text-moon-lavender opacity-50', ring: 'border-moon-lavender' }
 ]
-const picked = ref<SnackChoice | null>(null) // หมวดที่แตะเลือกไว้ (ยังไม่ไปต่อจนกว่าจะกด "ถัดไป")
 
 const isLoading = ref(true)
 const loadError = ref(false)
@@ -179,7 +178,6 @@ function backToChoose() {
   clearTimeout(rollTimer)
   isRolling.value = false
   choice.value = null
-  picked.value = null
   current.value = null
   noResult.value = false
 }
@@ -390,7 +388,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- ขั้นที่ 1: เลือกหมวด (แตะเลือก แล้วกด "ถัดไป") -->
+      <!-- ขั้นที่ 1: เลือกหมวด (แตะหมวดไหน ก็ไปขั้นสุ่มเมนูทันที ไม่ต้องกดถัดไป) -->
       <div v-if="!choice" class="flex flex-1 flex-col">
         <p class="mt-[35px] pl-[9px] text-sm text-moon-muted">
           วันนี้อยากได้แบบไหน
@@ -401,8 +399,7 @@ onMounted(async () => {
             :key="c.value"
             type="button"
             class="relative h-[176px] overflow-hidden rounded-[24px] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition active:scale-[0.98]"
-            :class="picked === c.value ? 'ring-2 ring-moon-period' : ''"
-            @click="picked = c.value"
+            @click="selectChoice(c.value)"
           >
             <!-- ลายหัวกระต่ายเงาสีประจำหมวด -->
             <RabbitBlob class="pointer-events-none absolute left-[34px] top-[53px] h-[190px] w-[190px]" :class="c.blob" />
@@ -417,17 +414,11 @@ onMounted(async () => {
         <div class="mt-[13px] flex justify-end">
           <button
             type="button"
-            class="rounded-[24px] border bg-moon-cream-soft px-[26px] py-[10px] text-sm font-medium leading-[21px] transition active:scale-95"
-            :class="picked === 'any' ? 'border-moon-period ring-2 ring-moon-period' : 'border-[#FFED88]'"
-            @click="picked = 'any'"
+            class="rounded-[24px] border border-[#FFED88] bg-moon-cream-soft px-[26px] py-[10px] text-sm font-medium leading-[21px] transition active:scale-95"
+            @click="selectChoice('any')"
           >
             สุ่มทั้งหมด
           </button>
-        </div>
-
-        <!-- ปุ่มถัดไป: ห่างจากด้านบนและแถบเมนูล่างตามฟิกม่า (กว้างแคบกว่าการ์ดเล็กน้อย) -->
-        <div class="mt-auto px-[14px] pt-[64px]">
-          <BaseButton :disabled="picked === null" @click="picked && selectChoice(picked)" />
         </div>
       </div>
 

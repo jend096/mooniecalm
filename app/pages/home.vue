@@ -607,7 +607,7 @@ async function logout() {
         <template v-for="layer in avatarLayers" :key="layer.slot">
           <img
             v-if="layer.code && !hiddenLayers[layer.slot]"
-            :src="`/avatar/${layer.code}.png`"
+            :src="avatarLayerSrc(layer.code)"
             alt=""
             class="absolute inset-0 h-full w-full object-contain"
             @error="hideLayer(layer.slot)"
@@ -626,32 +626,37 @@ async function logout() {
       </div>
 
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
-      <div class="relative mx-[35px] mt-[22px] min-h-[242px] rounded-[15px] bg-white/55 pb-[75px] shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+      <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
+           เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
+      <div class="relative mx-[35px] mt-[22px] rounded-[15px] bg-white/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
-        <!-- ซ้าย: จำนวนวันที่เช็คอิน -->
-        <p class="absolute left-[23px] top-[94px] flex items-baseline gap-[6px]">
-          <span class="text-lg">วัน</span>
-          <span class="text-[48px] font-semibold leading-none text-moon-period">{{ String(daysLogged).padStart(2, '0') }}</span>
-          <span class="text-lg text-moon-ink/[0.27]">/{{ CYCLE_LENGTH_DAYS }}</span>
-        </p>
+        <div class="mt-[12px] flex items-center px-[23px]">
+          <!-- ซ้าย: จำนวนวันที่เช็คอิน (กว้างคงที่ ให้รายการเป้าหมายเริ่มที่ตำแหน่งเดิม) -->
+          <p class="flex w-[142px] shrink-0 items-baseline gap-[6px]">
+            <span class="text-lg">วัน</span>
+            <span class="text-[48px] font-semibold leading-none text-moon-period">{{ String(daysLogged).padStart(2, '0') }}</span>
+            <span class="text-lg text-moon-ink/[0.27]">/{{ CYCLE_LENGTH_DAYS }}</span>
+          </p>
 
-        <!-- ขวา: เส้นเวลาเป้าหมาย + สถานะ -->
-        <div v-if="activeGoals.length" class="absolute bottom-[75px] left-[165px] right-[13px] top-[59px] overflow-hidden">
-          <div class="relative flex flex-col gap-[2px]">
-            <!-- เส้นตั้งสีประจำเดือน -->
-            <span aria-hidden="true" class="absolute bottom-[11px] left-0 top-[11px] w-px bg-moon-period" />
-            <div
-              v-for="goal in activeGoals"
-              :key="goal.id"
-              class="relative flex h-[22px] items-center gap-[6px]"
-            >
-              <span aria-hidden="true" class="h-px w-[10px] shrink-0 bg-moon-period" />
-              <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
-              <span class="flex w-[34px] shrink-0 justify-start">
-                <span v-if="checkedGoals[goal.goal_code]" class="text-xs">สำเร็จ</span>
-                <span v-else aria-hidden="true" class="h-[15px] w-[15px] rounded-full border border-dashed border-moon-period" />
-              </span>
+          <!-- ขวา: เส้นเวลาเป้าหมาย + สถานะ (กล่องกว้างพอดีข้อความที่ยาวที่สุด ข้อความยังอยู่บรรทัดเดียว) -->
+          <div v-if="activeGoals.length" class="min-w-0 flex-1">
+            <div class="relative flex w-max max-w-full flex-col gap-[2px]">
+              <!-- เส้นตั้งสีประจำเดือน -->
+              <span aria-hidden="true" class="absolute bottom-[11px] left-0 top-[11px] w-px bg-moon-period" />
+              <div
+                v-for="goal in activeGoals"
+                :key="goal.id"
+                class="relative flex h-[22px] items-center gap-[6px]"
+              >
+                <span aria-hidden="true" class="h-px w-[10px] shrink-0 bg-moon-period" />
+                <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
+                <!-- ช่องสถานะกว้างเท่ากันทุกแถว กดทำแล้ว (วงกลม -> "สำเร็จ") กล่องจะได้ไม่ขยับไปมา -->
+                <span class="flex w-[34px] shrink-0 justify-start">
+                  <span v-if="checkedGoals[goal.goal_code]" class="text-xs">สำเร็จ</span>
+                  <span v-else aria-hidden="true" class="h-[15px] w-[15px] rounded-full border border-dashed border-moon-period" />
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -659,7 +664,7 @@ async function logout() {
         <!-- ปุ่มเช็คอิน -->
         <button
           type="button"
-          class="checkin-pulse absolute inset-x-[13px] bottom-[12px] flex h-[51px] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-bold text-white"
+          class="checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] flex h-[51px] w-[calc(100%-26px)] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-bold text-white"
           @click="goToCheckin"
         >
           เช็คอินกันเถอะ

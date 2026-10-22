@@ -6,6 +6,7 @@ const email = ref('')
 const loading = ref(false)
 const showConsent = ref(false) // true = กำลังโชว์ป๊อปอัพขอความยินยอม
 const sendingLink = ref(false) // true = กำลังส่งอีเมล (ไว้เลือกข้อความบนหน้ารอโหลด)
+const pendingAction = ref<'email' | 'google'>('email') // ปุ่มที่กดค้างไว้ตอนยังไม่ได้ยินยอม พอกดยินยอมแล้วจะทำต่อให้
 const statusMessage = ref('')
 
 let hasCompletedLogin = false
@@ -50,16 +51,18 @@ async function completeLogin(userId: string) {
   }
 }
 
-// ยังไม่เคยยินยอม -> โชว์ป๊อปอัพ พอกดยินยอมค่อยส่งลิงก์ต่อ
+// ยังไม่เคยยินยอม -> โชว์ป๊อปอัพ พอกดยินยอมค่อยทำต่อ (ส่งลิงก์อีเมล หรือไปหน้า Google ตามปุ่มที่กดไว้)
 function acceptConsentAndSend() {
   saveConsent()
   showConsent.value = false
-  continueWithEmail()
+  if (pendingAction.value === 'google') continueWithGoogle()
+  else continueWithEmail()
 }
 
 async function continueWithEmail() {
   if (!email.value || loading.value) return
   if (!readConsent()) {
+    pendingAction.value = 'email'
     showConsent.value = true
     return
   }
@@ -93,15 +96,32 @@ async function continueWithEmail() {
   }
 }
 
-async function continueWithOAuth(provider: 'google' | 'apple') {
-  if (!isSupabaseConfigured) return
+// เข้าสู่ระบบด้วยบัญชี Google: เด้งไปหน้า Google แล้วกลับมาที่หน้านี้พร้อม token ใน URL
+// (ส่วนรับ token ที่กลับมาอยู่ใน onMounted ด้านล่าง ตัวเดียวกับลิงก์อีเมล จึงไม่ต้องเขียนเพิ่ม)
+async function continueWithGoogle() {
+  if (loading.value) return
+  // ต้องยินยอมเก็บข้อมูลสุขภาพก่อนเหมือนทางอีเมล ไม่งั้นกด Google แล้วข้ามขั้นยินยอมได้
+  if (!readConsent()) {
+    pendingAction.value = 'google'
+    showConsent.value = true
+    return
+  }
+
+  if (!isSupabaseConfigured) {
+    statusMessage.value = 'ยังไม่ได้ตั้งค่า Supabase'
+    return
+  }
 
   loading.value = true
+  sendingLink.value = false
+  statusMessage.value = ''
+
   const supabase = useSupabaseClient()
   const { error } = await supabase.auth.signInWithOAuth({
-    provider,
+    provider: 'google',
     options: { redirectTo: `${window.location.origin}/onboarding/signup` }
   })
+  // ถ้าสำเร็จเบราว์เซอร์จะเด้งออกไปหน้า Google เอง จึงปิดหน้ารอโหลดเฉพาะตอนมี error
   if (error) {
     loading.value = false
     statusMessage.value = error.message
@@ -190,7 +210,7 @@ onUnmounted(() => {
       </p>
     </div>
 
-    <div class="mt-[43px] flex flex-col gap-[22px] px-3">
+    <div class="mt-[43px] flex flex-col gap-[22px] px-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
       <input
         v-model="email"
         type="email"
@@ -202,24 +222,21 @@ onUnmounted(() => {
         :disabled="!email || loading"
         @click="continueWithEmail"
       />
-      <p v-if="statusMessage" class="text-center text-xs font-normal text-moon-muted">
-        {{ statusMessage }}
-      </p>
-    </div>
+      <!-- ตัวคั่น "หรือ" ระหว่างทางอีเมลกับทาง Google -->
+      <div class="flex items-center gap-3">
+        <div class="h-px flex-1 bg-moon-pink-soft" />
+        <span class="text-xs font-normal text-moon-muted">หรือ</span>
+        <div class="h-px flex-1 bg-moon-pink-soft" />
+      </div>
 
-    <!-- <div class="mt-8 flex items-center gap-3">
-      <div class="h-px flex-1 bg-slate-200" />
-      <span class="font-['Anuphan'] text-xs font-normal text-slate-400">หรือ</span>
-      <div class="h-px flex-1 bg-slate-200" />
-    </div> -->
-
-    <!-- <div class="mt-6 flex flex-col gap-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <!-- ปุ่มเข้าสู่ระบบด้วย Google: หน้าตาเป็นปุ่มขอบ (outline) ให้ต่างจากปุ่มหลักสีดำ -->
       <button
         type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 font-['Anuphan'] text-sm font-medium text-slate-700"
-        @click="continueWithOAuth('google')"
+        :disabled="loading"
+        class="flex h-[59px] w-full items-center justify-center gap-3 rounded-3xl border border-moon-pink-soft bg-moon-card px-4 text-lg font-semibold text-moon-ink transition [-webkit-tap-highlight-color:transparent] enabled:active:bg-moon-pink-soft disabled:cursor-not-allowed disabled:opacity-60"
+        @click="continueWithGoogle"
       >
-        <svg class="h-5 w-5" viewBox="0 0 48 48">
+        <svg class="h-5 w-5" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#FFC107" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z" />
           <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
           <path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.1-5.1l-6.5-5.5C29.6 35.3 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.6 39.6 16.3 44 24 44z" />
@@ -227,16 +244,10 @@ onUnmounted(() => {
         </svg>
         ดำเนินการต่อด้วย Google
       </button>
-      <button
-        type="button"
-        class="flex w-full items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 font-['Anuphan'] text-sm font-medium text-slate-700"
-        @click="continueWithOAuth('apple')"
-      >
-        <svg class="h-5 w-5" viewBox="0 0 384 512" fill="currentColor">
-          <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
-        </svg>
-        ดำเนินการต่อด้วย Apple
-      </button>
-    </div> -->
+
+      <p v-if="statusMessage" class="text-center text-xs font-normal text-moon-muted">
+        {{ statusMessage }}
+      </p>
+    </div>
   </div>
 </template>

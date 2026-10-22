@@ -22,7 +22,7 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
 <template>
   <!-- แถบโค้งตามฟิกม่า: พื้นขาว มุมบนซ้าย-ขวาโค้ง 50 ไม่มีเส้นขอบ มีเงาบางๆ ด้านบนให้ลอยขึ้นจากพื้นหลัง
        px-5 กันไม่ให้ปุ่มซ้ายสุด/ขวาสุดไปชนส่วนโค้งของมุม -->
-  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around rounded-t-[50px] bg-moon-card px-5 pb-[env(safe-area-inset-bottom)] pt-1 shadow-[0_-6px_20px_rgba(41,41,41,0.08)]">
+  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around rounded-t-[35px] bg-moon-card px-5 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-1 shadow-[0_-6px_20px_rgba(41,41,41,0.08)]">
     <template v-for="tab in tabs" :key="tab.key">
       <NuxtLink
         v-if="tab.to"
@@ -33,10 +33,10 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         <!-- หน้าที่เปิดอยู่: ไอคอนขยายใหญ่ขึ้น (ขยายด้วย scale เลยไม่ดันความสูงของแถบเมนู) -->
         <FaIcon
           :name="tab.icon"
-          class="h-6 w-6 origin-center transition-transform duration-200"
-          :class="active === tab.key ? 'scale-[1.4]' : ''"
+          class="h-5 w-5 origin-center transition-transform duration-200"
+          :class="active === tab.key ? 'scale-[1.5]' : ''"
         />
-        <span class="text-xs" :class="active === tab.key ? 'font-semibold' : 'font-medium'">{{ tab.label }}</span>
+        <span :class="active === tab.key ? 'text-xs font-semibold' : 'text-[11px] font-medium'">{{ tab.label }}</span>
       </NuxtLink>
 
       <button
@@ -45,8 +45,8 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         disabled
         class="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-moon-ink opacity-40"
       >
-        <FaIcon :name="tab.icon" class="h-6 w-6" />
-        <span class="text-xs font-medium">{{ tab.label }}</span>
+        <FaIcon :name="tab.icon" class="h-5 w-5" />
+        <span class="text-[11px] font-medium">{{ tab.label }}</span>
       </button>
     </template>
 

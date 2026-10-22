@@ -278,33 +278,34 @@ onMounted(async () => {
     </div>
 
     <template v-else>
-      <!-- สรุปที่บันทึกไว้รอบนี้ (ตำแหน่ง + ระดับ) / ถ้าข้ามไป โชว์ปุ่มให้กลับไปเลือก -->
-      <div class="mt-[25px] flex items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h2 class="text-lg font-medium leading-[26px]">ตำแหน่งที่ปวด</h2>
-          <div v-if="locations.length" class="mt-3 flex flex-wrap gap-2">
-            <span
-              v-for="code in locations"
-              :key="code"
-              class="rounded-full bg-moon-coral px-4 py-[6px] text-sm font-medium text-white"
-            >
-              {{ painLocationLabel(code) }}
-            </span>
-            <span v-if="painLevel !== null" class="rounded-full border border-moon-coral bg-white px-4 py-[6px] text-sm font-medium">
-              ปวด{{ painLevelLabel(painLevel) }}
-            </span>
+      <!-- สรุปที่บันทึกไว้รอบนี้ (ตำแหน่ง + ระดับ) เป็นการ์ดมีกรอบ หน้าตาเหมือนการ์ด "อาหารที่แพ้" ในหน้า snack
+           ไม่ใช้ปุ่มทรงแคปซูลแล้ว เพราะดูเหมือนปุ่มกดได้ ทั้งที่กดไม่ได้ / ปุ่มข้างขวาเปลี่ยนเป็น "บันทึกใหม่" หรือ "เลือกตำแหน่ง" ถ้ายังไม่ได้เลือก -->
+      <div class="mt-[25px] rounded-2xl border border-moon-pink-soft bg-white py-[11px] pl-5 pr-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs leading-[18px] text-moon-muted">
+              ตำแหน่งที่ปวด
+            </p>
+            <p class="mt-1 text-sm font-medium leading-[21px]">
+              {{ locations.length ? locations.map(painLocationLabel).join(', ') : 'ยังไม่ได้เลือก' }}
+            </p>
+            <template v-if="locations.length && painLevel !== null">
+              <p class="mt-2 text-xs leading-[18px] text-moon-muted">
+                ระดับปวด
+              </p>
+              <p class="mt-1 text-sm font-medium leading-[21px]">
+                {{ painLevelLabel(painLevel) }}
+              </p>
+            </template>
           </div>
-          <p v-else class="mt-2 text-sm text-moon-muted">
-            ยังไม่ได้เลือกตำแหน่ง
-          </p>
+          <button
+            type="button"
+            class="shrink-0 rounded-full border border-moon-coral bg-moon-pink px-4 py-[6px] text-xs font-medium leading-[18px] text-moon-ink shadow-sm transition active:scale-95"
+            @click="reopenSheet"
+          >
+            {{ locations.length ? 'บันทึกใหม่' : 'เลือกตำแหน่ง' }}
+          </button>
         </div>
-        <button
-          type="button"
-          class="shrink-0 rounded-full border border-moon-coral bg-moon-pink px-4 py-[6px] text-xs font-medium leading-[18px] shadow-sm transition active:scale-95"
-          @click="reopenSheet"
-        >
-          {{ locations.length ? 'บันทึกใหม่' : 'เลือกตำแหน่ง' }}
-        </button>
       </div>
       <p v-if="saveError && step === 'list'" class="mt-3 text-center text-xs text-moon-coral">
         {{ saveError }}

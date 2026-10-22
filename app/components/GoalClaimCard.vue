@@ -36,14 +36,14 @@
         <div class="flex items-center justify-center gap-2">
           <div class="flex flex-col items-center gap-1">
             <div class="relative h-28 w-28">
-              <img v-for="layer in layersOf(currentAvatar)" :key="layer.slot" :src="`/avatar/${layer.code}.png`" alt="" class="absolute inset-0 h-full w-full object-contain">
+              <img v-for="layer in layersOf(currentAvatar)" :key="layer.slot" :src="avatarLayerSrc(layer.code)" alt="" class="absolute inset-0 h-full w-full object-contain">
             </div>
             <span class="font-['Anuphan'] text-[11px] font-normal text-moon-muted">ตอนนี้</span>
           </div>
           <FaIcon name="chevron-right" class="h-4 w-4 text-moon-muted/60" />
           <div class="flex flex-col items-center gap-1">
             <div class="relative h-28 w-28">
-              <img v-for="layer in layersOf(upgradedAvatar)" :key="layer.slot" :src="`/avatar/${layer.code}.png`" alt="" class="absolute inset-0 h-full w-full object-contain">
+              <img v-for="layer in layersOf(upgradedAvatar)" :key="layer.slot" :src="avatarLayerSrc(layer.code)" alt="" class="absolute inset-0 h-full w-full object-contain">
             </div>
             <span class="font-['Anuphan'] text-[11px] font-normal text-moon-muted">หลังรับผล</span>
           </div>
@@ -120,7 +120,7 @@
       <div class="flex flex-col items-center gap-3 text-center">
         <h2 class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">เริ่มรอบใหม่แล้ว</h2>
         <div class="relative h-40 w-40">
-          <img v-for="layer in layersOf(finalAvatar)" :key="layer.slot" :src="`/avatar/${layer.code}.png`" alt="" class="absolute inset-0 h-full w-full object-contain">
+          <img v-for="layer in layersOf(finalAvatar)" :key="layer.slot" :src="avatarLayerSrc(layer.code)" alt="" class="absolute inset-0 h-full w-full object-contain">
         </div>
         <p class="font-['Anuphan'] text-[13px] font-normal text-moon-muted">
           {{ changes.length ? 'อวตารอัปเดตเรียบร้อย' : 'บันทึกผลรอบที่แล้วเรียบร้อย' }} วันนี้เป็นวันแรกของรอบใหม่

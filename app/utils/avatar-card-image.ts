@@ -107,7 +107,7 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
     ]).catch(() => {})
   }
 
-  const images = await Promise.all(input.layerCodes.map(code => loadImage(`/avatar/${code}.png`)))
+  const images = await Promise.all(input.layerCodes.map(code => loadImage(avatarLayerSrc(code))))
   // โลโก้ปัจจุบัน: พระจันทร์ + กระต่าย (วงกลม) แล้วตามด้วยชื่อ Moonie Calm สองบรรทัดอยู่ข้างขวา
   // + คิวอาร์โค้ดมุมขวาล่าง (ไฟล์อยู่ที่ public/brand/qr.png)
   const [moonImg, rabbitImg, wordmarkImg, qrImg] = await Promise.all([
@@ -249,16 +249,22 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   ctx.drawImage(avatarCanvas, avatarX, avatarY)
 
   // ----- ข้อความยินดีด้วย: อยู่ใต้รูปอวตาร (ไม่มีกรอบ ไม่ทับตัวอวตาร) -----
-  ctx.textAlign = 'center'
+  // จัดกึ่งกลางเอง (วัดความกว้างแล้วคำนวณ x) แทนการใช้ textAlign = 'center'
+  // เพราะบางเครื่อง/เบราว์เซอร์ไม่ทำตาม 'center' ทำให้ข้อความไปเริ่มที่กลางการ์ดแล้วล้นออกด้านขวา (ดูเหมือนเอียง)
+  ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
+  const fillCentered = (text: string, y: number) => {
+    const w = ctx.measureText(text).width
+    ctx.fillText(text, Math.round((WIDTH - w) / 2), y)
+  }
   ctx.fillStyle = COLORS.ink
   ctx.font = `700 ${titleSize}px ${FONT_FAMILY}`
   titleLines.forEach((line, i) => {
-    ctx.fillText(line, WIDTH / 2, textY + titleSize + i * titleLineH)
+    fillCentered(line, textY + titleSize + i * titleLineH)
   })
   ctx.fillStyle = COLORS.muted
   ctx.font = `500 ${subtitleSize}px ${FONT_FAMILY}`
-  ctx.fillText('นี่คืออวตารตัวจิ๋วของคุณ', WIDTH / 2, textY + titleLines.length * titleLineH + 12 + subtitleSize + 4)
+  fillCentered('นี่คืออวตารตัวจิ๋วของคุณ', textY + titleLines.length * titleLineH + 12 + subtitleSize + 4)
 
   // ----- มุมขวาล่าง: คิวอาร์โค้ด (แผ่นขาวรองให้สแกนง่าย) + ที่อยู่เว็บอยู่ฝั่งซ้าย -----
   const qrPlate = 216

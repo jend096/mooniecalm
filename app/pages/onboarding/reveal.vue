@@ -70,7 +70,7 @@
               <template v-for="layer in avatarLayers" :key="layer.slot">
                 <img
                   v-if="layer.code && !hiddenLayers[layer.slot]"
-                  :src="`/avatar/${layer.code}.png`"
+                  :src="avatarLayerSrc(layer.code)"
                   alt=""
                   class="absolute inset-0 h-full w-full object-contain"
                   @error="hideLayer(layer.slot)"
@@ -230,7 +230,7 @@
               <template v-for="layer in avatarLayers" :key="layer.slot">
                 <img
                   v-if="layer.code && !hiddenLayers[layer.slot]"
-                  :src="`/avatar/${layer.code}.png`"
+                  :src="avatarLayerSrc(layer.code)"
                   alt=""
                   class="absolute inset-0 h-full w-full object-contain"
                 >
