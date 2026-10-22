@@ -53,7 +53,9 @@ async function pickChoice(value: SnackChoice) {
   picked.value = value
   nextBounceKey.value++
   await nextTick()
-  nextBtnEl.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  // เลื่อนหน้าลงไปสุดท้ายหน้า ให้ปุ่ม "ถัดไป" ลอยขึ้นมาเหนือแถบเมนูล่างให้เห็นชัด
+  // (ใต้ปุ่มมีที่ว่าง 7rem เผื่อแถบเมนูไว้แล้ว) — อยากเลื่อนน้อยลง เปลี่ยน top เป็นค่าอื่น หรือใช้ scrollIntoView({ block: 'center' })
+  window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' })
 }
 const current = ref<SnackItem | null>(null) // เมนูที่กำลังโชว์
 const noResult = ref(false) // เลือกหมวดแล้วแต่ไม่มีเมนูที่ปลอดภัยเลย
