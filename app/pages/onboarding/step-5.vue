@@ -67,7 +67,7 @@ function next() {
 
           <!-- ส่วนที่ขยายลงมา: วงล้อเดือน + ปี (เห็น 3 แถว ตัวอักษร 14px กดแล้วขึ้นมาทันที ไม่มีแอนิเมชัน) -->
           <div v-if="isPickerOpen" class="relative flex justify-center gap-2 px-3 pb-3">
-            <div class="pointer-events-none absolute inset-x-3 top-[44px] h-[44px] rounded-lg border-y border-moon-ink/25" />
+            <div class="pointer-events-none absolute inset-x-3 top-[44px] h-[44px] rounded-xl bg-white/80 shadow-[0_2px_8px_rgba(41,41,41,0.12)]" />
             <WheelPicker
               :model-value="monthIndex"
               :items="THAI_MONTHS"

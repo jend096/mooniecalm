@@ -24,7 +24,7 @@ function next() {
 
     <!-- วงล้อ 2 คอลัมน์: กึ่งกลางคอลัมน์ 114 / 266 px จากขอบกล่อง (ซ้าย-ขวาสมมาตรรอบกลางจอ) -->
     <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
-      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] border-y border-moon-ink/25" />
+      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] rounded-2xl bg-white/80 shadow-[0_2px_10px_rgba(41,41,41,0.12)]" />
       <div class="absolute left-[calc(50%-76px)] top-0 -translate-x-1/2">
         <WheelPicker v-model="weightIndex" :items="weights" unit="kg" width="w-32" />
       </div>

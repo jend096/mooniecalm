@@ -28,6 +28,8 @@ const currentIndex = computed(() => clampIndex(Math.round(scrollTop.value / ITEM
 
 watch(currentIndex, (val) => {
   if (val !== props.modelValue) emit('update:modelValue', val)
+  // สั่นเบาๆ ทุกครั้งที่ผ่านแถวใหม่ เหมือนวงล้อในแอปมือถือ (iPhone ไม่รองรับคำสั่งนี้ ก็แค่ไม่สั่น)
+  try { navigator.vibrate?.(6) } catch { /* ไม่รองรับก็ข้าม */ }
 })
 
 function onScroll(e: Event) {
@@ -37,25 +39,54 @@ function onScroll(e: Event) {
 let isDragging = false
 let dragStartY = 0
 let dragStartScrollTop = 0
+// เก็บตำแหน่งนิ้ว/เมาส์ย้อนหลังไม่กี่จุด ไว้คำนวณ "แรงเหวี่ยง" ตอนปล่อยนิ้ว (เหวี่ยงเร็ว = ไหลต่อไปไกลกว่า เหมือนวงล้อในแอปมือถือ)
+let samples: { t: number, y: number }[] = []
+
+function trackSample(y: number) {
+  const now = performance.now()
+  samples.push({ t: now, y })
+  while (samples.length > 1 && now - samples[0]!.t > 120) samples.shift()
+}
+
+// ความเร็วนิ้ว (px ต่อ ms) จากช่วงสั้นๆ ก่อนปล่อย ลบ = เลื่อนลง
+function releaseVelocity(): number {
+  if (samples.length < 2) return 0
+  const first = samples[0]!
+  const last = samples[samples.length - 1]!
+  const dt = last.t - first.t
+  return dt > 0 ? (last.y - first.y) / dt : 0
+}
+
+// ปล่อยนิ้ว: ไหลต่อตามแรงเหวี่ยง แล้วหยุดที่แถวใกล้สุด (เบราว์เซอร์เลื่อนแบบนุ่มให้เอง)
+function settle() {
+  if (!listEl.value) return
+  const v = releaseVelocity() // px/ms ทิศเดียวกับนิ้ว
+  const glide = Math.max(Math.min(-v * 260, ITEM_HEIGHT * 14), -ITEM_HEIGHT * 14) // ระยะไหลต่อ (px) เหวี่ยงแรงสุดไหลได้ประมาณ 14 แถว
+  const idx = clampIndex(Math.round((listEl.value.scrollTop + glide) / ITEM_HEIGHT))
+  listEl.value.scrollTo({ top: idx * ITEM_HEIGHT, behavior: 'smooth' })
+  samples = []
+}
 
 function onMouseDown(e: MouseEvent) {
   if (!listEl.value) return
   isDragging = true
   dragStartY = e.clientY
   dragStartScrollTop = listEl.value.scrollTop
+  samples = []
+  trackSample(e.clientY)
 }
 
 function onMouseMove(e: MouseEvent) {
   if (!isDragging || !listEl.value) return
   e.preventDefault()
   listEl.value.scrollTop = dragStartScrollTop - (e.clientY - dragStartY)
+  trackSample(e.clientY)
 }
 
 function onMouseUp() {
   if (!isDragging || !listEl.value) return
   isDragging = false
-  const idx = clampIndex(Math.round(listEl.value.scrollTop / ITEM_HEIGHT))
-  listEl.value.scrollTo({ top: idx * ITEM_HEIGHT, behavior: 'smooth' })
+  settle()
 }
 
 function onTouchStart(e: TouchEvent) {
@@ -63,23 +94,36 @@ function onTouchStart(e: TouchEvent) {
   isDragging = true
   dragStartY = e.touches[0].clientY
   dragStartScrollTop = listEl.value.scrollTop
+  samples = []
+  trackSample(e.touches[0].clientY)
 }
 
 function onTouchMove(e: TouchEvent) {
   if (!isDragging || !listEl.value) return
   e.preventDefault()
   listEl.value.scrollTop = dragStartScrollTop - (e.touches[0].clientY - dragStartY)
+  trackSample(e.touches[0].clientY)
 }
 
-// สไตล์ของแต่ละแถว "เปลี่ยนต่อเนื่องตามระยะที่เลื่อน" (ไม่กระโดดเป็นขั้น) ผู้ใช้จะเห็นตัวเลขค่อยๆ โตขึ้น/เข้มขึ้นตอนเลื่อนเข้ามาตรงกลาง
-// และค่อยๆ เล็กลง/จางลงตอนเลื่อนออกไป เห็นชัดว่าวงล้อกำลังขยับจริงและตอนนี้อันไหนถูกเลือก
+// สไตล์ของแต่ละแถว "เปลี่ยนต่อเนื่องตามระยะที่เลื่อน" ให้วงล้อดูเป็นทรงกระบอก (เหมือนวงล้อเลือกค่าในมือถือ)
+// แถวกลางหันตรงมาที่เรา ใหญ่ เข้ม แถวที่อยู่ไกลออกไปเหมือนโค้งหนีไป: เตี้ยลง จางลง และขยับเข้าหาแถวกลาง
+const STEP_DEG = 30 // แต่ละแถวห่างกันกี่องศาบนทรงกระบอก ยิ่งมากยิ่งโค้งเยอะ
+const STEP_RAD = (STEP_DEG * Math.PI) / 180
+const RADIUS = ITEM_HEIGHT / STEP_RAD // รัศมีทรงกระบอก ให้แถวที่อยู่ติดกันห่างกันเท่าความสูงแถวพอดี ตรงกลาง
+
 function rowStyle(i: number) {
-  const d = Math.abs(i - scrollTop.value / ITEM_HEIGHT) // ระยะห่างจากแถวกลาง นับเป็นจำนวนแถว (0 = อยู่กลางพอดี)
-  const scale = Math.max(1.25 - d * 0.25, 0.8) // แถวกลางขยาย 25% แถวถัดไปขนาดปกติ แถวไกลๆ เล็กลง
-  const inkPercent = Math.max(100 - d * 72, 28) // สีตัวหนังสือ: กลาง = เข้มเต็ม ห่างออกไป = จางลงถึง 28% (ตาม Figma)
+  const signed = i - scrollTop.value / ITEM_HEIGHT // ระยะห่างจากแถวกลาง (จำนวนแถว) ลบ = อยู่เหนือกลาง
+  const d = Math.abs(signed)
+  const theta = Math.min(d * STEP_RAD, (80 * Math.PI) / 180) // มุมบนทรงกระบอก (ไม่เกิน 80 องศา)
+  const flat = signed * ITEM_HEIGHT // ตำแหน่งแนวตั้งถ้าเป็นแผ่นเรียบ
+  const curved = Math.sign(signed) * RADIUS * Math.sin(theta) // ตำแหน่งแนวตั้งจริงบนทรงกระบอก (ใกล้กลางเท่ากัน ไกลออกไปจะเข้าหากัน)
+  const shiftY = curved - flat
+  const size = Math.max(1.25 - d * 0.25, 0.8) // แถวกลางใหญ่สุด
+  const squash = Math.cos(theta) // แถวที่โค้งหนีไปดูเตี้ยลง
+  const inkPercent = Math.max(100 - d * 72, 28) // สี: กลาง = เข้มเต็ม ห่างออกไป = จางลงถึง 28% (ตาม Figma)
   return {
-    opacity: Math.max(1 - d * 0.2, 0.55),
-    transform: `scale(${scale})`,
+    opacity: Math.max(Math.cos(theta) ** 1.2, 0.25),
+    transform: `translateY(${shiftY}px) scale(${size}, ${size * squash})`,
     // แถวที่เลือก: ตัวหนา / แถวอื่น: ตัวบาง
     fontWeight: d < 0.5 ? 600 : 400,
     color: `color-mix(in srgb, var(--color-ink) ${inkPercent}%, transparent)`

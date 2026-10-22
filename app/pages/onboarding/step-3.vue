@@ -30,7 +30,7 @@ function next() {
 
     <!-- วงล้อ 3 คอลัมน์: อยู่กึ่งกลางจอ สูง 300px (5 แถว x 60px) กึ่งกลางคอลัมน์ = 78 / 190 / 302 px จากขอบกล่อง (เดือนอยู่กลางจอพอดี วัน-ปีห่างจากเดือนเท่ากันข้างละ 112px) -->
     <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
-      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] border-y border-moon-ink/25" />
+      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] rounded-2xl bg-white/80 shadow-[0_2px_10px_rgba(41,41,41,0.12)]" />
       <div class="absolute left-[calc(50%-112px)] top-0 -translate-x-1/2">
         <WheelPicker v-model="dayIndex" :items="days" width="w-24" />
       </div>
