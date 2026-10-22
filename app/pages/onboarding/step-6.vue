@@ -20,7 +20,6 @@ function next() {
 
     <!-- วงล้อ 1 คอลัมน์: กึ่งกลางจอ -->
     <div class="absolute inset-x-6 top-1/2 h-[300px] -translate-y-1/2">
-      <div class="pointer-events-none absolute inset-x-0 top-[120px] h-[60px] rounded-2xl bg-white/80 shadow-[0_2px_10px_rgba(41,41,41,0.12)]" />
       <div class="absolute left-1/2 top-0 -translate-x-1/2">
         <WheelPicker v-model="durationIndex" :items="durations" unit="วัน" width="w-32" />
       </div>

@@ -111,9 +111,13 @@ const STEP_DEG = 30 // แต่ละแถวห่างกันกี่อ
 const STEP_RAD = (STEP_DEG * Math.PI) / 180
 const RADIUS = ITEM_HEIGHT / STEP_RAD // รัศมีทรงกระบอก ให้แถวที่อยู่ติดกันห่างกันเท่าความสูงแถวพอดี ตรงกลาง
 
+// แถวที่อยู่ไกลเกินสายตา (เกิน 3 แถว) ใช้สไตล์ตายตัวชุดเดียว ไม่ต้องคำนวณใหม่ทุกเฟรมที่เลื่อน (ลิสต์ปีมีเป็นร้อยแถว) วงล้อจะลื่นขึ้น
+const FAR_STYLE = { opacity: 0, transform: 'scale(0.8)' }
+
 function rowStyle(i: number) {
   const signed = i - scrollTop.value / ITEM_HEIGHT // ระยะห่างจากแถวกลาง (จำนวนแถว) ลบ = อยู่เหนือกลาง
   const d = Math.abs(signed)
+  if (d > 3.2) return FAR_STYLE
   const theta = Math.min(d * STEP_RAD, (80 * Math.PI) / 180) // มุมบนทรงกระบอก (ไม่เกิน 80 องศา)
   const flat = signed * ITEM_HEIGHT // ตำแหน่งแนวตั้งถ้าเป็นแผ่นเรียบ
   const curved = Math.sign(signed) * RADIUS * Math.sin(theta) // ตำแหน่งแนวตั้งจริงบนทรงกระบอก (ใกล้กลางเท่ากัน ไกลออกไปจะเข้าหากัน)
