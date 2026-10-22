@@ -68,6 +68,17 @@ const daysLogged = computed(() => {
   return Math.min(CYCLE_LENGTH_DAYS, Math.max(1, dayNumber))
 })
 
+// ครบ 28 วันแล้ว (วันที่ 28 ของรอบ) -> เลขวันขึ้นเอฟเฟกต์
+const isCycleComplete = computed(() => daysLogged.value >= CYCLE_LENGTH_DAYS)
+// ประกายรอบเลข: ตำแหน่งเป็น % ของกล่องเลข, size = px, delay = วินาที, color = สีประกาย
+const doneSparkles = [
+  { left: '-14%', top: '-6%', size: 14, delay: 0, color: 'var(--color-period-predicted)' },
+  { left: '88%', top: '-12%', size: 11, delay: 0.5, color: 'var(--color-coral)' },
+  { left: '96%', top: '58%', size: 15, delay: 1.1, color: 'var(--color-period-predicted)' },
+  { left: '-18%', top: '62%', size: 10, delay: 1.6, color: 'var(--color-lavender)' },
+  { left: '42%', top: '-22%', size: 9, delay: 0.9, color: 'var(--color-period-day)' }
+]
+
 const progressPercent = computed(() => Math.min(100, Math.round((daysLogged.value / CYCLE_LENGTH_DAYS) * 100)))
 
 // period calendar
@@ -603,16 +614,8 @@ async function logout() {
       </div>
 
       <!-- รูปอวตารเต็มความกว้าง + ปุ่มแชร์มุมขวาล่าง -->
-      <div class="relative mt-[6px] aspect-square w-full">
-        <template v-for="layer in avatarLayers" :key="layer.slot">
-          <img
-            v-if="layer.code && !hiddenLayers[layer.slot]"
-            :src="avatarLayerSrc(layer.code)"
-            alt=""
-            class="absolute inset-0 h-full w-full object-contain"
-            @error="hideLayer(layer.slot)"
-          >
-        </template>
+      <!-- ขนาดตัวกระต่ายปรับที่ :bunny-scale (1 = เต็ม, 0.8 = เล็กลง 20%) พื้นหลังไม่ย่อ (ดู components/AvatarScene.vue) -->
+      <AvatarScene :layers="avatarLayers" :bunny-scale="0.8" class="mt-[6px]" @layer-error="hideLayer">
         <button
           type="button"
           class="absolute bottom-2 right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-white shadow-[0_1px_6px_rgba(107,98,100,0.2)]"
@@ -623,7 +626,7 @@ async function logout() {
           <BrandLogoMark v-if="isSharing" :size="38" stage="bob" />
           <FaIcon v-else name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
         </button>
-      </div>
+      </AvatarScene>
 
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
@@ -635,8 +638,28 @@ async function logout() {
           <!-- ซ้าย: จำนวนวันที่เช็คอิน (กว้างคงที่ ให้รายการเป้าหมายเริ่มที่ตำแหน่งเดิม) -->
           <p class="flex w-[142px] shrink-0 items-baseline gap-[6px]">
             <span class="text-lg">วัน</span>
-            <span class="text-[48px] font-semibold leading-none text-moon-period">{{ String(daysLogged).padStart(2, '0') }}</span>
-            <span class="text-lg text-moon-ink/[0.27]">/{{ CYCLE_LENGTH_DAYS }}</span>
+            <!-- ครบ 28 วัน: เลขเปลี่ยนเป็นสีของประจำเดือน (ไล่เฉด --color-period-day -> --color-period-predicted ใน assets/css/tokens.css)
+                 ขยับเบาๆ + มีประกายระยิบรอบเลข ให้รู้ว่าทำครบแล้ว -->
+            <span class="relative inline-block">
+              <span
+                class="inline-block text-[48px] font-semibold leading-none"
+                :class="isCycleComplete ? 'days-done' : 'text-moon-period'"
+              >{{ String(daysLogged).padStart(2, '0') }}</span>
+              <template v-if="isCycleComplete">
+                <svg
+                  v-for="(star, i) in doneSparkles"
+                  :key="i"
+                  viewBox="0 0 24 24"
+                  class="days-done-star pointer-events-none absolute"
+                  :style="{ left: star.left, top: star.top, width: `${star.size}px`, height: `${star.size}px`, animationDelay: `${star.delay}s`, color: star.color }"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
+                </svg>
+              </template>
+            </span>
+            <span class="text-lg" :class="isCycleComplete ? 'text-moon-period' : 'text-moon-ink/[0.27]'">/{{ CYCLE_LENGTH_DAYS }}</span>
           </p>
 
           <!-- ขวา: เส้นเวลาเป้าหมาย + สถานะ (กล่องกว้างพอดีข้อความที่ยาวที่สุด ข้อความยังอยู่บรรทัดเดียว) -->
@@ -748,6 +771,73 @@ async function logout() {
 </template>
 
 <style scoped>
+/* เลขวันตอนครบ 28: ไล่เฉดสีของประจำเดือนวิ่งผ่านตัวเลข + เอียง/เด้งเบาๆ
+   เปลี่ยนสี: แก้ var(--color-period-day / --color-period-predicted) ด้านล่าง, ความเร็ว: 2.6s (เฉด) และ 2.2s (ขยับ) */
+.days-done {
+  background: linear-gradient(100deg, var(--color-period-day) 0%, var(--color-period-predicted) 45%, var(--color-period-day) 90%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: days-done-shimmer 2.6s linear infinite, days-done-wiggle 2.2s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+
+@keyframes days-done-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes days-done-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  20% {
+    transform: rotate(-4deg) scale(1.06);
+  }
+  40% {
+    transform: rotate(3deg) scale(1.03);
+  }
+  60% {
+    transform: rotate(-2deg) scale(1.06);
+  }
+  80% {
+    transform: rotate(1deg) scale(1.02);
+  }
+}
+
+/* ประกายระยิบ: ค่อยๆ โผล่ ขยาย หมุนเล็กน้อย แล้วหายไป วนซ้ำ */
+.days-done-star {
+  opacity: 0;
+  animation: days-done-twinkle 2.2s ease-in-out infinite;
+}
+
+@keyframes days-done-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(35deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .days-done,
+  .days-done-star {
+    animation: none;
+  }
+
+  .days-done-star {
+    opacity: 0.8;
+  }
+}
+
 /* วงกลมไอคอนบนการ์ดลัด: ทำท่าเหมือนถูกกดเบาๆ เป็นจังหวะ (ยุบนิดหนึ่งแล้วเด้งกลับ) + วงคลื่นขยายออกจากวงกลม ใบ้ให้รู้ว่ากดได้
    การ์ดสองใบเหลื่อมจังหวะกัน (ใบที่สองช้ากว่า 1.3 วิ) จะได้ไม่กะพริบพร้อมกัน */
 .press-hint {

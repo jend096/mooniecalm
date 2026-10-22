@@ -67,15 +67,8 @@
               class="avatar-frame absolute inset-0 overflow-hidden"
               :class="stage === 'done' ? 'avatar-frame-on' : ''"
             >
-              <template v-for="layer in avatarLayers" :key="layer.slot">
-                <img
-                  v-if="layer.code && !hiddenLayers[layer.slot]"
-                  :src="avatarLayerSrc(layer.code)"
-                  alt=""
-                  class="absolute inset-0 h-full w-full object-contain"
-                  @error="hideLayer(layer.slot)"
-                >
-              </template>
+              <!-- ฉากอวตารตัวเดียวกับหน้าแรก: หูกระดิก ตัวหายใจเบาๆ (ดู components/AvatarScene.vue) -->
+              <AvatarScene :layers="avatarLayers" @layer-error="hideLayer" />
             </div>
           </button>
         </div>
@@ -227,14 +220,7 @@
         <div class="zoom-card relative aspect-square w-[min(88vw,380px)]" @click.stop>
           <div class="avatar-float absolute inset-0">
             <div class="absolute inset-0 overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(254,119,119,0.45)]">
-              <template v-for="layer in avatarLayers" :key="layer.slot">
-                <img
-                  v-if="layer.code && !hiddenLayers[layer.slot]"
-                  :src="avatarLayerSrc(layer.code)"
-                  alt=""
-                  class="absolute inset-0 h-full w-full object-contain"
-                >
-              </template>
+              <AvatarScene :layers="avatarLayers" />
             </div>
           </div>
         </div>

@@ -2,22 +2,23 @@
 
 export const CYCLE_LENGTH_DAYS = 28
 
-// กติกาอัปเกรดอวตาร (ตรงกับที่เขียนไว้ใน SQL ส่วน D1)
-// เป้าหมายแต่ละข้อ: ต้องทำได้อย่างน้อย minDays วันจาก 28 -> ชิ้นส่วน slot ของอวตารเปลี่ยนเป็น upgradedCode
+// กติกาอัปเกรดอวตาร: ไล่ระดับทีละขั้น (ไม่ข้ามไปขั้นสูงสุดทีเดียว)
+// เป้าหมายแต่ละข้อ: ทำได้อย่างน้อย minDays วันจาก 28 -> ชิ้นส่วน slot ของอวตารขยับขึ้น 1 ขั้นตามลำดับใน tiers
+// tiers เรียงจาก "แย่สุด -> ดีสุด" (ตัวแรกคือท่าตอนเริ่มต้นที่ยังไม่ได้ทำเป้าหมาย)
+// อยากเปลี่ยนลำดับขั้น แก้ที่ tiers ของแต่ละข้อได้เลย
 export interface ClaimRule {
   goalCode: string
-  minDays: number
+  minDays: number // ต้องทำได้กี่วันจาก 28 ถึงจะผ่าน
   slot: string // ชื่อชิ้นส่วนอวตารใน user_avatar_state.feature_slot
-  upgradedCode: string // asset_code ที่จะเปลี่ยนไปเป็น
-  slotLabel: string // ชื่อไทยของชิ้นส่วน ไว้โชว์
-  upgradedLabel: string // คำอธิบายสั้นๆ ของแบบใหม่ ไว้โชว์
+  tiers: string[] // asset_code เรียงจากแย่สุด -> ดีสุด
 }
 
 export const CLAIM_RULES: ClaimRule[] = [
-  { goalCode: 'sleep_schedule', minDays: 20, slot: 'eyes', upgradedCode: 'eye_alert', slotLabel: 'ตา', upgradedLabel: 'ตาใสสดใส' },
-  { goalCode: 'exercise_routine', minDays: 13, slot: 'ears', upgradedCode: 'ear_erect', slotLabel: 'หู', upgradedLabel: 'หูตั้งตรง' },
-  { goalCode: 'reduce_sugar', minDays: 20, slot: 'body_color', upgradedCode: 'body_pink', slotLabel: 'สีตัว', upgradedLabel: 'สีชมพูพาสเทล' },
-  { goalCode: 'reduce_cold_drinks', minDays: 20, slot: 'fx_overlay', upgradedCode: 'fx_warm_rosy', slotLabel: 'แก้ม', upgradedLabel: 'แก้มอมชมพู มีไออุ่น' }
+  { goalCode: 'sleep_schedule', minDays: 20, slot: 'eyes', tiers: ['eye_exhausted', 'eye_sleepy', 'eye_alert'] },
+  { goalCode: 'exercise_routine', minDays: 13, slot: 'ears', tiers: ['ear_droop', 'ear_half_droop', 'ear_erect'] },
+  // สีตัวในฐานข้อมูล: ชมพู = ทานของหวานนานๆ ครั้ง (ดีสุด), เหลือง = สัปดาห์ละ 3-4 วัน, คาราเมล = ทานทุกวัน (แย่สุด)
+  { goalCode: 'reduce_sugar', minDays: 20, slot: 'body_color', tiers: ['body_caramel', 'body_yellow', 'body_pink'] },
+  { goalCode: 'reduce_cold_drinks', minDays: 20, slot: 'fx_overlay', tiers: ['fx_shivering_cold', 'fx_sweat_nose', 'fx_warm_rosy'] }
 ]
 
 // รอบนี้จบสมบูรณ์แล้วหรือยัง
@@ -33,35 +34,44 @@ export interface ClaimItem {
   rule: ClaimRule
   days: number // ทำได้กี่วันจาก 28
   passed: boolean // ถึงเกณฑ์หรือยัง
-  alreadyUpgraded: boolean // ชิ้นส่วนนี้เป็นแบบอัปเกรดอยู่แล้วไหม
-  willChange: boolean // กดรับผลแล้วอวตารจะเปลี่ยนจริงไหม (ผ่าน และยังไม่เคยอัปเกรด)
+  nextCode: string | null // ชิ้นส่วนขั้นถัดไปที่จะได้ (null = อยู่ขั้นสูงสุดแล้วหรือไม่รู้จักรหัสปัจจุบัน)
+  willChange: boolean // กดรับผลแล้วอวตารจะเปลี่ยนจริงไหม (ผ่าน และยังไม่ถึงขั้นสูงสุด)
 }
 
-// ตัดสินผลเฉพาะเป้าหมายที่เปิดอยู่ในรอบนี้
+// ขั้นถัดไปของชิ้นส่วน: ขยับขึ้น 1 ขั้น ถ้าอยู่ขั้นสูงสุดแล้วหรือรหัสไม่อยู่ในลำดับ จะไม่เปลี่ยน (null)
+export function nextTierCode(rule: ClaimRule, currentCode: string | null | undefined): string | null {
+  if (!currentCode) return null
+  const index = rule.tiers.indexOf(currentCode)
+  if (index === -1 || index >= rule.tiers.length - 1) return null
+  return rule.tiers[index + 1] ?? null
+}
+
+// ตัดสินผลเฉพาะเป้าหมายที่เปิดอยู่ในรอบนี้ เรียงข้อที่ผ่านขึ้นก่อน ข้อที่ไม่ผ่านไว้ล่าง (ลำดับเดิมในแต่ละกลุ่ม)
 // dayCounts: จำนวนวันที่ทำได้ แยกตาม goal_code, avatar: ชิ้นส่วนอวตารตอนนี้ แยกตาม slot
 export function evaluateClaim(
   activeGoalCodes: string[],
   dayCounts: Record<string, number>,
   avatar: Record<string, string | null>
 ): ClaimItem[] {
-  return CLAIM_RULES
+  const items = CLAIM_RULES
     .filter(rule => activeGoalCodes.includes(rule.goalCode))
     .map((rule) => {
       const days = dayCounts[rule.goalCode] ?? 0
       const passed = days >= rule.minDays
-      const alreadyUpgraded = avatar[rule.slot] === rule.upgradedCode
-      return { rule, days, passed, alreadyUpgraded, willChange: passed && !alreadyUpgraded }
+      const nextCode = nextTierCode(rule, avatar[rule.slot])
+      return { rule, days, passed, nextCode, willChange: passed && nextCode !== null }
     })
+  return [...items.filter(i => i.passed), ...items.filter(i => !i.passed)]
 }
 
-// อวตารหลังรับผล: เอาของเดิมมาแล้วเปลี่ยนเฉพาะชิ้นที่ผ่านเกณฑ์
+// อวตารหลังรับผล: เอาของเดิมมาแล้วขยับขึ้น 1 ขั้นเฉพาะชิ้นที่ผ่านเกณฑ์
 export function applyUpgrades(
   avatar: Record<string, string | null>,
   items: ClaimItem[]
 ): Record<string, string | null> {
   const next = { ...avatar }
   for (const item of items) {
-    if (item.willChange) next[item.rule.slot] = item.rule.upgradedCode
+    if (item.willChange && item.nextCode) next[item.rule.slot] = item.nextCode
   }
   return next
 }
