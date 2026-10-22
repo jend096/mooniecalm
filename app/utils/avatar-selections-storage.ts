@@ -56,7 +56,12 @@ export function useAvatarSelections() {
 
     if (!hasWatcher) {
       hasWatcher = true
-      watch(state, (value) => writeAvatarSelectionsToStorage(value), { deep: true })
+      // สร้างตัวเฝ้าดูใน effectScope แยกอิสระ (detached) ไม่ผูกกับหน้าที่เรียกครั้งแรก
+      // ไม่งั้นพอออกจากหน้าคำถามแรก ตัวเฝ้าดูจะถูกหยุดไปด้วย แล้วคำตอบข้อ 2-4 ไม่ถูกจำลง localStorage
+      // (ทำให้ตอนสมัครด้วย Google ที่หน้าเว็บโหลดใหม่ เหลือแค่คำตอบข้อแรก)
+      effectScope(true).run(() => {
+        watch(state, (value) => writeAvatarSelectionsToStorage(value), { deep: true, flush: 'sync' })
+      })
     }
   }
 

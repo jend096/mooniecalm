@@ -116,6 +116,10 @@ async function continueWithGoogle() {
   sendingLink.value = false
   statusMessage.value = ''
 
+  // Google ต้องเด้งออกไปแล้วโหลดหน้าเว็บใหม่ตอนกลับมา คำตอบ onboarding ในความจำจะหาย
+  // จดลง localStorage ไว้ก่อน ตอนกลับมาจะหยิบไปสร้างโปรไฟล์ (ดู savePendingOnboarding)
+  savePendingOnboarding()
+
   const supabase = useSupabaseClient()
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',

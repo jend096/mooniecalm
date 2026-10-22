@@ -45,6 +45,74 @@ export function buildOnboardingMetadata(): OnboardingMetadata {
   }
 }
 
+// ===== เก็บคำตอบ onboarding ข้ามการเด้งไปหน้า Google =====
+// คำตอบ (วันเกิด น้ำหนัก ส่วนสูง ประจำเดือน ที่แพ้) อยู่ใน Pinia ซึ่งอยู่แค่ในความจำของหน้าเว็บ
+// พอกด "ดำเนินการต่อด้วย Google" เบราว์เซอร์ออกไปหน้า Google แล้วโหลดหน้าเว็บใหม่ตอนกลับมา ความจำนั้นหายหมด
+// (ทางอีเมลไม่เป็นไร เพราะแนบคำตอบไปกับ user_metadata แต่ Google แนบไม่ได้)
+// เลยจดคำตอบลง localStorage ไว้ก่อนเด้งออกไป พอกลับมาสร้างโปรไฟล์ก็หยิบมาเติมที่ว่าง แล้วลบทิ้ง
+const PENDING_ONBOARDING_KEY = 'mooniecalm-pending-onboarding'
+
+export function savePendingOnboarding() {
+  try {
+    window.localStorage.setItem(PENDING_ONBOARDING_KEY, JSON.stringify(buildOnboardingMetadata()))
+  } catch {
+    // เก็บไม่ได้ (เช่นปิด storage) ก็ไม่เป็นไร แค่คำตอบจะไม่ตามมาหลังกลับจาก Google
+  }
+}
+
+function readPendingOnboarding(): OnboardingMetadata | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_ONBOARDING_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Record<string, unknown>
+    // ผ่านตัวแปลงเดิม เพื่อให้ชนิดข้อมูลถูกต้องและค่าแปลกๆ กลายเป็นค่าว่าง
+    return resolveOnboardingData(parsed, emptyOnboardingData())
+  } catch {
+    return null
+  }
+}
+
+function clearPendingOnboarding() {
+  try {
+    window.localStorage.removeItem(PENDING_ONBOARDING_KEY)
+  } catch {
+    // ลบไม่ได้ก็ข้าม
+  }
+}
+
+function emptyOnboardingData(): OnboardingMetadata {
+  return {
+    birth_date: null,
+    weight_kg: null,
+    height_cm: null,
+    last_period_date: null,
+    period_duration_days: null,
+    food_allergies: [],
+    avatar_selections: emptyAvatarSelections(),
+    consent_at: null,
+    consent_version: null
+  }
+}
+
+// เอาค่าที่จดไว้ก่อนไปหน้า Google มาเติมเฉพาะช่องที่ตอนนี้ยังว่าง (ค่าที่มีอยู่แล้วไม่ถูกทับ)
+function fillMissing(primary: OnboardingMetadata, fallback: OnboardingMetadata): OnboardingMetadata {
+  const selections = emptyAvatarSelections()
+  for (const slot of AVATAR_SLOTS) {
+    selections[slot] = primary.avatar_selections[slot] ?? fallback.avatar_selections[slot]
+  }
+  return {
+    birth_date: primary.birth_date ?? fallback.birth_date,
+    weight_kg: primary.weight_kg ?? fallback.weight_kg,
+    height_cm: primary.height_cm ?? fallback.height_cm,
+    last_period_date: primary.last_period_date ?? fallback.last_period_date,
+    period_duration_days: primary.period_duration_days ?? fallback.period_duration_days,
+    food_allergies: primary.food_allergies.length ? primary.food_allergies : fallback.food_allergies,
+    avatar_selections: selections,
+    consent_at: primary.consent_at ?? fallback.consent_at,
+    consent_version: primary.consent_version ?? fallback.consent_version
+  }
+}
+
 function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value !== '' ? value : null
 }
@@ -94,10 +162,13 @@ export async function saveOnboardingProfile(userId: string) {
   const { data: sessionData } = await sessionClient.auth.getSession()
   const supabase = await getAuthedSupabaseClient()
 
-  const local = buildOnboardingMetadata()
+  let local = buildOnboardingMetadata()
   if (isEmptySelections(local.avatar_selections)) {
     local.avatar_selections = readAvatarSelectionsFromStorage()
   }
+  // กลับมาจากหน้า Google: ความจำของหน้าเว็บหายไปแล้ว ดึงคำตอบที่จดไว้ก่อนไปมาเติมช่องที่ว่าง
+  const pending = readPendingOnboarding()
+  if (pending) local = fillMissing(local, pending)
 
   const data = resolveOnboardingData(sessionData.session?.user.user_metadata, local)
 
@@ -143,4 +214,7 @@ export async function saveOnboardingProfile(userId: string) {
 
     if (avatarError) throw avatarError
   }
+
+  // บันทึกครบแล้ว ลบที่จดไว้ก่อนไปหน้า Google ทิ้ง ไม่ให้ค้างไปใช้กับบัญชีอื่น
+  clearPendingOnboarding()
 }
