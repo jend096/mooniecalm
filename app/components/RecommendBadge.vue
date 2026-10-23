@@ -7,7 +7,7 @@ defineProps<{ large?: boolean }>()
 
 <template>
   <span
-    class="inline-flex items-center gap-1 rounded-full bg-moon-cream font-medium"
+    class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-moon-cream font-medium"
     :class="large ? 'px-3 py-1 text-xs' : 'px-2 py-[2px] text-xxs'"
   >
     <svg viewBox="0 0 24 24" class="badge-star shrink-0 text-moon-coral" :class="large ? 'h-3.5 w-3.5' : 'h-3 w-3'" fill="currentColor" aria-hidden="true">

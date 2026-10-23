@@ -47,18 +47,22 @@ function onImageError() {
 
         <div class="px-6 pt-4">
           <p v-if="category" class="text-xs font-medium leading-[18px] text-moon-muted">{{ SNACK_CATEGORY_LABEL[category] }}</p>
-          <h2 class="text-xl font-semibold leading-[30px]">{{ name }}</h2>
-          <p v-if="recommended" class="mt-1"><RecommendBadge large /></p>
+          <!-- ชื่อเมนู (ซ้าย) + ป้ายแนะนำ (ชิดขวา) อยู่บรรทัดเดียวกัน -->
+          <div class="flex items-start justify-between gap-2">
+            <h2 class="min-w-0 text-xl font-semibold leading-[30px]">{{ name }}</h2>
+            <RecommendBadge v-if="recommended" large class="mt-[6px]" />
+          </div>
           <p v-if="description" class="mt-2 text-sm leading-[21px] text-moon-ink/70">{{ description }}</p>
 
-          <p v-if="pairingTip" class="mt-3 flex items-start gap-1 rounded-2xl bg-moon-lavender p-3 text-xs leading-[18px] text-white">
-            <FaIcon name="wand-magic-sparkles" class="mt-[3px] h-[13px] w-[14px] shrink-0 text-moon-coral" />
+          <!-- กล่องม่วง "กินคู่กับ": ความโค้งมน = rounded-2xl (ใหญ่ขึ้น: rounded-3xl / เล็กลง: rounded-xl) สีตัวอักษรเข้มให้อ่านง่ายบนม่วงพาสเทล -->
+          <p v-if="pairingTip" class="mt-3 flex items-start gap-1.5 rounded-2xl bg-moon-lavender p-3 text-xs leading-[18px] text-moon-ink">
+            <svg viewBox="0 0 24 24" class="mt-[2px] h-[14px] w-[14px] shrink-0 text-moon-coral" fill="currentColor" aria-hidden="true"><path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" /></svg>
             <span>กินคู่กับ: {{ pairingTip }}</span>
           </p>
           <p v-if="ingredients?.length" class="mt-3 text-xs text-moon-muted">วัตถุดิบหลัก: {{ ingredients.join(', ') }}</p>
 
-          <p class="mt-5 text-xs leading-relaxed text-moon-coral/70">{{ SNACK_SAFETY_NOTE }}</p>
-          <p class="mt-2 text-xs leading-relaxed text-moon-coral/70">{{ SNACK_LABEL_NOTE }}</p>
+          <!-- คำเตือน: กล่องโทนแดงอ่อน ตัวหนังสือเข้มให้อ่านง่าย (ข้อความอยู่ใน snack-picker.ts) -->
+          <p class="mt-5 rounded-2xl bg-moon-coral/10 p-[10px] text-xs leading-[20px] text-moon-ink/80">{{ SNACK_SAFETY_NOTE }}</p>
         </div>
       </div>
 

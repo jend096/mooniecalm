@@ -614,11 +614,15 @@ async function logout() {
       </div>
 
       <!-- รูปอวตารเต็มความกว้าง + ปุ่มแชร์มุมขวาล่าง -->
-      <!-- ขนาดตัวกระต่ายปรับที่ :bunny-scale (1 = เต็ม, 0.8 = เล็กลง 20%) พื้นหลังไม่ย่อ (ดู components/AvatarScene.vue) -->
-      <AvatarScene :layers="avatarLayers" :bunny-scale="0.8" class="mt-[6px]" @layer-error="hideLayer">
+      <!-- ปรับตรงนี้:
+           :bunny-scale = ขนาดตัวกระต่าย (1 = เต็ม, 0.65 = เล็กลง 35%) พื้นหลังไม่ย่อ (ดู components/AvatarScene.vue)
+           :crop-top    = ตัดส่วนบนของฉากที่ว่างทิ้ง (0.22 = ตัดออกราว 1 ใน 5) ยิ่งมาก การ์ดเช็คอิน/ปุ่มทางลัดยิ่งขึ้นมาสูง
+                          แต่เกิน ~0.25 พระอาทิตย์กับเมฆจะเริ่มโดนตัดขอบบน
+           -mb-[28px]   = ดึงการ์ดเป้าหมายขึ้นมาซ้อนส่วนว่างใต้เงาพื้น (เกิน -mb-[36px] การ์ดจะทับเงาพื้นกระต่าย) -->
+      <AvatarScene :layers="avatarLayers" :bunny-scale="0.65" :crop-top="0.22" class="-mb-[28px]" @layer-error="hideLayer">
         <button
           type="button"
-          class="absolute bottom-2 right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-white shadow-[0_1px_6px_rgba(107,98,100,0.2)]"
+          class="absolute bottom-[36px] right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-white shadow-[0_1px_6px_rgba(107,98,100,0.2)]"
           aria-label="แชร์"
           :disabled="isSharing"
           @click="share"
@@ -631,7 +635,7 @@ async function logout() {
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
            เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
-      <div class="relative mx-[35px] mt-[22px] rounded-[15px] bg-white/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+      <div class="relative mx-[35px] mt-[14px] rounded-[15px] bg-white/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
         <div class="mt-[12px] flex items-center px-[23px]">
@@ -698,7 +702,7 @@ async function logout() {
       </div>
 
       <!-- การ์ดลัด 2 ใบ: อยากทานอะไร / ปวดตรงไหน -->
-      <div class="mt-[31px] flex gap-[21px] pl-[33px] pr-[42px]">
+      <div class="mt-[24px] flex gap-[21px] pl-[33px] pr-[42px]">
         <button
           type="button"
           class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"

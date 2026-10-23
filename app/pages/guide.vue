@@ -329,7 +329,7 @@ onMounted(async () => {
       <!-- รายการคู่มือ: ในการ์ดไม่มีวิธีทำ ต้องกด "เลือกอันนี้" -> บันทึก แล้วเด้งการ์ดวิธีทำให้อ่าน -->
       <p
         v-if="isSevere && locations.length"
-        class="mt-[25px] rounded-2xl bg-moon-coral/10 p-4 text-xs leading-relaxed text-moon-coral"
+        class="mt-[25px] rounded-2xl bg-moon-coral/10 p-4 text-xs leading-relaxed text-moon-ink/80"
       >
         วันนี้ปวดมาก เราเรียงวิธีที่ทำได้ทันทีไว้ด้านบน ถ้าปวดจนทนไม่ไหว หรือปวดผิดจากที่เคยเป็น ควรปรึกษาแพทย์
       </p>

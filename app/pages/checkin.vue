@@ -95,14 +95,14 @@
         <div class="flex w-[111px] shrink-0 flex-col items-end justify-between">
           <button
             type="button"
-            class="relative flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 transition active:scale-90 before:absolute before:-inset-2 before:content-[''] disabled:active:scale-100"
+            class="relative flex h-[28px] w-[28px] items-center justify-center rounded-full border-2 transition active:scale-90 before:absolute before:-inset-3 before:content-[''] disabled:active:scale-100"
             :class="isDone(goal.goal_code) ? 'border-moon-ink bg-moon-ink' : 'border-moon-period bg-white shadow-sm'"
             :aria-label="`เช็คอิน ${goal.title}`"
             :disabled="!isToday || isAchieved(goal.goal_code)"
             @click="toggleGoal(goal.goal_code, $event)"
           >
             <!-- ยังไม่ติ๊ก = วงกลมว่างๆ ไม่มีเครื่องหมาย / ติ๊กแล้ว = เครื่องหมายถูกใหญ่ชัด -->
-            <FaIcon v-if="isDone(goal.goal_code)" name="check" class="h-[15px] w-[19px] text-white" />
+            <FaIcon v-if="isDone(goal.goal_code)" name="check" class="h-3 w-[15px] text-white" />
           </button>
           <span
             class="whitespace-nowrap rounded-full px-2 py-2 text-xs leading-[18px]"

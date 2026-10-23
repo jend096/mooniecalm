@@ -11,7 +11,6 @@ import {
   OTHER_ALLERGY_MAX_LENGTH,
   OTHER_ALLERGY_MIN_LENGTH,
   SNACK_CATEGORY_LABEL,
-  SNACK_LABEL_NOTE,
   SNACK_SAFETY_NOTE,
   allergyDisplayLabel,
   cleanOtherAllergyWord,
@@ -503,29 +502,28 @@ onMounted(async () => {
             <p class="text-xs font-medium leading-[18px] text-moon-muted">
               {{ categoryLabel }}
             </p>
-            <h2 class="text-[22px] font-semibold leading-[33px]">
-              {{ current.name }}
-            </h2>
-            <p v-if="isRecommended" class="mt-1">
-              <RecommendBadge large />
-            </p>
+            <!-- ชื่อเมนู (ซ้าย) + ป้ายแนะนำ (ชิดขวา) อยู่บรรทัดเดียวกัน -->
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="min-w-0 text-[22px] font-semibold leading-[33px]">
+                {{ current.name }}
+              </h2>
+              <RecommendBadge v-if="isRecommended" large class="mt-[8px]" />
+            </div>
             <p v-if="current.description" class="mt-2 text-sm leading-[21px] text-moon-ink/70">
               {{ current.description }}
             </p>
-            <p v-if="current.pairing_tip" class="mt-3 flex items-start gap-1 rounded-2xl bg-moon-lavender p-3 text-xs leading-[18px] text-white">
-              <FaIcon name="wand-magic-sparkles" class="mt-[3px] h-[13px] w-[14px] shrink-0 text-moon-coral" />
+            <!-- กล่องม่วง "กินคู่กับ": ความโค้งมน = rounded-2xl (ใหญ่ขึ้น: rounded-3xl / เล็กลง: rounded-xl) สีตัวอักษรเข้มให้อ่านง่ายบนม่วงพาสเทล -->
+            <p v-if="current.pairing_tip" class="mt-3 flex items-start gap-1.5 rounded-2xl bg-moon-lavender p-3 text-xs leading-[18px] text-moon-ink">
+              <svg viewBox="0 0 24 24" class="mt-[2px] h-[14px] w-[14px] shrink-0 text-moon-coral" fill="currentColor" aria-hidden="true"><path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" /></svg>
               <span>กินคู่กับ: {{ current.pairing_tip }}</span>
             </p>
             <!-- วัตถุดิบหลักของเมนู ให้ผู้ใช้ตรวจเองได้ว่ามีของที่แพ้ไหม -->
             <p v-if="current.ingredients?.length" class="mt-3 text-xs text-moon-muted">
               วัตถุดิบหลัก: {{ current.ingredients.join(', ') }}
             </p>
-            <!-- คำเตือน: เป็นของว่างกินเล่น ไม่ใช่ยา ไม่ใช่อาหารหลัก + ให้อ่านฉลากสินค้าสำเร็จรูป (ข้อความอยู่ใน snack-picker.ts) -->
-            <p class="mt-6 text-xs leading-relaxed text-moon-coral/60">
+            <!-- คำเตือน: เป็นของว่างกินเล่น ไม่ใช่ยา ไม่ใช่อาหารหลัก (ข้อความอยู่ใน snack-picker.ts) กล่องโทนแดงอ่อน ตัวหนังสือเข้มให้อ่านง่าย -->
+            <p class="mt-6 rounded-2xl bg-moon-coral/10 p-[10px] text-xs leading-[20px] text-moon-ink/80">
               {{ SNACK_SAFETY_NOTE }}
-            </p>
-            <p class="mt-2 text-xs leading-relaxed text-moon-coral/60">
-              {{ SNACK_LABEL_NOTE }}
             </p>
 
             <div class="mt-5 flex gap-3">

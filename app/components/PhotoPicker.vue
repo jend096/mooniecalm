@@ -161,21 +161,26 @@ const imgStyle = computed(() => ({
   <div class="flex flex-col items-center">
     <!-- กรอบขนาดเท่ากันทั้งก่อนและหลังเลือกรูป หน้าจะได้ไม่ขยับตอนเลือกรูป -->
     <div class="flex items-center justify-center" :style="frameStyle">
-      <!-- ยังไม่ได้เลือกรูป: วงกลมเส้นประพื้นขาว กดเพื่อเลือกรูป (ถ้ามีรูปปัจจุบันก็โชว์รูปนั้น) -->
-      <label
-        v-if="!photoUrl"
-        class="relative flex cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-moon-ink/20 bg-moon-card"
-        :style="circleStyle"
-      >
-        <img v-if="currentUrl" :src="currentUrl" alt="" class="absolute inset-0 h-full w-full object-cover">
-        <span
-          class="relative text-xs font-normal text-moon-muted"
-          :class="{ 'rounded-full bg-moon-card/80 px-3 py-1': currentUrl }"
+      <!-- ยังไม่ได้เลือกรูป: กดวงกลมเพื่อเลือกรูป
+           มีรูปปัจจุบัน = โชว์รูปนั้น / ไม่มีรูป = โชว์เงาหัวคนสีจางๆ
+           ไอคอนดินสอมุมขวาล่างบอกว่ากดเปลี่ยนรูปได้ (ปรับขนาดที่ h-11 w-11 / สีที่ bg-moon-ink) -->
+      <div v-if="!photoUrl" class="relative" :style="circleStyle">
+        <label
+          class="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-moon-ink/20 bg-moon-card"
         >
-          {{ currentUrl ? 'เปลี่ยนรูป' : 'อัปโหลดรูป' }}
+          <img v-if="currentUrl" :src="currentUrl" alt="" class="absolute inset-0 h-full w-full object-cover">
+          <FaIcon v-else name="user" class="h-[48%] w-[48%] text-moon-ink/15" />
+          <input type="file" accept="image/*" class="hidden" @change="onPhotoSelected">
+        </label>
+        <!-- วางที่ขอบวงกลมทแยงขวาล่าง (14.6% = ตำแหน่งขอบวงกลมที่มุม 45 องศา ลบครึ่งหนึ่งของปุ่ม) กดทะลุไปโดนวงกลมข้างล่าง -->
+        <span
+          aria-hidden="true"
+          class="pointer-events-none absolute flex h-11 w-11 items-center justify-center rounded-full bg-moon-ink text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]"
+          style="right: calc(14.6% - 22px); bottom: calc(14.6% - 22px)"
+        >
+          <FaIcon name="pencil" class="h-[18px] w-[18px]" />
         </span>
-        <input type="file" accept="image/*" class="hidden" @change="onPhotoSelected">
-      </label>
+      </div>
 
       <!-- เลือกรูปแล้ว: ลากเลื่อน/บีบซูมได้ ส่วนนอกวงกลมถูกคลุมให้จาง -->
       <div

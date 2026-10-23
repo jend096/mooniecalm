@@ -23,10 +23,11 @@ const emit = defineEmits<{
       <RabbitBlob class="pointer-events-none absolute right-[-48px] top-[95px] h-[190px] w-[190px] text-moon-cream" />
 
       <div class="relative min-h-0 flex-1 overflow-y-auto">
-        <p class="text-center text-lg font-semibold leading-[26px]">{{ title }}</p>
-        <p v-if="recommended" class="mt-2 text-center">
-          <RecommendBadge large />
-        </p>
+        <!-- ชื่อคู่มือ (ซ้าย) + ป้ายแนะนำ (ชิดขวา) อยู่บรรทัดเดียวกัน -->
+        <div class="flex items-start justify-between gap-2">
+          <p class="min-w-0 text-lg font-semibold leading-[26px]">{{ title }}</p>
+          <RecommendBadge v-if="recommended" large class="mt-[2px]" />
+        </div>
         <p v-if="shortDescription" class="mt-1 text-base font-medium text-moon-muted">{{ shortDescription }}</p>
 
         <p class="mt-3 text-sm">วิธีใช้</p>
@@ -34,7 +35,7 @@ const emit = defineEmits<{
           <li v-for="(line, i) in steps" :key="i">{{ i + 1 }}. {{ line }}</li>
         </ol>
 
-        <p class="mt-6 rounded-2xl bg-moon-coral/10 p-[10px] text-xs leading-[20px] text-moon-coral">
+        <p class="mt-6 rounded-2xl bg-moon-coral/10 p-[10px] text-xs leading-[20px] text-moon-ink/80">
           เป็นคำแนะนำทั่วไปเพื่อบรรเทาอาการเบื้องต้น ผลของแต่ละคนไม่เหมือนกัน ไม่ใช่การวินิจฉัยหรือแทนคำแนะนำของแพทย์
         </p>
       </div>
