@@ -15,7 +15,7 @@ const agreed = ref(false)
 <template>
   <div class="consent-backdrop fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-5">
     <div
-      class="consent-panel flex max-h-[88dvh] w-full max-w-[390px] flex-col rounded-[28px] bg-white px-6 pb-6 pt-7 font-['Anuphan'] text-moon-ink shadow-2xl"
+      class="consent-panel flex max-h-[88dvh] w-full max-w-[390px] flex-col rounded-[28px] bg-white px-6 pb-6 pt-7 text-moon-ink shadow-2xl"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-title"
@@ -57,7 +57,7 @@ const agreed = ref(false)
         >
           <FaIcon v-if="agreed" name="check" class="h-3 w-3 text-white" />
         </span>
-        <span>ฉันอ่านและเข้าใจแล้ว และยินยอมให้ MoonieCalm เก็บและใช้ข้อมูลสุขภาพของฉันตามที่ระบุไว้</span>
+        <span>ฉันยินยอมให้ MoonieCalm เก็บและใช้ข้อมูลสุขภาพตามที่แจ้งข้างต้น</span>
       </label>
 
       <div class="mt-4 flex flex-col gap-2">

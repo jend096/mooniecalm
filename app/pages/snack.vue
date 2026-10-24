@@ -356,7 +356,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[54px] font-['Anuphan'] text-moon-ink">
+  <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[54px] text-moon-ink">
     <!-- ปุ่มย้อนกลับ: อยู่หน้าเมนู = กลับไปเลือกหมวดใหม่ / อยู่หน้าเลือกหมวด = กลับหน้าหลัก -->
     <button
       type="button"

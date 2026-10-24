@@ -25,7 +25,7 @@ onBeforeUnmount(() => { stack.value = stack.value.filter(x => x !== id) })
     <!-- ไม่มีกรอบ/พื้นขาวครอบ: กระต่ายกับข้อความลอยบนพื้นโปร่งๆ -->
     <div class="flex flex-col items-center gap-3">
       <BrandLogoMark :size="104" stage="bob" />
-      <p class="font-['Anuphan'] text-sm font-medium text-moon-ink">{{ text || 'กำลังโหลด...' }}</p>
+      <p class="text-sm font-medium text-moon-ink">{{ text || 'กำลังโหลด...' }}</p>
     </div>
   </div>
 </template>

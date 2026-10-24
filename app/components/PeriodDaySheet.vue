@@ -138,7 +138,7 @@ async function removeRow() {
     @click.self="emit('close')"
   >
     <div
-      class="w-full bg-white font-['Anuphan'] text-moon-ink"
+      class="w-full bg-white text-moon-ink"
       :class="popup
         ? 'max-w-sm rounded-3xl px-6 pb-6 pt-7 text-center shadow-2xl'
         : 'rounded-t-[24px] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3'"

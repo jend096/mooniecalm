@@ -507,7 +507,7 @@ async function logout() {
 <template>
   <div
     v-if="!isLoading"
-    class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end font-['Anuphan'] text-moon-ink"
+    class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end text-moon-ink"
   >
     <!-- ลายเบลอตกแต่งด้านหลัง (ตามฟิกม่า: วงกลมโคเรลเบลอ + แถบขาวเบลอ) -->
     <div aria-hidden="true" class="pointer-events-none absolute left-[37%] top-[134px] h-[155px] w-[97px] rounded-full bg-moon-coral blur-[100px]" />

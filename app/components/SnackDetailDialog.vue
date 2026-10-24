@@ -32,7 +32,7 @@ function onImageError() {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-moon-ink/30 px-6" @click.self="emit('close')">
-    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-white pb-6 font-['Anuphan'] text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
+    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-white pb-6 text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
       <div class="min-h-0 flex-1 overflow-y-auto">
         <img
           v-if="imageSrc && !failed"

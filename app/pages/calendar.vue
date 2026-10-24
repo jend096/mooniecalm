@@ -134,7 +134,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gradient-to-b from-moon-bg to-moon-bg-end font-['Anuphan'] text-moon-ink">
+  <main class="min-h-screen bg-gradient-to-b from-moon-bg to-moon-bg-end text-moon-ink">
     <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + คำอธิบายสัญลักษณ์ + หัวตารางวัน -->
     <header class="sticky top-0 z-20 border-b border-moon-pink-soft bg-white px-2 pb-2 pt-3">
       <div class="flex h-10 items-center gap-3 px-2">

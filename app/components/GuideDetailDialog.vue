@@ -18,7 +18,7 @@ const emit = defineEmits<{
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-moon-ink/30 px-6" @click.self="emit('close')">
-    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-white px-6 pb-6 pt-7 font-['Anuphan'] text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
+    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-white px-6 pb-6 pt-7 text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
       <!-- ลายครีมจางๆ ด้านหลัง (รูปหัวกระต่ายตามฟิกม่า) -->
       <RabbitBlob class="pointer-events-none absolute right-[-48px] top-[95px] h-[190px] w-[190px] text-moon-cream" />
 

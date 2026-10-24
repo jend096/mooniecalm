@@ -14,12 +14,12 @@
         >
           <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
         </svg>
-        <h2 class="intro-title font-['Anuphan'] text-[26px] font-semibold">ครบ {{ CYCLE_LENGTH_DAYS }} วันแล้ว!</h2>
-        <p class="font-['Anuphan'] text-[14px] font-normal text-moon-muted">เธอทำมาถึงวันสุดท้ายของรอบนี้แล้ว เก่งมากเลย</p>
+        <h2 class="intro-title text-[26px] font-semibold">ครบ {{ CYCLE_LENGTH_DAYS }} วันแล้ว!</h2>
+        <p class="text-[14px] font-normal text-moon-muted">เธอทำมาถึงวันสุดท้ายของรอบนี้แล้ว เก่งมากเลย</p>
       </div>
       <button
         type="button"
-        class="intro-pulse w-full rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white"
+        class="intro-pulse w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white"
         @click="startResults"
       >
         มาดูผลของรอบนี้กัน
@@ -28,7 +28,7 @@
 
     <!-- ขั้น 2: ผลของแต่ละเป้าหมาย โผล่ทีละข้อพร้อมหลอดสถานะ (ข้อที่ผ่านอยู่บน ไม่ผ่านอยู่ล่างและจาง) -->
     <template v-else-if="step === 'result'">
-      <h2 class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">ผลของรอบนี้</h2>
+      <h2 class="text-[18px] font-semibold text-moon-ink">ผลของรอบนี้</h2>
 
       <div class="flex flex-col gap-2">
         <div
@@ -43,15 +43,15 @@
         >
           <div class="flex items-center justify-between gap-3">
             <span class="flex min-w-0 flex-col gap-0.5">
-              <span class="font-['Anuphan'] text-[14px] font-medium text-moon-ink">{{ titleOf(item.rule.goalCode) }}</span>
-              <span class="font-['Anuphan'] text-[12px] font-normal text-moon-muted">
+              <span class="text-[14px] font-medium text-moon-ink">{{ titleOf(item.rule.goalCode) }}</span>
+              <span class="text-[12px] font-normal text-moon-muted">
                 {{ item.days }}/{{ CYCLE_LENGTH_DAYS }} วัน (ต้องได้ {{ item.rule.minDays }} วันขึ้นไป)
               </span>
             </span>
             <!-- ป้ายผลลัพธ์: "ผ่าน" จะโผล่หลังหลอดเต็ม แล้วมีประกายพุ่งออกมารอบป้าย -->
             <span class="relative shrink-0">
               <span
-                class="block rounded-full px-3 py-1 font-['Anuphan'] text-[12px] font-medium"
+                class="block rounded-full px-3 py-1 text-[12px] font-medium"
                 :class="[
                   item.passed ? 'bg-moon-ink text-white' : 'bg-moon-card text-moon-muted',
                   item.passed ? (i < shownCount ? 'badge-pop' : 'opacity-0') : ''
@@ -107,7 +107,7 @@
           <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
         </svg>
 
-        <h2 class="reveal-in font-['Anuphan'] text-[20px] font-semibold text-moon-ink">{{ revealTitle }}</h2>
+        <h2 class="reveal-in text-[20px] font-semibold text-moon-ink">{{ revealTitle }}</h2>
 
         <div class="reveal-pop relative mt-1 aspect-square w-[220px]">
           <div class="avatar-float absolute inset-0">
@@ -118,12 +118,12 @@
           </div>
         </div>
 
-        <p class="reveal-in mt-2 font-['Anuphan'] text-[13px] font-normal text-moon-muted" style="animation-delay: 0.3s">{{ revealText }}</p>
+        <p class="reveal-in mt-2 text-[13px] font-normal text-moon-muted" style="animation-delay: 0.3s">{{ revealText }}</p>
       </div>
 
       <button
         type="button"
-        class="reveal-in w-full rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition active:scale-95"
+        class="reveal-in w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition active:scale-95"
         style="animation-delay: 0.6s"
         @click="step = 'pick'"
       >
@@ -134,8 +134,8 @@
     <!-- ขั้น 4: เลือกเป้าหมายรอบถัดไป (แนะนำข้อที่รอบที่แล้วยังไม่ผ่าน) -->
     <template v-else-if="step === 'pick'">
       <div>
-        <h2 class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">เลือกเป้าหมายรอบใหม่</h2>
-        <p class="mt-1 font-['Anuphan'] text-[13px] font-normal text-moon-muted">
+        <h2 class="text-[18px] font-semibold text-moon-ink">เลือกเป้าหมายรอบใหม่</h2>
+        <p class="mt-1 text-[13px] font-normal text-moon-muted">
           รอบใหม่ {{ CYCLE_LENGTH_DAYS }} วัน เลือกได้หลายข้อ อย่างน้อย 1 ข้อ จะเลือกข้อเดิมต่อหรือเปลี่ยนก็ได้
         </p>
       </div>
@@ -150,7 +150,7 @@
           @click="toggleGoal(goal.id)"
         >
           <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-            <span class="font-['Anuphan'] text-[14px] font-medium text-moon-ink">{{ goal.title }}</span>
+            <span class="text-[14px] font-medium text-moon-ink">{{ goal.title }}</span>
             <RecommendBadge v-if="recommendedCodes.includes(goal.goal_code)" />
           </span>
           <span
@@ -162,12 +162,12 @@
         </button>
       </div>
 
-      <p v-if="errorText" class="font-['Anuphan'] text-[13px] font-normal text-moon-coral">{{ errorText }}</p>
+      <p v-if="errorText" class="text-[13px] font-normal text-moon-coral">{{ errorText }}</p>
 
       <button
         type="button"
         :disabled="saving || !selectedIds.length"
-        class="flex w-full items-center justify-center gap-2 rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition disabled:opacity-40"
+        class="flex w-full items-center justify-center gap-2 rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition disabled:opacity-40"
         :class="saving ? '!opacity-100' : ''"
         @click="claim"
       >
@@ -177,7 +177,7 @@
       <button
         type="button"
         :disabled="saving"
-        class="inline-flex items-center gap-1 self-center font-['Anuphan'] text-[12px] font-medium text-moon-muted"
+        class="inline-flex items-center gap-1 self-center text-[12px] font-medium text-moon-muted"
         @click="step = 'reveal'"
       >
         <FaIcon name="chevron-left" class="h-3 w-3" /> ย้อนกลับ
@@ -187,15 +187,15 @@
     <!-- ขั้น 5: รับผลเรียบร้อย -->
     <template v-else>
       <div class="flex flex-col items-center gap-3 text-center">
-        <h2 class="font-['Anuphan'] text-[18px] font-semibold text-moon-ink">เริ่มรอบใหม่แล้ว</h2>
+        <h2 class="text-[18px] font-semibold text-moon-ink">เริ่มรอบใหม่แล้ว</h2>
         <AvatarScene :layers="layersOf(finalAvatar)" class="w-40" />
-        <p class="font-['Anuphan'] text-[13px] font-normal text-moon-muted">
+        <p class="text-[13px] font-normal text-moon-muted">
           บันทึกผลรอบที่แล้วเรียบร้อย วันนี้เป็นวันแรกของรอบใหม่
         </p>
       </div>
       <button
         type="button"
-        class="w-full rounded-full bg-moon-ink py-3 text-center font-['Anuphan'] text-sm font-medium text-white transition active:scale-95"
+        class="w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition active:scale-95"
         @click="emit('claimed')"
       >
         เริ่มเช็คอินรอบใหม่

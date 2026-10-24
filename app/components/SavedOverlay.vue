@@ -23,7 +23,7 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <div class="saved-overlay fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-6" role="status" aria-live="polite">
-    <div class="w-full max-w-[300px] rounded-3xl bg-white px-6 pb-6 pt-8 text-center font-['Anuphan'] shadow-2xl">
+    <div class="w-full max-w-[300px] rounded-3xl bg-white px-6 pb-6 pt-8 text-center shadow-2xl">
       <span ref="checkRef" class="check-pop mx-auto flex h-[84px] w-[84px] items-center justify-center rounded-full bg-moon-period">
         <svg viewBox="0 0 52 52" class="h-11 w-11" fill="none" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path class="check-draw" d="M14 27 L23 36 L39 17" />

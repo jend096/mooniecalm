@@ -25,7 +25,7 @@ function onBackdropClick() {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-6" @click.self="onBackdropClick">
-    <div class="w-full max-w-sm rounded-3xl bg-white px-6 pb-6 pt-7 text-center font-['Anuphan'] shadow-2xl">
+    <div class="w-full max-w-sm rounded-3xl bg-white px-6 pb-6 pt-7 text-center shadow-2xl">
       <p class="text-lg font-semibold text-moon-ink">{{ title }}</p>
       <p class="mt-2 text-sm leading-relaxed text-moon-ink/70">{{ message }}</p>
 

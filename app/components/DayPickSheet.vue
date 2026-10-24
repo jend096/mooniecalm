@@ -48,7 +48,7 @@ function shiftMonth(step: number) {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-end bg-moon-ink/30" @click.self="emit('close')">
-    <div class="w-full rounded-t-[24px] bg-white px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3 font-['Anuphan'] text-moon-ink">
+    <div class="w-full rounded-t-[24px] bg-white px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3 text-moon-ink">
       <!-- ขีดจับด้านบน -->
       <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
 

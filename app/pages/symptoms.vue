@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!isLoading"
-    class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[50px] font-['Anuphan'] text-moon-ink"
+    class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-[50px] text-moon-ink"
     :class="{ 'view-only': !isToday }"
   >
     <!-- สลับวันในปฏิทิน: ขึ้นหน้ารอโหลดระหว่างดึงข้อมูลของวันนั้น -->

@@ -19,7 +19,17 @@ const COLORS = {
   bgEnd: '#FFEFF4'
 }
 
-const FONT_FAMILY = 'Anuphan, "Noto Sans Thai", sans-serif'
+// ฟอนต์ของการ์ดแชร์ (วาดลง canvas ซึ่งอ่านค่าจาก Tailwind ตรงๆ ไม่ได้)
+// ตอนวาดจะดึงฟอนต์จริงที่แอปใช้อยู่มาใช้ (ตั้งที่ tailwind.config.ts) เลยเปลี่ยนฟอนต์ที่เดียวก็เปลี่ยนการ์ดแชร์ตามด้วย
+// ค่าด้านล่างเป็นแค่ค่าสำรอง ใช้เมื่ออ่านฟอนต์ของหน้าไม่ได้
+const FALLBACK_FONT_FAMILY = 'Anuphan, "Noto Sans Thai", sans-serif'
+let FONT_FAMILY = FALLBACK_FONT_FAMILY
+
+function readAppFontFamily() {
+  if (typeof document === 'undefined') return
+  const family = getComputedStyle(document.body).fontFamily
+  FONT_FAMILY = family || FALLBACK_FONT_FAMILY
+}
 
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -99,6 +109,7 @@ function drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number
 }
 
 export async function renderAvatarCardImage(input: AvatarCardImageInput): Promise<Blob> {
+  readAppFontFamily()
   // รอให้ฟอนต์ที่ใช้โหลดเสร็จก่อนวาด ไม่งั้นตัวหนังสือจะเป็นฟอนต์สำรอง
   if (document.fonts) {
     await Promise.all([
