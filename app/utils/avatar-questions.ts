@@ -16,9 +16,9 @@ export const QUESTION_2_OPTIONS: AvatarAnswerOption[] = [
 ]
 
 export const QUESTION_3_OPTIONS: AvatarAnswerOption[] = [
-  { label: 'นานๆ ทานที (1-2 ครั้ง/สัปดาห์)', code: 'body_pink' },
+  { label: 'แทบไม่ทาน นานๆ ทานที (1-2 วัน/สัปดาห์)', code: 'body_pink' },
   { label: 'ทานบ่อยสัปดาห์ละ 3-4 วัน', code: 'body_yellow' },
-  { label: 'ขาดไม่ได้เลย ต้องทานทุกวัน', code: 'body_caramel' }
+  { label: 'แทบทุกวัน (5-7 วัน/สัปดาห์)', code: 'body_caramel' }
 ]
 
 export const QUESTION_4_OPTIONS: AvatarAnswerOption[] = [

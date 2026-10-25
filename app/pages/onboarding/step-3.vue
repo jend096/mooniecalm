@@ -12,7 +12,11 @@ const monthIndex = ref(today.getMonth())
 const yearIndex = ref(Math.max(years.indexOf(currentYearBE - 20), 0))
 
 function next() {
-  onboarding.birthDate = thaiDateToIso(days[dayIndex.value], monthIndex.value, years[yearIndex.value])
+  // โปรเจกต์เปิด noUncheckedIndexedAccess: อ่านค่าจากลิสต์ด้วย [index] จะได้ "ตัวเลข หรือ undefined"
+  // จึงใส่ค่าสำรอง (??) กันไว้ให้ TypeScript หายแดง (ปกติวงล้อไม่เลือกเกินลิสต์อยู่แล้ว)
+  const day = days[dayIndex.value] ?? 1
+  const yearBE = years[yearIndex.value] ?? currentYearBE - 20
+  onboarding.birthDate = thaiDateToIso(day, monthIndex.value, yearBE)
   navigateTo('/onboarding/step-4')
 }
 </script>

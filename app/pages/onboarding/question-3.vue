@@ -27,7 +27,7 @@ function next() {
 
     <div class="relative z-10 flex flex-1 flex-col px-6 pt-24">
       <h1 class="text-left text-2xl font-semibold text-moon-ink">
-        คุณทานของหวานหรือพวก<br>น้ำหวานบ่อยแค่ไหน?
+        ใน 1 สัปดาห์ คุณทานของหวาน<br>หรือพวกน้ำหวานกี่วัน?
       </h1>
 
       <div class="mt-8 flex flex-col gap-4">
