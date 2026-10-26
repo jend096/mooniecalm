@@ -136,12 +136,12 @@ onMounted(async () => {
 <template>
   <main class="min-h-screen bg-gradient-to-b from-moon-bg to-moon-bg-end text-moon-ink">
     <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + คำอธิบายสัญลักษณ์ + หัวตารางวัน -->
-    <header class="sticky top-0 z-20 border-b border-moon-pink-soft bg-white px-2 pb-2 pt-3">
+    <header class="sticky top-0 z-20 border-b border-moon-pink-soft bg-moon-card px-2 pb-2 pt-3">
       <div class="flex h-10 items-center gap-3 px-2">
         <button
           type="button"
           aria-label="กลับหน้าหลัก"
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition active:scale-90"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-moon-card shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition active:scale-90"
           @click="navigateTo('/home')"
         >
           <FaIcon name="chevron-left" class="h-[14px] w-2" />
@@ -155,6 +155,8 @@ onMounted(async () => {
             <span class="h-3 w-3 rounded-full border-2 border-dashed border-moon-coral" /> คาดไว้
           </span>
         </div>
+        <!-- โลโก้รอง (หน้าอื่นวางที่ BrandCorner มุมขวาบน แต่หน้านี้ขวาบนมีคำอธิบายสัญลักษณ์ จึงวางต่อท้ายในแถบ) -->
+        <BrandLogoMark :size="34" class="shrink-0" aria-hidden="true" />
       </div>
       <!-- หัวตารางวันในสัปดาห์ (7 คอลัมน์เท่ากับตารางด้านล่าง) -->
       <div class="mt-3 grid grid-cols-7 text-center text-xs text-moon-muted">

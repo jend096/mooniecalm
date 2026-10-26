@@ -7,17 +7,25 @@ interface AvatarCardImageInput {
   layerCodes: string[]
 }
 
-// สีเดียวกับ tokens.css (canvas ใช้ตัวแปร CSS ตรงๆ ไม่ได้ เลยใส่ค่าสีตรงนี้)
-const COLORS = {
-  ink: '#292929',
-  muted: '#6B6264',
-  coral: '#FE7777',
-  pink: '#FFD7E2',
-  lavender: '#CCBBFF',
-  predicted: '#FFA8E6',
-  bgStart: '#FFFDFC',
-  bgEnd: '#FFEFF4'
+// สีของการ์ด: อ่านจาก tokens.css ตอนวาด (ดู utils/tokens.ts) แก้สีที่ไฟล์นั้นที่เดียว การ์ดแชร์เปลี่ยนตาม
+// ค่าในวงเล็บคือค่าสำรอง ใช้เฉพาะตอนอ่านจากหน้าเว็บไม่ได้
+function readColors() {
+  return {
+    ink: readToken('--color-ink', '#292929'),
+    muted: readToken('--color-muted', '#6B6264'),
+    coral: readToken('--color-coral', '#FE7777'),
+    pink: readToken('--color-pink', '#FFD7E2'),
+    pinkSoft: readToken('--color-pink-soft', '#FFEBF1'),
+    lavender: readToken('--color-lavender', '#CCBBFF'),
+    lavenderSoft: readToken('--color-lavender-soft', '#E6DDFF'),
+    creamSoft: readToken('--color-cream-soft', '#FFFFEC'),
+    predicted: readToken('--color-period-predicted', '#FFA8E6'),
+    card: readToken('--color-card', '#FFFFFF'),
+    bgStart: readToken('--color-bg', '#FFFDFC'),
+    bgEnd: readToken('--color-bg-end', '#FFEFF4')
+  }
 }
+let COLORS = readColors()
 
 // ฟอนต์ของการ์ดแชร์ (วาดลง canvas ซึ่งอ่านค่าจาก Tailwind ตรงๆ ไม่ได้)
 // ตอนวาดจะดึงฟอนต์จริงที่แอปใช้อยู่มาใช้ (ตั้งที่ tailwind.config.ts) เลยเปลี่ยนฟอนต์ที่เดียวก็เปลี่ยนการ์ดแชร์ตามด้วย
@@ -29,6 +37,7 @@ function readAppFontFamily() {
   if (typeof document === 'undefined') return
   const family = getComputedStyle(document.body).fontFamily
   FONT_FAMILY = family || FALLBACK_FONT_FAMILY
+  COLORS = readColors() // อ่านสีใหม่ทุกครั้งที่วาด เผื่อแก้ token ระหว่างใช้งาน
 }
 
 const WIDTH = 1080
@@ -168,14 +177,14 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
 
   // ----- พื้นหลัง: ตรงกลางสีขาว ไล่ออกไปเป็นชมพูอ่อน (สีแบรนด์) -----
   const bg = ctx.createLinearGradient(0, 0, 0, HEIGHT)
-  bg.addColorStop(0, '#FFFFFF')
-  bg.addColorStop(0.5, '#FFF6F9')
-  bg.addColorStop(1, '#FFD7E2')
+  bg.addColorStop(0, COLORS.card)
+  bg.addColorStop(0.5, COLORS.pinkSoft)
+  bg.addColorStop(1, COLORS.pink)
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, WIDTH, HEIGHT)
-  drawGlow(ctx, WIDTH / 2, avatarCy, 720, '255, 255, 255', 1) // แสงขาวด้านหลังอวตาร ให้ขอบรูปกลืนกับพื้น
-  drawGlow(ctx, 120, 1750, 560, '255, 215, 226', 0.8) // ชมพู ล่างซ้าย
-  drawGlow(ctx, 980, 260, 460, '255, 215, 226', 0.6) // ชมพู ขวาบน
+  drawGlow(ctx, WIDTH / 2, avatarCy, 720, hexToRgbText(COLORS.card), 1) // แสงขาวด้านหลังอวตาร ให้ขอบรูปกลืนกับพื้น
+  drawGlow(ctx, 120, 1750, 560, hexToRgbText(COLORS.pink), 0.8) // ชมพู ล่างซ้าย
+  drawGlow(ctx, 980, 260, 460, hexToRgbText(COLORS.pink), 0.6) // ชมพู ขวาบน
 
   // ----- ลายตกแต่ง: ประกายดาวแค่ไม่กี่ดวง ไม่ให้รก -----
   drawStar(ctx, 120, 280, 38, COLORS.coral, -0.2)
@@ -202,10 +211,10 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
     const k = logoSize / 240
     const sparks = [
       { x: 20, y: 130, s: 20, color: COLORS.coral },
-      { x: 191, y: 145, s: 20, color: '#FFFFEC' },
-      { x: 9, y: 114, s: 13, color: '#FFFFEC' },
-      { x: 220, y: 120, s: 13, color: '#E6DDFF' },
-      { x: 13, y: 163, s: 13, color: '#E6DDFF' },
+      { x: 191, y: 145, s: 20, color: COLORS.creamSoft },
+      { x: 9, y: 114, s: 13, color: COLORS.creamSoft },
+      { x: 220, y: 120, s: 13, color: COLORS.lavenderSoft },
+      { x: 13, y: 163, s: 13, color: COLORS.lavenderSoft },
       { x: 206, y: 169, s: 10, color: COLORS.coral }
     ]
     for (const sp of sparks) {
@@ -283,10 +292,10 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   const qrY = HEIGHT - 60 - qrPlate
   if (qrImg) {
     ctx.save()
-    ctx.shadowColor = 'rgba(254, 119, 119, 0.2)'
+    ctx.shadowColor = `rgba(${hexToRgbText(COLORS.coral)}, 0.2)`
     ctx.shadowBlur = 30
     ctx.shadowOffsetY = 10
-    ctx.fillStyle = '#FFFFFF'
+    ctx.fillStyle = COLORS.card
     roundedRectPath(ctx, qrX, qrY, qrPlate, qrPlate, 28)
     ctx.fill()
     ctx.restore()

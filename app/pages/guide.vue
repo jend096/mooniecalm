@@ -270,7 +270,7 @@ onMounted(async () => {
     <!-- ปุ่มย้อนกลับ -->
     <button
       type="button"
-      class="absolute left-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAEAEA] shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
+      class="absolute left-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-moon-gray shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
       aria-label="ย้อนกลับ"
       @click="goBack"
     >
@@ -293,7 +293,7 @@ onMounted(async () => {
     <template v-else>
       <!-- สรุปที่บันทึกไว้รอบนี้ (ตำแหน่ง + ระดับ) เป็นการ์ดมีกรอบ หน้าตาเหมือนการ์ด "อาหารที่แพ้" ในหน้า snack
            ไม่ใช้ปุ่มทรงแคปซูลแล้ว เพราะดูเหมือนปุ่มกดได้ ทั้งที่กดไม่ได้ / ปุ่มข้างขวาเปลี่ยนเป็น "เลือกใหม่" หรือ "เลือกตำแหน่ง" ถ้ายังไม่ได้เลือก -->
-      <div class="mt-[25px] rounded-2xl border border-moon-pink-soft bg-white py-[11px] pl-5 pr-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+      <div class="mt-[25px] rounded-2xl border border-moon-pink-soft bg-moon-card py-[11px] pl-5 pr-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-xs leading-[18px] text-moon-muted">
@@ -338,10 +338,10 @@ onMounted(async () => {
         <div
           v-for="guide in orderedGuides"
           :key="guide.id"
-          class="relative flex items-center gap-4 rounded-2xl bg-white py-5 pl-8 pr-5 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+          class="relative flex items-center gap-4 rounded-2xl bg-moon-card py-5 pl-8 pr-5 shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
         >
           <!-- แถบสีด้านซ้ายของการ์ด -->
-          <span class="absolute bottom-4 left-2 top-4 w-1 rounded-sm bg-[#FBFF67]" />
+          <span class="absolute bottom-4 left-2 top-4 w-1 rounded-sm bg-moon-yellow" />
           <div class="flex min-w-0 flex-1 flex-col">
             <div v-if="startHereIds.includes(guide.id) || isRecommended(guide)" class="mb-1 flex flex-wrap gap-1">
               <span
@@ -364,7 +364,7 @@ onMounted(async () => {
             type="button"
             :disabled="isSaving"
             class="shrink-0 rounded-full px-5 py-2 text-sm font-medium leading-[21px] transition active:scale-95"
-            :class="chosenGuideIds.includes(guide.id) ? 'border border-moon-ink bg-white text-moon-ink' : 'bg-moon-ink text-white'"
+            :class="chosenGuideIds.includes(guide.id) ? 'border border-moon-ink bg-moon-card text-moon-ink' : 'bg-moon-ink text-white'"
             @click="chooseGuide(guide)"
           >
             {{ chosenGuideIds.includes(guide.id) ? 'อ่านเพิ่มเติม' : 'เลือกอันนี้' }}
@@ -385,8 +385,8 @@ onMounted(async () => {
     <!-- แผ่นเลือกตำแหน่ง -> ระดับปวด: เด้งขึ้นจากด้านล่างตอนเข้าหน้านี้ ทำต่อเนื่องในแผ่นเดียว (แถบเมนูล่างอยู่เหนือแผ่นนี้ตามฟิกม่า) -->
     <Transition name="sheet">
       <div v-if="step === 'sheet' && !isLoading && !loadError" class="fixed inset-0 z-20 flex items-end bg-moon-ink/30">
-        <div class="sheet-panel max-h-[92vh] w-full overflow-y-auto rounded-t-[24px] bg-white px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3">
-          <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+        <div class="sheet-panel max-h-[92vh] w-full overflow-y-auto rounded-t-[24px] bg-moon-card px-6 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-3">
+          <div class="mx-auto h-1 w-10 rounded-sm bg-moon-handle" />
 
           <!-- ขั้นที่ 1: ระดับปวด -->
           <template v-if="sheetStep === 'level'">
@@ -420,7 +420,7 @@ onMounted(async () => {
             <div class="mt-[32px] flex gap-3">
               <button
                 type="button"
-                class="flex h-[59px] flex-1 items-center justify-center rounded-3xl border-2 border-moon-pink bg-white text-lg font-semibold transition active:scale-95"
+                class="flex h-[59px] flex-1 items-center justify-center rounded-3xl border-2 border-moon-pink bg-moon-card text-lg font-semibold transition active:scale-95"
                 @click="goToLocation(true)"
               >
                 ข้าม
@@ -428,7 +428,7 @@ onMounted(async () => {
               <button
                 type="button"
                 :disabled="levelChoice === null"
-                class="flex h-[59px] flex-1 items-center justify-center rounded-3xl bg-moon-ink text-lg font-semibold text-white transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+                class="btn-primary flex-1"
                 @click="goToLocation(false)"
               >
                 ถัดไป
@@ -475,7 +475,7 @@ onMounted(async () => {
             <button
               type="button"
               :disabled="isSaving || selectedLocations.length === 0"
-              class="mt-[32px] flex h-[59px] w-full items-center justify-center gap-2 rounded-3xl bg-moon-ink text-lg font-semibold text-white transition disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+              class="btn-primary mt-[32px] w-full"
               :class="isSaving ? '!bg-moon-ink' : ''"
               @click="finishSheet"
             >

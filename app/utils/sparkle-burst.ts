@@ -2,7 +2,7 @@
 // ใช้: sparkleBurst(event.currentTarget as HTMLElement) หรือ sparkleBurstAt(x, y)  -> มีดาวเล็กๆ พุ่งออกจากกลางปุ่ม แล้วจางหายใน ~0.8 วินาที
 // ทำงานด้วย Web Animations API: สร้างดาวชั่วคราวติดบนจอ (position: fixed) แล้วลบทิ้งเองเมื่อเล่นจบ
 // คนที่ตั้งค่า "ลดแอนิเมชัน" ไว้ในเครื่อง จะไม่เห็นเอฟเฟกต์นี้
-const STAR_COLORS = ['#FE7777', '#FFA8E6', '#CCBBFF', '#FF6E8A', '#FFD7E2']
+const STAR_COLORS = ['var(--color-coral)', 'var(--color-period-predicted)', 'var(--color-lavender)', 'var(--color-period-day)', 'var(--color-pink)']
 const STAR_PATH = 'M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z'
 
 export function sparkleBurst(target: HTMLElement | null | undefined, count = 9) {

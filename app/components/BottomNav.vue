@@ -22,7 +22,7 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
 <template>
   <!-- แถบโค้งตามฟิกม่า: พื้นขาว มุมบนซ้าย-ขวาโค้ง 50 ไม่มีเส้นขอบ มีเงาบางๆ ด้านบนให้ลอยขึ้นจากพื้นหลัง
        px-5 กันไม่ให้ปุ่มซ้ายสุด/ขวาสุดไปชนส่วนโค้งของมุม -->
-  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around rounded-t-[35px] bg-moon-card px-5 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-1 shadow-[0_-6px_20px_rgba(41,41,41,0.08)]">
+  <nav class="fixed inset-x-0 bottom-0 z-30 flex items-stretch justify-around rounded-t-[35px] bg-moon-card px-5 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-1 shadow-[0_-6px_20px_color-mix(in_srgb,var(--color-ink)_8%,transparent)]">
     <template v-for="tab in tabs" :key="tab.key">
       <NuxtLink
         v-if="tab.to"

@@ -59,10 +59,10 @@ const onboarding = useOnboardingStore()
 
 // ประกายตกแต่ง 4 ดวงตามฟิกม่า (ตำแหน่งเป็น % ของหน้าจอ)
 const staticSparkles = [
-  { left: '11.9%', top: '22%', size: 16, color: '#FFA8E6' },
-  { left: '4.9%', top: '34%', size: 24, color: '#CCBBFF' },
-  { left: '81.5%', top: '43.1%', size: 26, color: '#CCBBFF' },
-  { left: '92%', top: '76%', size: 14, color: '#FE7777' }
+  { left: '11.9%', top: '22%', size: 16, color: 'var(--color-period-predicted)' },
+  { left: '4.9%', top: '34%', size: 24, color: 'var(--color-lavender)' },
+  { left: '81.5%', top: '43.1%', size: 26, color: 'var(--color-lavender)' },
+  { left: '92%', top: '76%', size: 14, color: 'var(--color-coral)' }
 ]
 
 // ---------- อนิเมชันเปิดแอป ----------
@@ -190,7 +190,7 @@ function goToLogin() {
   flex-direction: column;
   min-height: 100dvh;
   overflow: hidden;
-  background: linear-gradient(180deg, #fff1f5 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--color-bg-end) 0%, var(--color-card) 100%);
 }
 
 .deco {
@@ -288,7 +288,7 @@ function goToLogin() {
   width: 300px;
   height: 160px;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(254, 119, 119, 0.2), rgba(254, 119, 119, 0));
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-coral) 20%, transparent), color-mix(in srgb, var(--color-coral) 0%, transparent));
   transform: translate(-50%, -30%);
   pointer-events: none;
 }

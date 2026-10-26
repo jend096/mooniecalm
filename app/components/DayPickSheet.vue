@@ -48,15 +48,15 @@ function shiftMonth(step: number) {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-end bg-moon-ink/30" @click.self="emit('close')">
-    <div class="w-full rounded-t-[24px] bg-white px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3 text-moon-ink">
+    <div class="w-full rounded-t-[24px] bg-moon-card px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3 text-moon-ink">
       <!-- ขีดจับด้านบน -->
-      <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+      <div class="mx-auto h-1 w-10 rounded-sm bg-moon-handle" />
 
       <!-- หัวเดือน + ปุ่มเลื่อนเดือน -->
       <div class="mt-6 flex items-center justify-between">
         <button
           type="button"
-          class="flex h-9 w-9 items-center justify-center rounded-full border border-moon-pink-soft bg-white transition active:scale-95"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-moon-pink-soft bg-moon-card transition active:scale-95"
           aria-label="เดือนก่อนหน้า"
           @click="shiftMonth(-1)"
         >
@@ -65,7 +65,7 @@ function shiftMonth(step: number) {
         <p class="text-base font-semibold">{{ monthLabel }}</p>
         <button
           type="button"
-          class="flex h-9 w-9 items-center justify-center rounded-full border border-moon-pink-soft bg-white transition active:scale-95 disabled:opacity-30"
+          class="flex h-9 w-9 items-center justify-center rounded-full border border-moon-pink-soft bg-moon-card transition active:scale-95 disabled:opacity-30"
           aria-label="เดือนถัดไป"
           :disabled="!canGoNext"
           @click="shiftMonth(1)"
@@ -102,7 +102,7 @@ function shiftMonth(step: number) {
 
       <button
         type="button"
-        class="mt-5 w-full rounded-full bg-moon-ink py-3 text-base font-medium text-white transition active:scale-95"
+        class="btn-primary mt-5 w-full"
         @click="emit('close')"
       >
         ปิด

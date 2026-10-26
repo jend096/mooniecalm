@@ -56,7 +56,7 @@ function skip() {
 
       <PhotoPicker ref="picker" @change="hasPhoto = $event" />
 
-      <p v-if="errorMessage" class="text-xs font-normal text-red-500">
+      <p v-if="errorMessage" class="text-xs font-normal text-moon-error">
         {{ errorMessage }}
       </p>
     </div>

@@ -7,7 +7,7 @@
     <!-- ปุ่มย้อนกลับ -->
     <button
       type="button"
-      class="absolute left-6 top-6 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAEAEA] shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
+      class="absolute left-6 top-6 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-moon-gray shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
       aria-label="ย้อนกลับ"
       @click="back"
     >
@@ -32,7 +32,7 @@
       </button>
       <button
         type="button"
-        class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-coral bg-white py-[5px] pl-[5px] pr-3 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition active:scale-95"
+        class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-coral bg-moon-card py-[5px] pl-[5px] pr-3 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition active:scale-95"
         :disabled="isSwitching"
         aria-label="เลือกวันที่"
         @click="showDayPicker = true"
@@ -70,7 +70,7 @@
         :class="[
           isDone(goal.goal_code)
             ? 'goal-done border-transparent bg-moon-period/45'
-            : 'border-moon-pink-soft bg-[#F9F9F9]'
+            : 'border-moon-pink-soft bg-moon-gray-soft'
         ]"
       >
         <!-- ซ้าย: ชื่อ + คำอธิบาย + แถบความคืบหน้า -->
@@ -83,7 +83,7 @@
             <span class="text-lg font-semibold tabular-nums">{{ goalDayCounts[goal.goal_code] ?? 0 }}</span>
             <span class="text-moon-ink/60"> / {{ CYCLE_LENGTH_DAYS }} วัน</span>
           </p>
-          <div class="mt-1 h-3 w-[calc(100%-4px)] overflow-hidden rounded-full bg-white">
+          <div class="mt-1 h-3 w-[calc(100%-4px)] overflow-hidden rounded-full bg-moon-card">
             <div
               class="h-full rounded-full bg-moon-lavender transition-[width] duration-500"
               :style="{ width: `${Math.min(100, ((goalDayCounts[goal.goal_code] ?? 0) / CYCLE_LENGTH_DAYS) * 100)}%` }"
@@ -96,7 +96,7 @@
           <button
             type="button"
             class="relative flex h-[28px] w-[28px] items-center justify-center rounded-full border-2 transition active:scale-90 before:absolute before:-inset-3 before:content-[''] disabled:active:scale-100"
-            :class="isDone(goal.goal_code) ? 'border-moon-ink bg-moon-ink' : 'border-moon-period bg-white shadow-sm'"
+            :class="isDone(goal.goal_code) ? 'border-moon-ink bg-moon-ink' : 'border-moon-period bg-moon-card shadow-sm'"
             :aria-label="`เช็คอิน ${goal.title}`"
             :disabled="!isToday || isAchieved(goal.goal_code)"
             @click="toggleGoal(goal.goal_code, $event)"
@@ -106,7 +106,7 @@
           </button>
           <span
             class="whitespace-nowrap rounded-full px-2 py-2 text-xs leading-[18px]"
-            :class="isDone(goal.goal_code) ? 'bg-white text-moon-coral' : 'bg-moon-cream-soft'"
+            :class="isDone(goal.goal_code) ? 'bg-moon-card text-moon-coral' : 'bg-moon-cream-soft'"
           >
             {{ goalStatusText(goal.goal_code) }}
           </span>
@@ -131,7 +131,7 @@
 
       <div v-for="item in timelineDone" :key="item.key" class="flex gap-[10px]">
         <p class="w-10 shrink-0 text-xs font-medium leading-[18px] text-moon-muted">{{ item.time }}</p>
-        <div class="tl-card flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+        <div class="tl-card flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-moon-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
           <span class="w-1 shrink-0 self-stretch rounded-sm bg-moon-coral" />
           <!-- การ์ดคู่มือกดได้ -> เปิดป๊อปอัพวิธีทำใบเดิมกลับมาอ่านซ้ำ -->
           <div
@@ -174,8 +174,8 @@
 
       <div v-for="item in timelinePending" :key="item.key" class="flex gap-[10px]">
         <p class="w-10 shrink-0 text-xs font-medium leading-[18px] text-moon-muted">{{ item.carryLabel ?? (isToday ? 'รอ' : '') }}</p>
-        <div class="tl-card tl-pending flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
-          <span class="w-1 shrink-0 self-stretch rounded-sm bg-[#FBFF63]" />
+        <div class="tl-card tl-pending flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-moon-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+          <span class="w-1 shrink-0 self-stretch rounded-sm bg-moon-yellow" />
           <!-- การ์ดคู่มือกดได้ทั้งใบ -> เปิดป๊อปอัพวิธีทำใบเดิมกลับมาอ่านซ้ำ (ใช้ป๊อปอัพเดียวกับหน้าคู่มือ) -->
           <div
             class="flex min-w-0 flex-1 flex-col gap-[2px]"
@@ -219,12 +219,13 @@
       :message="askingGuide.title"
       primary-label="รู้สึกดีขึ้น"
       secondary-label="เฉยๆ / ยังไม่ดีขึ้น"
-      lock-backdrop
+      closable
       @primary="answerGuideFeeling(true)"
       @secondary="answerGuideFeeling(false)"
+      @close="askingGuide = null"
     />
 
-    <!-- การ์ดวิธีทำใบเดิมจากหน้าคู่มือ (กดอ่านซ้ำ) กด "ปิด" หรือพื้นที่ว่างแล้วอยู่หน้านี้ต่อ -->
+    <!-- (ป๊อปอัพถามความรู้สึกด้านบน/ล่างปิดได้ด้วยกากบาทหรือกดพื้นหลัง ไม่ตอบก็ได้ กดตอบทีหลังจากการ์ดในไทม์ไลน์) การ์ดวิธีทำใบเดิมจากหน้าคู่มือ (กดอ่านซ้ำ) กด "ปิด" หรือพื้นที่ว่างแล้วอยู่หน้านี้ต่อ -->
     <GuideDetailDialog
       v-if="readingGuide"
       :title="readingGuide.title"
@@ -255,9 +256,10 @@
       :message="askingSnack.name"
       primary-label="สบายตัว / ถูกใจ"
       secondary-label="เฉยๆ / ยังไม่ดีขึ้น"
-      lock-backdrop
+      closable
       @primary="answerFeeling(true)"
       @secondary="answerFeeling(false)"
+      @close="askingSnack = null"
     />
 
     <BottomNav active="checkin" />

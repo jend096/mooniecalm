@@ -132,7 +132,7 @@ async function getCroppedBlob(outputSize = 512): Promise<Blob> {
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('เบราว์เซอร์ไม่รองรับการตัดรูป')
 
-  ctx.fillStyle = '#FFFFFF' // JPEG ไม่มีความโปร่งใส เติมขาวไว้ให้ รูปพื้นโปร่งจะไม่กลายเป็นดำ
+  ctx.fillStyle = readToken('--color-card', '#FFFFFF') // JPEG ไม่มีความโปร่งใส เติมขาวไว้ให้ รูปพื้นโปร่งจะไม่กลายเป็นดำ
   ctx.fillRect(0, 0, outputSize, outputSize)
   ctx.drawImage(img, centerX - side / 2, centerY - side / 2, side, side, 0, 0, outputSize, outputSize)
 
@@ -205,7 +205,7 @@ const imgStyle = computed(() => ({
         <!-- วงกลมบอกส่วนที่จะตัด: เงาขนาดใหญ่รอบวงกลมคือแผ่นคลุมสีพื้นหลังที่ทำให้นอกวงกลมจาง -->
         <div
           class="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          :style="{ ...circleStyle, boxShadow: '0 0 0 2px rgba(41,41,41,0.2), 0 0 0 999px rgba(255,253,252,0.78)' }"
+          :style="{ ...circleStyle, boxShadow: '0 0 0 2px color-mix(in srgb, var(--color-ink) 20%, transparent), 0 0 0 999px color-mix(in srgb, var(--color-bg) 78%, transparent)' }"
         />
       </div>
     </div>

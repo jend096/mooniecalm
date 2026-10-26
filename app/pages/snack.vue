@@ -27,7 +27,7 @@ import {
 // blob = สีลายหัวกระต่ายหลังการ์ด (ใช้ opacity ที่ตัวรูปทั้งก้อน หูกับหัวเลยไม่ซ้อนกันเป็นเส้น) / ring = สีวงแหวนหน้าชื่อหมวด (ตามฟิกม่า) เรียงตามช่องในตาราง 2 คอลัมน์
 const CHOICES: { value: SnackChoice, title: string, hint: string, blob: string, ring: string }[] = [
   { value: 'warming', title: 'อุ่นๆ', hint: 'ทานแล้วอุ่นสบายท้อง', blob: 'text-moon-coral opacity-50', ring: 'border-moon-coral' },
-  { value: 'savory', title: 'เค็มๆ มันๆ', hint: 'ทานเพลิน อิ่มง่าย', blob: 'text-moon-cream', ring: 'border-[#FCFF8F]' },
+  { value: 'savory', title: 'เค็มๆ มันๆ', hint: 'ทานเพลิน อิ่มง่าย', blob: 'text-moon-cream', ring: 'border-moon-yellow' },
   { value: 'refreshing', title: 'สดชื่น', hint: 'เบาๆ ชื่นใจ', blob: 'text-moon-period-predicted opacity-50', ring: 'border-moon-period-predicted' },
   { value: 'sweet', title: 'อิ่มท้อง', hint: 'ให้พลังงาน', blob: 'text-moon-lavender opacity-50', ring: 'border-moon-lavender' }
 ]
@@ -141,8 +141,8 @@ let rollTimer: ReturnType<typeof setTimeout> | undefined
 
 // ไพ่ 4 ใบ สีพาสเทลตามสีกระต่ายหน้าเลือกหมวด (อุ่นๆ / เค็มๆ มันๆ / สดชื่น / อิ่มท้อง)
 // base = สีพื้นไล่เฉด (ใช้สีทึบ ไม่ใช้สีโปร่งใส เพื่อให้เนื้อสีเนียน) / tint = สีของใบถัดไป ใช้ค่อยๆ จางทับเพื่อให้สีไหลเปลี่ยนไปมา
-const PASTEL = ['#FFC4C4', '#FDFFC2', '#FFD1F1', '#DDD2FF']
-const PASTEL_LIGHT = ['#FFE6E6', '#FFFFEC', '#FFEBF8', '#F1ECFF']
+const PASTEL = ['var(--color-pastel-1)', 'var(--color-pastel-2)', 'var(--color-pastel-3)', 'var(--color-pastel-4)']
+const PASTEL_LIGHT = ['var(--color-pastel-light-1)', 'var(--color-pastel-light-2)', 'var(--color-pastel-light-3)', 'var(--color-pastel-light-4)']
 const SHUFFLE_CARDS = PASTEL.map((main, i) => ({
   slot: i,
   base: `linear-gradient(160deg, ${main} 0%, ${PASTEL_LIGHT[i]} 100%)`,
@@ -360,7 +360,7 @@ onMounted(async () => {
     <!-- ปุ่มย้อนกลับ: อยู่หน้าเมนู = กลับไปเลือกหมวดใหม่ / อยู่หน้าเลือกหมวด = กลับหน้าหลัก -->
     <button
       type="button"
-      class="absolute left-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAEAEA] shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
+      class="absolute left-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-moon-gray shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
       :aria-label="choice ? 'เลือกหมวดใหม่' : 'ย้อนกลับ'"
       @click="choice ? backToChoose() : navigateTo('/home')"
     >
@@ -382,7 +382,7 @@ onMounted(async () => {
 
     <template v-else>
       <!-- สรุปที่แพ้ + ปุ่มแก้ (กดแล้วแผ่นแก้ไขเด้งขึ้นจากด้านล่าง) -->
-      <div class="mt-[41px] rounded-2xl border border-moon-pink-soft bg-white py-[11px] pl-5 pr-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+      <div class="mt-[41px] rounded-2xl border border-moon-pink-soft bg-moon-card py-[11px] pl-5 pr-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="text-xs leading-[18px] text-moon-muted">
@@ -412,14 +412,14 @@ onMounted(async () => {
             v-for="c in CHOICES"
             :key="c.value"
             type="button"
-            class="relative h-[176px] overflow-hidden rounded-[24px] bg-white p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition active:scale-[0.98]"
+            class="relative h-[176px] overflow-hidden rounded-[24px] bg-moon-card p-4 text-left shadow-[0_1px_2px_rgba(0,0,0,0.1)] transition active:scale-[0.98]"
             :class="picked === c.value ? 'ring-2 ring-moon-period' : ''"
             @click="pickChoice(c.value)"
           >
             <!-- ลายหัวกระต่ายเงาสีประจำหมวด -->
             <RabbitBlob class="pointer-events-none absolute left-[34px] top-[53px] h-[190px] w-[190px]" :class="c.blob" />
             <span class="relative flex items-center gap-2">
-              <span class="h-5 w-5 shrink-0 rounded-full border-[5px] bg-white" :class="c.ring" />
+              <span class="h-5 w-5 shrink-0 rounded-full border-[5px] bg-moon-card" :class="c.ring" />
               <span class="text-lg font-semibold leading-[26px]">{{ c.title }}</span>
             </span>
             <p class="relative mt-1 text-xs leading-[18px] text-moon-muted">{{ c.hint }}</p>
@@ -430,7 +430,7 @@ onMounted(async () => {
           <button
             type="button"
             class="rounded-[24px] border bg-moon-cream-soft px-[26px] py-[10px] text-sm font-medium leading-[21px] transition active:scale-95"
-            :class="picked === 'any' ? 'border-moon-period ring-2 ring-moon-period' : 'border-[#FFED88]'"
+            :class="picked === 'any' ? 'border-moon-period ring-2 ring-moon-period' : 'border-moon-yellow'"
             @click="pickChoice('any')"
           >
             สุ่มทั้งหมด
@@ -447,7 +447,7 @@ onMounted(async () => {
       <div v-else class="mt-[40px]">
         <!-- บอกว่าเมนูนี้มาจากหมวดไหน (กันผู้ใช้ลืมว่าเลือกอะไรมา) -->
         <p class="mb-4 flex items-center justify-center gap-2 text-sm text-moon-muted">
-          <span class="h-4 w-4 shrink-0 rounded-full border-[4px] bg-white" :class="choiceRing" />
+          <span class="h-4 w-4 shrink-0 rounded-full border-[4px] bg-moon-card" :class="choiceRing" />
           เมนูนี้เลือกมาจากหมวด
           <span class="font-semibold text-moon-ink">{{ choiceTitle }}</span>
         </p>
@@ -457,7 +457,7 @@ onMounted(async () => {
           <div
             v-for="card in SHUFFLE_CARDS"
             :key="card.slot"
-            class="shuffle-card absolute left-1/2 top-[18px] h-[230px] w-[170px] overflow-hidden rounded-[24px] bg-white shadow-[0_6px_18px_rgba(41,41,41,0.16)]"
+            class="shuffle-card absolute left-1/2 top-[18px] h-[230px] w-[170px] overflow-hidden rounded-[24px] bg-moon-card shadow-[0_6px_18px_color-mix(in_srgb,var(--color-ink)_16%,transparent)]"
             :style="{ '--i': card.slot }"
           >
             <!-- สีพื้นไล่เฉดอ่อนๆ + ชั้นสีของใบถัดไปค่อยๆ จางเข้า-ออก ให้สีเปลี่ยนไหลต่อกันไม่กระตุก -->
@@ -471,7 +471,7 @@ onMounted(async () => {
           <p class="absolute inset-x-0 bottom-0 text-center text-sm text-moon-muted">กำลังสุ่มให้...</p>
         </div>
 
-        <div v-else-if="noResult" class="rounded-[24px] bg-white p-6 text-center shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+        <div v-else-if="noResult" class="rounded-[24px] bg-moon-card p-6 text-center shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
           <p class="text-sm font-medium">
             หมวดนี้ไม่มีเมนูที่ปลอดภัยกับที่แพ้
           </p>
@@ -484,7 +484,7 @@ onMounted(async () => {
           v-else-if="current"
           :key="resultKey"
           ref="resultRef"
-          class="result-pop overflow-hidden rounded-[24px] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
+          class="result-pop overflow-hidden rounded-[24px] bg-moon-card shadow-[0_1px_2px_rgba(0,0,0,0.1)]"
         >
           <!-- รูปดึงจาก Supabase Storage (ที่เก็บ snacks) มีโฟลเดอร์สำรอง public/assets/snacks/ ถ้าโหลดไม่ได้จะโชว์กล่องสีแทน -->
           <img
@@ -494,7 +494,7 @@ onMounted(async () => {
             class="h-44 w-full object-cover"
             @error="onImageError"
           >
-          <div v-else class="flex h-44 w-full items-center justify-center bg-[#D9D9D9]/40 text-xs text-moon-muted">
+          <div v-else class="flex h-44 w-full items-center justify-center bg-moon-placeholder/40 text-xs text-moon-muted">
             ยังไม่มีรูป
           </div>
 
@@ -529,14 +529,14 @@ onMounted(async () => {
             <div class="mt-5 flex gap-3">
               <button
                 type="button"
-                class="flex-1 rounded-full border border-moon-coral bg-white py-3 text-base font-medium transition active:scale-95"
+                class="flex-1 rounded-full border border-moon-coral bg-moon-card py-3 text-base font-medium transition active:scale-95"
                 @click="rollWithAnimation(true)"
               >
                 สุ่มใหม่
               </button>
               <button
                 type="button"
-                class="flex-1 rounded-full bg-moon-ink py-3 text-base font-medium text-white transition active:scale-95"
+                class="btn-primary flex-1"
                 @click="saveSnack"
               >
                 บันทึก
@@ -559,7 +559,7 @@ onMounted(async () => {
       :class="showAllergyEditor ? 'translate-y-0' : 'pointer-events-none translate-y-full'"
     >
       <div class="px-9 pt-5">
-        <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+        <div class="mx-auto h-1 w-10 rounded-sm bg-moon-handle" />
       </div>
 
       <div class="flex items-start justify-between gap-3 px-9 pt-4">
@@ -663,7 +663,7 @@ onMounted(async () => {
 
     <!-- หลังกด "บันทึก": ดาวหมุน -> ติ๊กถูก -> ถามว่าจะสุ่มอีกหรือถัดไป (ต้องกดปุ่มเท่านั้น กดพื้นหลังไม่ปิด) -->
     <div v-if="savePhase !== 'idle'" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-6">
-      <div class="w-full max-w-sm rounded-3xl bg-white px-6 pb-6 pt-8 text-center shadow-2xl">
+      <div class="w-full max-w-sm rounded-3xl bg-moon-card px-6 pb-6 pt-8 text-center shadow-2xl">
         <div class="mx-auto flex h-[84px] w-[84px] items-center justify-center">
           <BrandLogoMark v-if="savePhase === 'saving'" :size="84" stage="bob" />
           <span v-else ref="checkRef" class="check-pop flex h-[84px] w-[84px] items-center justify-center rounded-full bg-moon-period">
@@ -693,7 +693,7 @@ onMounted(async () => {
           </button>
           <button
             type="button"
-            class="w-full rounded-full border-2 border-moon-pink bg-white py-3.5 font-semibold text-moon-ink transition active:scale-95"
+            class="btn-secondary w-full"
             @click="rollAgain"
           >
             สุ่มอีก

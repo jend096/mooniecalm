@@ -1,0 +1,51 @@
+/* ===== ปุ่มหลัก / ปุ่มรอง (รูปทรงเดียวทั้งแอป) =====
+   ขนาด (--btn-height) มุมโค้ง (--btn-radius) ขนาดตัวอักษร (--btn-font-size) และสี ตั้งไว้ใน tokens.css
+   อยากเปลี่ยนหน้าตาปุ่มทั้งแอป แก้ค่าตัวแปรใน tokens.css ที่เดียว
+   วิธีใช้: ปุ่มหลัก class="btn-primary w-full" / ปุ่มรอง class="btn-secondary w-full"
+   (ความกว้างใส่ที่หน้า เช่น w-full หรือ flex-1 ไม่ได้ตั้งไว้ในนี้ เพราะแต่ละที่กว้างไม่เท่ากัน) */
+.btn-primary,
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--btn-height);
+  border-radius: var(--btn-radius);
+  font-size: var(--btn-font-size);
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 0.15s, opacity 0.15s;
+}
+
+/* ระยะซ้ายขวาในปุ่ม: ใช้ :where เพื่อให้ถ้าหน้าไหนตั้ง px-/pl-/pr- เอง ค่านั้นชนะ */
+:where(.btn-primary, .btn-secondary) {
+  padding-inline: 16px;
+}
+
+/* ปุ่มหลัก: พื้นดำ ตัวหนังสือขาว */
+.btn-primary {
+  background: var(--color-ink);
+  color: var(--color-on-ink);
+}
+.btn-primary:enabled:hover {
+  background: color-mix(in srgb, var(--color-ink) 85%, transparent);
+}
+.btn-primary:enabled:active {
+  background: color-mix(in srgb, var(--color-ink) 65%, transparent);
+}
+.btn-primary:disabled {
+  background: color-mix(in srgb, var(--color-ink) 30%, transparent);
+  cursor: not-allowed;
+}
+
+/* ปุ่มรอง: พื้นขาว ขอบชมพู ตัวหนังสือดำ */
+.btn-secondary {
+  background: var(--color-card);
+  color: var(--color-ink);
+  border: 2px solid var(--color-pink);
+}
+.btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

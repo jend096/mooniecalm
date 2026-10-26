@@ -32,7 +32,7 @@ function onImageError() {
 
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-moon-ink/30 px-6" @click.self="emit('close')">
-    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-white pb-6 text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
+    <div class="relative flex max-h-[85dvh] w-full max-w-[380px] flex-col overflow-hidden rounded-[24px] bg-moon-card pb-6 text-moon-ink shadow-[0_25px_50px_rgba(0,0,0,0.25)]">
       <div class="min-h-0 flex-1 overflow-y-auto">
         <img
           v-if="imageSrc && !failed"
@@ -41,7 +41,7 @@ function onImageError() {
           class="h-44 w-full object-cover"
           @error="onImageError"
         >
-        <div v-else class="flex h-32 w-full items-center justify-center bg-[#D9D9D9]/40 text-xs text-moon-muted">
+        <div v-else class="flex h-32 w-full items-center justify-center bg-moon-placeholder/40 text-xs text-moon-muted">
           ยังไม่มีรูป
         </div>
 
@@ -69,7 +69,7 @@ function onImageError() {
       <div class="px-6 pt-4">
         <button
           type="button"
-          class="w-full rounded-full bg-moon-ink py-[14px] text-base font-semibold text-white shadow-[0_1px_2px_rgba(0,0,0,0.15)] transition active:scale-95"
+          class="btn-primary w-full"
           @click="emit('close')"
         >
           {{ buttonLabel }}

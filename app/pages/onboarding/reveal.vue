@@ -76,7 +76,7 @@
         <!-- สรุปคำตอบ: ขึ้นต้นด้วย -- ตาม Figma -->
         <div
           v-if="summaryItems.length"
-          class="relative mt-7 flex flex-col gap-2 rounded-2xl border border-white/80 bg-white/45 py-4 pl-5 pr-4 text-left shadow-[0_8px_24px_rgba(254,119,119,0.12)] backdrop-blur-md transition-all delay-150 duration-700"
+          class="relative mt-7 flex flex-col gap-2 rounded-2xl border border-white/80 bg-moon-card/45 py-4 pl-5 pr-4 text-left shadow-[0_8px_24px_color-mix(in_srgb,var(--color-coral)_12%,transparent)] backdrop-blur-md transition-all delay-150 duration-700"
           :class="stage === 'done' ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
         >
           <div v-for="(item, i) in summaryItems" :key="i" class="flex gap-1.5">
@@ -145,7 +145,7 @@
       :class="isSheetOpen ? 'translate-y-0' : 'pointer-events-none translate-y-full'"
     >
       <div class="flex items-center justify-between px-9 pt-5">
-        <div class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+        <div class="mx-auto h-1 w-10 rounded-sm bg-moon-handle" />
       </div>
 
       <div class="flex items-start justify-between gap-3 px-9 pt-3">
@@ -219,7 +219,7 @@
       >
         <div class="zoom-card relative aspect-square w-[min(88vw,380px)]" @click.stop>
           <div class="avatar-float absolute inset-0">
-            <div class="absolute inset-0 overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(254,119,119,0.45)]">
+            <div class="absolute inset-0 overflow-hidden rounded-[28px] shadow-[0_20px_60px_color-mix(in_srgb,var(--color-coral)_45%,transparent)]">
               <AvatarScene :layers="avatarLayers" />
             </div>
           </div>
@@ -653,13 +653,13 @@ function start() {
 /* กรอบอวตาร: ตอนอยู่กลางจอ (intro/settle) ไม่มีกรอบ ไม่มีเงา พอวางที่เสร็จ (done) ค่อยๆ มีมุมมนกับเงาขึ้นมา */
 .avatar-frame {
   border-radius: 0;
-  box-shadow: 0 10px 28px rgba(254, 119, 119, 0);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-coral) 0%, transparent);
   transition: border-radius 0.7s ease, box-shadow 0.7s ease;
 }
 
 .avatar-frame-on {
   border-radius: 22px;
-  box-shadow: 0 10px 28px rgba(254, 119, 119, 0.3);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--color-coral) 30%, transparent);
 }
 
 /* อวตารขยับขึ้นลงและเอียงเบาๆ ให้ดูมีชีวิต */

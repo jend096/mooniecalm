@@ -181,7 +181,7 @@ function next() {
                 เพิ่ม
               </button>
             </form>
-            <p v-if="otherError" class="mt-2 text-xs text-red-500">
+            <p v-if="otherError" class="mt-2 text-xs text-moon-error">
               {{ otherError }}
             </p>
           </div>

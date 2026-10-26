@@ -56,6 +56,14 @@ export default {
         'moon-lavender-soft': moon('--color-lavender-soft'),
         'moon-chip': moon('--color-chip'),
         'moon-muted': moon('--color-muted'),
+        'moon-yellow': moon('--color-yellow'),
+        'moon-gray': moon('--color-gray'),
+        'moon-gray-soft': moon('--color-gray-soft'),
+        'moon-handle': moon('--color-handle'),
+        'moon-placeholder': moon('--color-placeholder'),
+        'moon-hint': moon('--color-hint'),
+        'moon-error': moon('--color-error'),
+        'moon-on-ink': moon('--color-on-ink'),
         // ชื่อเก่า (ยังมีหน้าเดิมใช้อยู่ ปรับครบแล้วค่อยลบ)
         'moon-peach': moon('--color-accent-peach')
       }

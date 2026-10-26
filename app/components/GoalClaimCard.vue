@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-6 flex w-full flex-col gap-4 overflow-hidden rounded-[24px] border border-moon-pink-soft bg-white px-5 py-5">
+  <div class="mt-6 flex w-full flex-col gap-4 overflow-hidden rounded-[24px] border border-moon-pink-soft bg-moon-card px-5 py-5">
     <!-- ขั้น 1: ครบ 28 วันแล้ว -->
     <template v-if="step === 'intro'">
       <div class="relative flex flex-col items-center gap-2 py-6 text-center">
@@ -19,7 +19,7 @@
       </div>
       <button
         type="button"
-        class="intro-pulse w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white"
+        class="btn-primary intro-pulse w-full"
         @click="startResults"
       >
         มาดูผลของรอบนี้กัน
@@ -76,7 +76,7 @@
           </div>
 
           <!-- หลอดสถานะ: ค่อยๆ เต็มตามจำนวนวันที่ทำได้ มีขีดบอกเกณฑ์ที่ต้องถึง -->
-          <div class="relative h-2 w-full rounded-full bg-white">
+          <div class="relative h-2 w-full rounded-full bg-moon-card">
             <div
               class="bar-fill h-full rounded-full"
               :class="item.passed ? 'bg-moon-period' : 'bg-moon-muted/40'"
@@ -112,7 +112,7 @@
         <div class="reveal-pop relative mt-1 aspect-square w-[220px]">
           <div class="avatar-float absolute inset-0">
             <div class="absolute inset-[-12%] rounded-full bg-moon-pink/60 blur-[36px]" />
-            <div class="absolute inset-0 overflow-hidden rounded-[22px] shadow-[0_10px_28px_rgba(254,119,119,0.3)]">
+            <div class="absolute inset-0 overflow-hidden rounded-[22px] shadow-[0_10px_28px_color-mix(in_srgb,var(--color-coral)_30%,transparent)]">
               <AvatarScene :layers="layersOf(upgradedAvatar)" />
             </div>
           </div>
@@ -123,7 +123,7 @@
 
       <button
         type="button"
-        class="reveal-in w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition active:scale-95"
+        class="btn-primary reveal-in w-full"
         style="animation-delay: 0.6s"
         @click="step = 'pick'"
       >
@@ -146,7 +146,7 @@
           :key="goal.id"
           type="button"
           class="flex w-full items-center justify-between gap-2 rounded-xl border-2 px-4 py-3 text-left transition active:scale-95"
-          :class="selectedIds.includes(goal.id) ? 'border-moon-period bg-moon-pink-soft' : 'border-moon-pink-soft bg-white'"
+          :class="selectedIds.includes(goal.id) ? 'border-moon-period bg-moon-pink-soft' : 'border-moon-pink-soft bg-moon-card'"
           @click="toggleGoal(goal.id)"
         >
           <span class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
@@ -167,7 +167,7 @@
       <button
         type="button"
         :disabled="saving || !selectedIds.length"
-        class="flex w-full items-center justify-center gap-2 rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition disabled:opacity-40"
+        class="btn-primary w-full"
         :class="saving ? '!opacity-100' : ''"
         @click="claim"
       >
@@ -195,7 +195,7 @@
       </div>
       <button
         type="button"
-        class="w-full rounded-full bg-moon-ink py-3 text-center text-sm font-medium text-white transition active:scale-95"
+        class="btn-primary w-full"
         @click="emit('claimed')"
       >
         เริ่มเช็คอินรอบใหม่
@@ -548,13 +548,13 @@ function fail() {
 
 @keyframes card-glow {
   0% {
-    box-shadow: 0 0 0 0 rgba(255, 110, 138, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-period-day) 0%, transparent);
   }
   30% {
-    box-shadow: 0 0 0 4px rgba(255, 110, 138, 0.25), 0 0 18px rgba(255, 168, 230, 0.55);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-period-day) 25%, transparent), 0 0 18px color-mix(in srgb, var(--color-period-predicted) 55%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(255, 110, 138, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-period-day) 0%, transparent);
   }
 }
 

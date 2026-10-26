@@ -8,8 +8,9 @@ const weightIndex = ref(Math.max(weights.indexOf(55), 0))
 const heightIndex = ref(Math.max(heights.indexOf(160), 0))
 
 function next() {
-  onboarding.weightKg = weights[weightIndex.value]
-  onboarding.heightCm = heights[heightIndex.value]
+  // โปรเจกต์เปิด noUncheckedIndexedAccess จึงมองว่า weights[i] อาจเป็น undefined ได้ ใส่ค่าเริ่มต้นไว้ (ปกติไม่ถูกใช้ เพราะวงล้อเลือกได้แค่ค่าในลิสต์)
+  onboarding.weightKg = weights[weightIndex.value] ?? 55
+  onboarding.heightCm = heights[heightIndex.value] ?? 160
   navigateTo('/onboarding/step-5')
 }
 </script>

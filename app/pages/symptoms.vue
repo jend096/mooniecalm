@@ -10,7 +10,7 @@
     <!-- ปุ่มย้อนกลับ -->
     <button
       type="button"
-      class="absolute left-6 top-6 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-[#EAEAEA] shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
+      class="absolute left-6 top-6 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-moon-gray shadow-[0_4px_6px_rgba(0,0,0,0.12)] transition active:scale-95"
       aria-label="ย้อนกลับ"
       @click="back"
     >
@@ -32,7 +32,7 @@
       </button>
       <button
         type="button"
-        class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-coral bg-white py-[5px] pl-[5px] pr-3 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition active:scale-95"
+        class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-coral bg-moon-card py-[5px] pl-[5px] pr-3 text-sm font-medium shadow-[0_1px_2px_rgba(0,0,0,0.08)] transition active:scale-95"
         :disabled="isSwitching"
         aria-label="เลือกวันที่"
         @click="showDayPicker = true"
@@ -80,7 +80,7 @@
           :key="opt.code"
           type="button"
           class="extra-chip extra-chip-color transition active:scale-95 disabled:active:scale-100"
-          :class="values.flow_color === opt.code ? 'border-moon-ink bg-moon-ink text-white' : 'border-moon-pink-soft bg-white'"
+          :class="values.flow_color === opt.code ? 'border-moon-ink bg-moon-ink text-white' : 'border-moon-pink-soft bg-moon-card'"
           :disabled="!isToday"
           :aria-pressed="values.flow_color === opt.code"
           @click="pickChoice('flow_color', opt.code)"
@@ -504,7 +504,7 @@ onMounted(async () => {
   padding: 17px;
   border: 1px solid var(--color-pink-soft);
   border-radius: 20px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 .extra-chip {
@@ -543,7 +543,7 @@ onMounted(async () => {
   padding: 0 17px;
   border: 1px solid var(--color-pink-soft);
   border-radius: 20px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 .icon-minus {
@@ -562,7 +562,7 @@ onMounted(async () => {
   padding: 17px;
   border: 1px solid var(--color-pink-soft);
   border-radius: 20px;
-  background: #fff;
+  background: var(--color-card);
 }
 
 /* วันนี้: ทั้งกล่องเป็นช่องพิมพ์ แตะตรงไหนก็เริ่มพิมพ์ (ขอบเข้มขึ้นตอนกำลังพิมพ์) */
@@ -594,7 +594,7 @@ onMounted(async () => {
 }
 
 .note-input::placeholder {
-  color: #a3a3a3;
+  color: var(--color-hint);
 }
 
 .note-count {
@@ -613,7 +613,7 @@ onMounted(async () => {
 }
 
 .note-empty {
-  color: #a3a3a3;
+  color: var(--color-hint);
 }
 
 .retry-btn {

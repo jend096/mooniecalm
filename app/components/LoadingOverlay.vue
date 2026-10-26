@@ -18,7 +18,7 @@ onBeforeUnmount(() => { stack.value = stack.value.filter(x => x !== id) })
 <template>
   <div
     v-show="isTop"
-    class="loading-overlay fixed inset-0 z-[60] flex items-center justify-center bg-white/70 px-6 backdrop-blur-[2px]"
+    class="loading-overlay fixed inset-0 z-[60] flex items-center justify-center bg-moon-card/70 px-6 backdrop-blur-[2px]"
     role="status"
     aria-live="polite"
   >

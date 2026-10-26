@@ -68,7 +68,7 @@ async function next() {
         class="mt-2 w-full border-b-2 border-moon-ink/20 bg-transparent focus:border-moon-ink/50 text-center text-3xl font-semibold leading-[38px] text-moon-ink outline-none placeholder:text-moon-ink/25"
       >
 
-      <p v-if="errorMessage" class="text-xs font-normal text-red-500">
+      <p v-if="errorMessage" class="text-xs font-normal text-moon-error">
         {{ errorMessage }}
       </p>
     </div>

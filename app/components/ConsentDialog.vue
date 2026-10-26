@@ -15,7 +15,7 @@ const agreed = ref(false)
 <template>
   <div class="consent-backdrop fixed inset-0 z-[70] flex items-center justify-center bg-black/35 px-5">
     <div
-      class="consent-panel flex max-h-[88dvh] w-full max-w-[390px] flex-col rounded-[28px] bg-white px-6 pb-6 pt-7 text-moon-ink shadow-2xl"
+      class="consent-panel flex max-h-[88dvh] w-full max-w-[390px] flex-col rounded-[28px] bg-moon-card px-6 pb-6 pt-7 text-moon-ink shadow-2xl"
       role="dialog"
       aria-modal="true"
       aria-labelledby="consent-title"
@@ -53,7 +53,7 @@ const agreed = ref(false)
         <input v-model="agreed" type="checkbox" class="sr-only">
         <span
           class="mt-[1px] flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-colors"
-          :class="agreed ? 'border-moon-period bg-moon-period' : 'border-moon-coral bg-white'"
+          :class="agreed ? 'border-moon-period bg-moon-period' : 'border-moon-coral bg-moon-card'"
         >
           <FaIcon v-if="agreed" name="check" class="h-3 w-3 text-white" />
         </span>
@@ -64,14 +64,14 @@ const agreed = ref(false)
         <button
           type="button"
           :disabled="!agreed"
-          class="w-full rounded-full bg-moon-ink py-3.5 text-base font-semibold text-white transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+          class="btn-primary w-full"
           @click="emit('accept')"
         >
           ยินยอมและเริ่มต้น
         </button>
         <button
           type="button"
-          class="w-full rounded-full border-2 border-moon-pink bg-white py-3 text-base font-semibold transition active:scale-95"
+          class="btn-secondary w-full"
           @click="emit('decline')"
         >
           ยังไม่ยินยอม

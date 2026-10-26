@@ -29,6 +29,32 @@
   /* --- ตัวหนังสือรอง --- */
   --color-muted: #6B6264;        /* ยังไม่อยู่ในตารางสีของ Figma แต่ใช้ในเฟรมจริง */
 
+
+  /* --- สีที่เคยฝังเป็นค่าตายตัวในหน้าต่างๆ (ย้ายมารวมที่นี่ เปลี่ยนที่เดียวทุกหน้าเปลี่ยนตาม) --- */
+  --color-yellow: #FBFF67;       /* เหลืองเน้น: แถบข้างการ์ดที่รออยู่ / วงแหวนการ์ดอยากทานอะไร / ขอบการ์ดของว่างเค็มๆ */
+  --color-gray: #EAEAEA;         /* เทา: ปุ่มวงกลมย้อนกลับ */
+  --color-gray-soft: #F9F9F9;    /* เทาอ่อนมาก: การ์ดเป้าหมายที่ยังไม่ได้ทำ */
+  --color-handle: #CBD5E1;       /* ขีดเล็กๆ บนหัวชีตที่เลื่อนขึ้นมา */
+  --color-placeholder: #D9D9D9;  /* พื้นช่องรูปที่ยังไม่มีรูป (ใช้แบบโปร่ง เช่น bg-moon-placeholder/40) */
+  --color-hint: #A3A3A3;         /* ข้อความจางๆ ในช่องกรอก (placeholder) */
+  --color-error: #E5484D;        /* ข้อความแจ้งข้อผิดพลาด */
+  --color-on-ink: #FFFFFF;       /* ตัวหนังสือบนพื้นดำ (ปุ่มหลัก) */
+
+  /* --- สีพาสเทลของการ์ดสุ่มของว่าง (เข้ม 4 / อ่อน 4 ตามลำดับเดียวกัน) --- */
+  --color-pastel-1: #FFC4C4;
+  --color-pastel-2: #FDFFC2;
+  --color-pastel-3: #FFD1F1;
+  --color-pastel-4: #DDD2FF;
+  --color-pastel-light-1: #FFE6E6;
+  --color-pastel-light-2: #FFFFEC;
+  --color-pastel-light-3: #FFEBF8;
+  --color-pastel-light-4: #F1ECFF;
+
+  /* --- ปุ่มหลัก/ปุ่มรอง: ขนาดกับมุมโค้งอยู่ที่นี่ที่เดียว (รูปทรงอยู่ใน assets/css/buttons.css) --- */
+  --btn-height: 59px;
+  --btn-radius: 24px;
+  --btn-font-size: 18px;
+
   /* ===== ชื่อเก่า (ให้หน้าเดิมยังทำงานระหว่างปรับหน้าใหม่ ปรับครบแล้วค่อยลบ) ===== */
   --color-bg-soft: var(--color-bg);
   --color-accent-pink: var(--color-pink);

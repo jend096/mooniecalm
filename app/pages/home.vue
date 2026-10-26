@@ -511,7 +511,7 @@ async function logout() {
   >
     <!-- ลายเบลอตกแต่งด้านหลัง (ตามฟิกม่า: วงกลมโคเรลเบลอ + แถบขาวเบลอ) -->
     <div aria-hidden="true" class="pointer-events-none absolute left-[37%] top-[134px] h-[155px] w-[97px] rounded-full bg-moon-coral blur-[100px]" />
-    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-white blur-[25px]" />
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-moon-card blur-[25px]" />
 
     <!-- ประกายดาวจางๆ ลอยอยู่หลังเนื้อหา -->
     <AmbientSparkles />
@@ -552,7 +552,7 @@ async function logout() {
           <p class="text-base font-semibold">{{ visibleMonthLabel }}</p>
           <button
             type="button"
-            class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-pink-soft bg-white py-[5px] pl-[5px] pr-3 text-sm font-medium transition active:scale-95"
+            class="flex h-[42px] items-center gap-[5px] rounded-[35px] border border-moon-pink-soft bg-moon-card py-[5px] pl-[5px] pr-3 text-sm font-medium transition active:scale-95"
             @click="navigateTo('/calendar')"
           >
             <span class="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-moon-chip">
@@ -577,8 +577,8 @@ async function logout() {
             :key="day.key"
             type="button"
             :data-today="day.isToday ? '' : undefined"
-            class="flex h-[90px] shrink-0 basis-[calc((100%-52px)/5)] flex-col items-center rounded-[28px] pt-[5px] shadow-[0_1px_9px_rgba(107,98,100,0.19)] transition active:scale-95"
-            :class="day.isToday ? 'bg-moon-coral' : 'bg-white'"
+            class="flex h-[90px] shrink-0 basis-[calc((100%-52px)/5)] flex-col items-center rounded-[28px] pt-[5px] shadow-[0_1px_9px_color-mix(in_srgb,var(--color-muted)_19%,transparent)] transition active:scale-95"
+            :class="day.isToday ? 'bg-moon-coral' : 'bg-moon-card'"
             @click="onDayClick(day.date)"
           >
             <!-- ตัวย่อวัน อา จ อ ... อยู่เหนือตัวเลข (วันนี้ = ตัวขาวใหญ่ขึ้น) -->
@@ -622,7 +622,7 @@ async function logout() {
       <AvatarScene :layers="avatarLayers" :bunny-scale="0.65" :crop-top="0.22" class="-mb-[28px]" @layer-error="hideLayer">
         <button
           type="button"
-          class="absolute bottom-[36px] right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-white shadow-[0_1px_6px_rgba(107,98,100,0.2)]"
+          class="absolute bottom-[36px] right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-moon-card shadow-[0_1px_6px_color-mix(in_srgb,var(--color-muted)_20%,transparent)]"
           aria-label="แชร์"
           :disabled="isSharing"
           @click="share"
@@ -635,7 +635,7 @@ async function logout() {
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
            เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
-      <div class="relative mx-[35px] mt-[14px] rounded-[15px] bg-white/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+      <div class="relative mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
         <div class="mt-[12px] flex items-center px-[23px]">
@@ -691,7 +691,7 @@ async function logout() {
         <!-- ปุ่มเช็คอิน -->
         <button
           type="button"
-          class="checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] flex h-[51px] w-[calc(100%-26px)] items-center justify-center rounded-[10px] bg-moon-ink pl-[10px] pr-[51px] text-base font-bold text-white"
+          class="btn-primary checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] pl-[10px] pr-[51px]"
           @click="goToCheckin"
         >
           เช็คอินกันเถอะ
@@ -710,7 +710,7 @@ async function logout() {
         >
           <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
-          <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-white">
+          <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
               <path d="M 35.4167 33.3333 L 2.0833 33.3333 C 0.9375 33.3333 0 34.2708 0 35.4167 C 0 36.5625 0.9375 37.5 2.0833 37.5 L 35.4167 37.5 C 36.5625 37.5 37.5 36.5625 37.5 35.4167 C 37.5 34.2708 36.5625 33.3333 35.4167 33.3333 Z M 37.5 0 L 14.5833 0 L 14.5833 5 L 18.3542 8.0208 C 18.6042 8.2083 18.75 8.5208 18.75 8.8333 L 18.75 17.7083 C 18.75 18.2917 18.2917 18.75 17.7083 18.75 L 9.375 18.75 C 8.7917 18.75 8.3333 18.2917 8.3333 17.7083 L 8.3333 8.8333 C 8.3333 8.5208 8.4792 8.2083 8.7292 8.0208 L 12.5 5 L 12.5 0 L 8.3333 0 C 6.0417 0 4.1667 1.875 4.1667 4.1667 L 4.1667 20.8333 C 4.1667 25.4375 7.8958 29.1667 12.5 29.1667 L 25 29.1667 C 29.6042 29.1667 33.3333 25.4375 33.3333 20.8333 L 33.3333 14.5833 L 37.5 14.5833 C 39.7917 14.5833 41.6667 12.7083 41.6667 10.4167 L 41.6667 4.1667 C 41.6667 1.875 39.7917 0 37.5 0 Z M 37.5 10.4167 L 33.3333 10.4167 L 33.3333 4.1667 L 37.5 4.1667 L 37.5 10.4167 Z" />
             </svg>
@@ -724,7 +724,7 @@ async function logout() {
         >
           <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[114px] w-[118px] rounded-full bg-moon-lavender/[0.29]" />
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">ตอนนี้<br>ปวดตรงไหน</span>
-          <span class="press-hint press-hint-pain absolute bottom-[29px] right-[49px] flex h-[65px] w-[65px] items-center justify-center rounded-full bg-white">
+          <span class="press-hint press-hint-pain absolute bottom-[29px] right-[49px] flex h-[65px] w-[65px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 35 35" class="h-[35px] w-[35px] text-moon-lavender" fill="currentColor" aria-hidden="true">
               <path d="M 29.4691 0 L 33.1466 9.66 C 36.3322 18.0367 35.3718 27.4167 30.57 35 L 18.9754 35 L 18.9754 27.8367 L 25.37 21.4433 L 23.3088 19.39 L 17.4998 25.1533 L 11.7142 19.39 L 9.6529 21.4433 L 16.0475 27.8367 L 16.0475 35 L 4.4295 35 C 2.0594 31.2635 0.593 27.0297 0.1458 22.6322 C -0.3013 18.2348 0.2831 13.794 1.8529 9.66 L 5.507 0 L 29.4691 0 Z M 18.0151 2.8933 L 16.6799 2.8933 C 13.4944 2.8933 11.8781 6.6967 14.0565 8.9833 L 15.4151 10.3833 L 11.5502 14.5833 L 13.7052 16.5433 L 15.8836 14.1867 L 17.4529 12.5067 L 21.3412 16.5667 L 23.4493 14.56 L 19.4439 10.3833 L 20.6385 9.1467 C 22.8403 6.86 21.2944 2.8933 18.0151 2.8933 Z M 18.0151 5.81 C 18.3196 5.81 18.5538 5.9733 18.6709 6.2767 C 18.8115 6.58 18.7646 6.8833 18.5304 7.1167 L 17.4295 8.26 L 16.1881 6.9533 C 15.7664 6.5333 16.0709 5.81 16.6799 5.81 L 18.0151 5.81 Z" />
             </svg>
@@ -846,7 +846,7 @@ async function logout() {
    การ์ดสองใบเหลื่อมจังหวะกัน (ใบที่สองช้ากว่า 1.3 วิ) จะได้ไม่กะพริบพร้อมกัน */
 .press-hint {
   animation: press-hint 2.6s ease-in-out infinite;
-  box-shadow: 0 2px 6px rgba(41, 41, 41, 0.12);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-ink) 12%, transparent);
 }
 
 .press-hint::after {
@@ -863,11 +863,11 @@ async function logout() {
 
 /* การ์ดอยากทานอะไร: เด้งเหมือนการ์ดปวดตรงไหนทุกอย่าง แค่วงคลื่นที่ขยายออกมาเป็นสีเหลืองตามสีการ์ด */
 .press-hint-food {
-  --ring: #f2ec5c;
+  --ring: var(--color-yellow);
 }
 
 .press-hint-pain {
-  --ring: #ccbbff;
+  --ring: var(--color-lavender);
   animation-delay: 1.3s;
 }
 

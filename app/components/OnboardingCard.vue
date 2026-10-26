@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col rounded-3xl bg-white p-6">
+  <div class="flex min-h-dvh flex-col rounded-3xl bg-moon-card p-6">
     <div class="mb-8 flex justify-center gap-2">
       <span
         v-for="step in totalSteps"

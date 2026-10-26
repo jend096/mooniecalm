@@ -40,11 +40,11 @@ function onClick() {
 </script>
 
 <template>
-  <!-- ปุ่มหลัก: พื้นดำ(ink) ตัวหนังสือขาว มุมโค้ง 24 สูง 59px ตาม Figma -->
+  <!-- ปุ่มหลัก: รูปทรง/สีมาจาก .btn-primary (assets/css/buttons.css) ค่าขนาดอยู่ที่ tokens.css -->
   <button
     :type="type"
     :disabled="disabled || isLoading"
-    class="flex h-[59px] w-full items-center justify-center gap-2 rounded-3xl bg-moon-ink px-4 text-center text-lg font-semibold text-white transition [-webkit-tap-highlight-color:transparent] enabled:hover:bg-moon-ink/85 enabled:active:bg-moon-ink/65 disabled:cursor-not-allowed disabled:bg-moon-ink/30"
+    class="btn-primary w-full"
     :class="isLoading ? '!bg-moon-ink' : ''"
     @click="onClick"
   >

@@ -16,12 +16,12 @@ const mode = computed(() => (props.stage !== 'full' ? props.stage : props.intro 
 
 // ประกาย 6 ดวงรอบพระจันทร์ ตำแหน่ง/ขนาด/สีตามฟิกม่า (วัดบนกรอบ 240 x 240)
 const SPARKS = [
-  { x: 20, y: 130, s: 20, color: '#FE7777' },
-  { x: 191, y: 145, s: 20, color: '#FFFFEC' },
-  { x: 9, y: 114, s: 13, color: '#FFFFEC' },
-  { x: 220, y: 120, s: 13, color: '#E6DDFF' },
-  { x: 13, y: 163, s: 13, color: '#E6DDFF' },
-  { x: 206, y: 169, s: 10, color: '#FE7777' }
+  { x: 20, y: 130, s: 20, color: 'var(--color-coral)' },
+  { x: 191, y: 145, s: 20, color: 'var(--color-cream-soft)' },
+  { x: 9, y: 114, s: 13, color: 'var(--color-cream-soft)' },
+  { x: 220, y: 120, s: 13, color: 'var(--color-lavender-soft)' },
+  { x: 13, y: 163, s: 13, color: 'var(--color-lavender-soft)' },
+  { x: 206, y: 169, s: 10, color: 'var(--color-coral)' }
 ]
 // รูปดาว 4 แฉกจากฟิกม่า (กรอบ 20 x 20)
 const SPARK_PATH = 'M10 0C10.778 5.889 14.111 9.222 20 10C14.111 10.778 10.778 14.111 10 20C9.222 14.111 5.889 10.778 0 10C5.889 9.222 9.222 5.889 10 0Z'
@@ -38,7 +38,7 @@ function sparkStyle(s: { x: number, y: number, s: number }, i: number) {
 
 // ประกายที่พุ่งออกจากด้านหลังโลโก้ตอนกระต่ายขึ้นมาแล้ว (14 ดวง กระจายรอบวง)
 // ไม่ใช้ Math.random เพื่อให้ผลเหมือนกันทุกครั้ง (หน้าไม่กระโดดตอนโหลด)
-const BURST_COLORS = ['#FE7777', '#FFFFEC', '#E6DDFF', '#FFA8E6', '#CCBBFF']
+const BURST_COLORS = ['var(--color-coral)', 'var(--color-cream-soft)', 'var(--color-lavender-soft)', 'var(--color-period-predicted)', 'var(--color-lavender)']
 const BURST = Array.from({ length: 14 }, (_, i) => {
   const angle = ((i * 360) / 14 + (i % 2 ? 9 : -9)) * (Math.PI / 180)
   const dist = 0.62 + (i % 3) * 0.1 // ระยะที่พุ่งไปจากกลางโลโก้ (เป็นเท่าของขนาดโลโก้)
@@ -218,9 +218,9 @@ function burstStyle(b: { dx: number, dy: number, s: number, delay: number }) {
 .hint-ring {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(254, 119, 119, 0.35);
+  border: 2px solid color-mix(in srgb, var(--color-coral) 35%, transparent);
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(254, 119, 119, 0) 62%, rgba(254, 119, 119, 0.12));
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-coral) 0%, transparent) 62%, color-mix(in srgb, var(--color-coral) 12%, transparent));
   opacity: 0;
   animation: ring-pulse 2.6s ease-out infinite;
 }
@@ -250,7 +250,7 @@ function burstStyle(b: { dx: number, dy: number, s: number, delay: number }) {
   position: absolute;
   inset: -10%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 205, 216, 0.95), rgba(255, 205, 216, 0));
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-pink) 95%, transparent), color-mix(in srgb, var(--color-pink) 0%, transparent));
   opacity: 0;
   animation: glow-flash 1.2s ease-out 0.95s both;
 }

@@ -15,10 +15,10 @@ let autoTimer: ReturnType<typeof setTimeout> | undefined
 
 // ประกายตกแต่ง 4 ดวง ตำแหน่งเดียวกับหน้า index
 const staticSparkles = [
-  { left: '11.9%', top: '22%', size: 16, color: '#FFA8E6' },
-  { left: '4.9%', top: '34%', size: 24, color: '#CCBBFF' },
-  { left: '81.5%', top: '43.1%', size: 26, color: '#CCBBFF' },
-  { left: '92%', top: '76%', size: 14, color: '#FE7777' }
+  { left: '11.9%', top: '22%', size: 16, color: 'var(--color-period-predicted)' },
+  { left: '4.9%', top: '34%', size: 24, color: 'var(--color-lavender)' },
+  { left: '81.5%', top: '43.1%', size: 26, color: 'var(--color-lavender)' },
+  { left: '92%', top: '76%', size: 14, color: 'var(--color-coral)' }
 ]
 
 function goNext() {
@@ -87,7 +87,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   min-height: 100dvh;
   overflow: hidden;
-  background: linear-gradient(180deg, #fff1f5 0%, #ffffff 100%);
+  background: linear-gradient(180deg, var(--color-bg-end) 0%, var(--color-card) 100%);
 }
 
 .deco {

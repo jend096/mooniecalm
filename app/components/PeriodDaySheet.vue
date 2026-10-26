@@ -138,13 +138,13 @@ async function removeRow() {
     @click.self="emit('close')"
   >
     <div
-      class="w-full bg-white text-moon-ink"
+      class="w-full bg-moon-card text-moon-ink"
       :class="popup
         ? 'max-w-sm rounded-3xl px-6 pb-6 pt-7 text-center shadow-2xl'
         : 'rounded-t-[24px] px-6 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-3'"
     >
       <!-- ขีดจับด้านบน (เฉพาะแบบแผ่นจากด้านล่าง) -->
-      <div v-if="!popup" class="mx-auto h-1 w-10 rounded-sm bg-[#CBD5E1]" />
+      <div v-if="!popup" class="mx-auto h-1 w-10 rounded-sm bg-moon-handle" />
       <p
         :class="popup ? 'text-lg font-semibold' : 'mt-7 text-sm font-medium text-moon-muted'"
       >{{ dateLabel }}</p>
@@ -169,7 +169,7 @@ async function removeRow() {
           v-if="rowToEnd && !isFuture"
           type="button"
           :disabled="isSaving"
-          class="w-full rounded-full border-2 border-moon-pink-soft bg-white py-3 text-sm font-medium transition active:scale-95 disabled:opacity-40"
+          class="btn-secondary w-full"
           @click="logEnd"
         >
           ประจำเดือนหมดวันนี้
@@ -192,7 +192,7 @@ async function removeRow() {
       <!-- ปุ่มปิด -->
       <button
         type="button"
-        class="w-full rounded-full bg-moon-ink py-3 text-base font-medium text-white transition active:scale-95"
+        class="btn-primary w-full"
         :class="popup ? 'mt-5' : 'mt-[42px]'"
         @click="emit('close')"
       >
