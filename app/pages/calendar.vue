@@ -156,7 +156,7 @@ onMounted(async () => {
           </span>
         </div>
         <!-- โลโก้รอง (หน้าอื่นวางที่ BrandCorner มุมขวาบน แต่หน้านี้ขวาบนมีคำอธิบายสัญลักษณ์ จึงวางต่อท้ายในแถบ) -->
-        <BrandLogoMark :size="34" class="shrink-0" aria-hidden="true" />
+        <BrandLogoMark :size="42" class="shrink-0" aria-hidden="true" />
       </div>
       <!-- หัวตารางวันในสัปดาห์ (7 คอลัมน์เท่ากับตารางด้านล่าง) -->
       <div class="mt-3 grid grid-cols-7 text-center text-xs text-moon-muted">

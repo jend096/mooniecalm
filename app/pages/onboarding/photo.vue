@@ -62,7 +62,9 @@ function skip() {
     </div>
 
     <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
-      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'ถัดไป'" :loading="saving" :disabled="!hasPhoto" @click="next" />
+      <BaseButton label="ถัดไป" :loading="saving" :disabled="!hasPhoto" @click="next" />
     </div>
+
+    <LoadingOverlay v-if="saving" text="กำลังบันทึก..." />
   </div>
 </template>

@@ -20,12 +20,6 @@
       </svg>
     </div>
 
-    <!-- โลโก้งาน + ชื่อ มุมซ้ายบน (ตัวเล็ก ไม่แย่งความสนใจจากอวตาร) -->
-    <div class="absolute left-4 top-4 z-20 flex items-center gap-2" aria-hidden="true">
-      <BrandLogoMark :size="34" />
-      <BrandWordmark lines="one" :size="20" />
-    </div>
-
     <!-- ประกายดาวจางๆ ลอยกระจายทั่วหน้าจอตลอดเวลา (อยู่หลังเนื้อหา) -->
     <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
       <svg
@@ -73,15 +67,15 @@
           </button>
         </div>
 
-        <!-- สรุปคำตอบ: ขึ้นต้นด้วย -- ตาม Figma -->
+        <!-- สรุปคำตอบ: หัวข้อตัวเล็ก + คำตอบตัวใหญ่ (พี่เบอร์รี่ว่าตัวหนังสือเล็กไป และโชว์แค่ตัวเลือกแล้วอ่านแปลกๆ) -->
         <div
           v-if="summaryItems.length"
-          class="relative mt-7 flex flex-col gap-2 rounded-2xl border border-white/80 bg-moon-card/45 py-4 pl-5 pr-4 text-left shadow-[0_8px_24px_color-mix(in_srgb,var(--color-coral)_12%,transparent)] backdrop-blur-md transition-all delay-150 duration-700"
+          class="relative mt-7 flex flex-col gap-3 rounded-2xl border border-white/80 bg-moon-card/45 px-5 py-4 text-left shadow-[0_8px_24px_color-mix(in_srgb,var(--color-coral)_12%,transparent)] backdrop-blur-md transition-all delay-150 duration-700"
           :class="stage === 'done' ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'"
         >
-          <div v-for="(item, i) in summaryItems" :key="i" class="flex gap-1.5">
-            <span class="text-[13px] font-normal leading-6 text-moon-ink">--</span>
-            <span class="text-[13px] font-medium leading-6 text-moon-ink">{{ item }}</span>
+          <div v-for="item in summaryItems" :key="item.label" class="flex flex-col">
+            <span class="text-xs font-medium leading-5 text-moon-muted">{{ item.label }}</span>
+            <span class="text-[15px] font-medium leading-6 text-moon-ink">{{ item.text }}</span>
           </div>
         </div>
       </div>
@@ -99,8 +93,7 @@
           @click="share"
         >
           <span class="flex items-center rounded-full bg-moon-card p-[5px]">
-            <BrandLogoMark v-if="isSharing" :size="30" stage="bob" />
-            <FaIcon v-else name="arrow-up-from-bracket" class="h-5 w-[17px] text-moon-ink" />
+            <FaIcon name="arrow-up-from-bracket" class="h-5 w-[17px] text-moon-ink" />
           </span>
           แชร์
         </button>
@@ -238,6 +231,9 @@
         {{ toastMessage }}
       </div>
     </div>
+    <!-- กำลังบันทึกเป้าหมาย / กำลังสร้างรูปแชร์ -> กระต่ายรอโหลดเต็มจอ -->
+    <LoadingOverlay v-if="isSavingGoals" text="กำลังบันทึก..." />
+    <LoadingOverlay v-else-if="isSharing" text="กำลังสร้างรูปแชร์..." />
   </div>
 </template>
 
@@ -272,12 +268,25 @@ const avatarState = ref<{ eyes: string | null, ears: string | null, body_color: 
 // ข้อความคำตอบล้วนๆ จาก avatar_question_options.result_description (key = result_asset_code)
 const answerDescriptions = ref<Record<string, string>>({})
 
-const summaryItems = computed(() =>
-  [avatarState.value.body_color, avatarState.value.fx_overlay, avatarState.value.eyes, avatarState.value.ears]
-    .filter((code): code is string => !!code)
-    .map(code => answerDescriptions.value[code])
-    .filter(Boolean)
-)
+// สรุปคำตอบ: เรียงตามลำดับคำถามในแบบสอบถาม แต่ละบรรทัดมี "หัวข้อ" กำกับ ผู้ใช้จะรู้ว่าคำตอบนี้มาจากคำถามเรื่องอะไร
+// (เดิมโชว์แค่ตัวเลือกล้วนๆ เช่น "ทานบ่อยสัปดาห์ละ 3-4 วัน" อ่านแล้วไม่รู้ว่าทานอะไร)
+// หัวข้อตรงกับคำถาม: eyes = เวลาเข้านอน / ears = ออกกำลังกาย / body_color = ของหวานและน้ำหวาน / fx_overlay = การดื่มน้ำ
+const SUMMARY_TOPICS: { slot: keyof typeof avatarState.value, label: string }[] = [
+  { slot: 'eyes', label: 'การนอนหลับ' },
+  { slot: 'ears', label: 'การออกกำลังกาย' },
+  { slot: 'body_color', label: 'ของหวานและน้ำหวาน' },
+  { slot: 'fx_overlay', label: 'การดื่มน้ำ' }
+]
+
+const summaryItems = computed(() => {
+  const items: { label: string, text: string }[] = []
+  for (const { slot, label } of SUMMARY_TOPICS) {
+    const code = avatarState.value[slot]
+    const text = code ? answerDescriptions.value[code] : undefined
+    if (text) items.push({ label, text })
+  }
+  return items
+})
 
 const avatarLayers = computed(() => [
   // เรียงตามลำดับ DOM: ตัวแรกอยู่ล่างสุด ตัวสุดท้ายอยู่บนสุด

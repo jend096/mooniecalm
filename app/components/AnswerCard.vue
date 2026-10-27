@@ -5,10 +5,12 @@ defineEmits<{ click: [] }>()
 </script>
 
 <template>
-  <!-- พื้นขาว มีเส้นกรอบสีชมพูอ่อนเหมือนการ์ดหน้าอื่นๆ สูง 56 ตาม Figma
+  <!-- data-no-press: การ์ดกว้างเต็มจอ ถ้ายุบแรงเท่าปุ่มทั่วไปจะดูเหมือนหน้าจอซูมตอนกด จึงใช้แค่ยุบนิดเดียวของตัวเอง
+       พื้นขาว มีเส้นกรอบสีชมพูอ่อนเหมือนการ์ดหน้าอื่นๆ สูง 56 ตาม Figma
        ตอนถูกเลือก: เส้นกรอบและวงติ๊กเป็นสีประจำเดือน (moon-period) (เหมือนหน้าแพ้อาหาร) -->
   <button
     type="button"
+    data-no-press
     class="flex w-full items-center justify-between rounded-2xl border bg-moon-card px-5 py-[15px] text-left text-base font-medium text-moon-ink transition [-webkit-tap-highlight-color:transparent] active:scale-[0.98]"
     :class="selected ? 'border-moon-period' : 'border-moon-pink-soft'"
     :aria-pressed="selected"

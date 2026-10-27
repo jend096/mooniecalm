@@ -637,7 +637,7 @@ onMounted(async () => {
                   type="text"
                   :maxlength="OTHER_ALLERGY_MAX_LENGTH"
                   placeholder="โปรดใส่สิ่งที่คุณแพ้"
-                  class="min-w-0 flex-1 rounded-full border border-moon-pink-soft bg-moon-bg px-4 py-2.5 text-sm text-moon-ink outline-none placeholder:text-moon-muted focus:border-moon-pink"
+                  class="min-w-0 flex-1 rounded-full border border-moon-pink-soft bg-moon-bg px-4 py-2.5 text-base text-moon-ink outline-none placeholder:text-moon-muted focus:border-moon-pink"
                 >
                 <button
                   type="submit"

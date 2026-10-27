@@ -14,3 +14,9 @@ a[href]:not([data-no-press]):active,
   translate: 0 2px; /* จมลงนิดหนึ่งเหมือนถูกกดจริง */
   filter: brightness(0.93); /* สีเข้มขึ้นเล็กน้อย */
 }
+
+/* ===== กันหน้าจอซูมเองตอนแตะรัว (iOS/Android แตะสองที = ซูม) =====
+   touch-action: manipulation = ยังเลื่อนหน้า/จีบนิ้วซูมได้ตามปกติ แต่ไม่ซูมจากการแตะสองครั้งติด */
+html {
+  touch-action: manipulation;
+}

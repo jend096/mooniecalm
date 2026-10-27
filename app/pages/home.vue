@@ -627,8 +627,7 @@ async function logout() {
           :disabled="isSharing"
           @click="share"
         >
-          <BrandLogoMark v-if="isSharing" :size="38" stage="bob" />
-          <FaIcon v-else name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
+          <FaIcon name="arrow-up-from-bracket" class="h-[22px] w-[19px] text-moon-muted" />
         </button>
       </AvatarScene>
 
@@ -768,6 +767,9 @@ async function logout() {
     />
 
     <BottomNav active="home" />
+
+    <!-- กำลังสร้างรูปแชร์ -> กระต่ายรอโหลดเต็มจอ -->
+    <LoadingOverlay v-if="isSharing" text="กำลังสร้างรูปแชร์..." />
   </div>
 
   <!-- ระหว่างดึงข้อมูล: ขึ้นกระต่ายรอโหลด (หน้าจริงโผล่หลังโหลดเสร็จ) -->

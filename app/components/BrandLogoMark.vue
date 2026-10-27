@@ -195,7 +195,7 @@ function burstStyle(b: { dx: number, dy: number, s: number, delay: number }) {
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
   40% {
-    transform: translateY(-3%);
+    transform: translateY(0); /* ขึ้นสุดแค่ตำแหน่งปกติ ไม่เลยขึ้นไปอีก (เลยแล้วหูโดนขอบวงกลมตัด) */
     animation-timing-function: ease-in-out;
   }
   55% {
@@ -231,7 +231,7 @@ function burstStyle(b: { dx: number, dy: number, s: number, delay: number }) {
 }
 
 .stage-rising .rabbit {
-  animation: rabbit-pull 1.1s both;
+  animation: rabbit-pull 1.1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .stage-rising .logo-spark {
@@ -295,15 +295,10 @@ function burstStyle(b: { dx: number, dy: number, s: number, delay: number }) {
   }
 }
 
-/* กระต่ายถูกดึงขึ้นเลยจุดนิดหนึ่ง แล้วเด้งกลับลงที่ */
+/* กระต่ายถูกดึงขึ้นมาหยุดที่ตำแหน่งปกติเลย ไม่เลยไปสูงกว่านั้น (เดิมดึงเลย -3% ทำให้หูโดนขอบวงกลมตัดตอนขึ้น) */
 @keyframes rabbit-pull {
   0% {
     transform: translateY(100%);
-    animation-timing-function: ease-out;
-  }
-  70% {
-    transform: translateY(-3%);
-    animation-timing-function: ease-in-out;
   }
   100% {
     transform: translateY(0);

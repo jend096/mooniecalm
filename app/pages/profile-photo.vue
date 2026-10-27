@@ -112,7 +112,9 @@ function cancel() {
     </div>
 
     <div class="px-9 pb-[calc(2.4rem+env(safe-area-inset-bottom))]">
-      <BaseButton :label="saving ? 'กำลังบันทึก...' : 'บันทึก'" :loading="saving" :disabled="!canSave" @click="save" />
+      <BaseButton label="บันทึก" :loading="saving" :disabled="!canSave" @click="save" />
     </div>
+
+    <LoadingOverlay v-if="saving" text="กำลังบันทึก..." />
   </div>
 </template>

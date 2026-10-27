@@ -476,11 +476,9 @@ onMounted(async () => {
               type="button"
               :disabled="isSaving || selectedLocations.length === 0"
               class="btn-primary mt-[32px] w-full"
-              :class="isSaving ? '!bg-moon-ink' : ''"
               @click="finishSheet"
             >
-              <BrandLogoMark v-if="isSaving" :size="34" stage="bob" />
-              {{ isSaving ? 'กำลังบันทึก...' : 'ถัดไป' }}
+              ถัดไป
             </button>
           </template>
 
@@ -506,6 +504,9 @@ onMounted(async () => {
     <SavedOverlay v-if="showSaved" @done="navigateTo('/checkin')" />
 
     <BottomNav active="none" />
+
+    <!-- กำลังบันทึกตำแหน่งที่ปวด -> กระต่ายรอโหลดเต็มจอ -->
+    <LoadingOverlay v-if="isSaving" text="กำลังบันทึก..." />
   </div>
 </template>
 

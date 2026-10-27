@@ -4,12 +4,10 @@
 // ใช้สัญญาณ "เริ่ม/จบการเปลี่ยนหน้า" ของ router ซึ่งมาทุกครั้งที่เปลี่ยนหน้า
 // (เดิมใช้ page:start / page:finish ซึ่ง Nuxt ส่งเฉพาะตอนหน้านั้นต้องรอโหลดไฟล์/ข้อมูล พอเปิดหน้าที่เคยโหลดแล้วจึงไม่ขึ้นหน้ารอโหลด ทำให้บางครั้งหาย)
 // ข้าม: หน้าแรก (index มีแอนิเมชันเปิดแอปของตัวเอง) / onboarding/loading (มีกระต่ายให้แตะอยู่แล้ว)
-//       และช่วงหน้าคำถามของ onboarding (step-2..6, allergy, question-1..4) ซึ่งให้กระต่ายไปขึ้นที่ปุ่ม "ถัดไป" แทน (ดู BaseButton.vue)
 const nuxtApp = useNuxtApp()
 const router = useRouter()
 
 const SKIP_PATHS = ['/', '/onboarding/loading']
-const QUESTION_PAGE = /^\/onboarding\/(step-[2-6]|allergy|question-\d)$/
 const MIN_VISIBLE_MS = 500
 
 const navLoading = ref(false)
@@ -23,7 +21,7 @@ nuxtApp.hook('app:mounted', () => { appReady = true })
 const removeGuard = router.beforeEach((to, from) => {
   if (!appReady) return
   if (to.fullPath === from.fullPath) return // กดไปหน้าเดิม ไม่ได้เปลี่ยนหน้าจริง
-  if (SKIP_PATHS.includes(to.path) || QUESTION_PAGE.test(to.path)) return
+  if (SKIP_PATHS.includes(to.path)) return
   clearTimeout(hideTimer)
   navLoading.value = true
   shownAt = Date.now()

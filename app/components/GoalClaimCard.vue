@@ -168,11 +168,9 @@
         type="button"
         :disabled="saving || !selectedIds.length"
         class="btn-primary w-full"
-        :class="saving ? '!opacity-100' : ''"
         @click="claim"
       >
-        <BrandLogoMark v-if="saving" :size="28" stage="bob" />
-        {{ saving ? 'กำลังบันทึก...' : 'รับผลและเริ่มรอบใหม่' }}
+        รับผลและเริ่มรอบใหม่
       </button>
       <button
         type="button"
@@ -201,6 +199,11 @@
         เริ่มเช็คอินรอบใหม่
       </button>
     </template>
+
+    <!-- กำลังบันทึก -> กระต่ายรอโหลดเต็มจอ (Teleport ไปที่ body กันโดนกรอบแม่ครอบ) -->
+    <Teleport to="body">
+      <LoadingOverlay v-if="saving" text="กำลังบันทึก..." />
+    </Teleport>
   </div>
 </template>
 
