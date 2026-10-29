@@ -20,6 +20,7 @@ function readColors() {
     lavenderSoft: readToken('--color-lavender-soft', '#E6DDFF'),
     creamSoft: readToken('--color-cream-soft', '#FFFFEC'),
     predicted: readToken('--color-period-predicted', '#FFA8E6'),
+    yellow: readToken('--color-yellow', '#FBFF67'),
     card: readToken('--color-card', '#FFFFFF'),
     bgStart: readToken('--color-bg', '#FFFDFC'),
     bgEnd: readToken('--color-bg-end', '#FFEFF4')
@@ -128,12 +129,12 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   }
 
   const images = await Promise.all(input.layerCodes.map(code => loadImage(avatarLayerSrc(code))))
-  // โลโก้ปัจจุบัน: พระจันทร์ + กระต่าย (วงกลม) แล้วตามด้วยชื่อ Moonie Calm สองบรรทัดอยู่ข้างขวา
-  // + คิวอาร์โค้ดมุมขวาล่าง (ไฟล์อยู่ที่ public/brand/qr.png)
+  // มุมขวาบน: โลโก้วงกลม (พระจันทร์ + กระต่าย) วางเหนือชื่อ MoonieCalm แบบบรรทัดเดียว (wordmark-one.svg) เหมือนหน้าแรกของแอป
+  // มุมขวาล่าง: คิวอาร์โค้ด (ไฟล์คิวอาร์อยู่ที่ public/brand/qr.png)
   const [moonImg, rabbitImg, wordmarkImg, qrImg] = await Promise.all([
     loadImage('/brand/moon.svg'),
     loadImage('/brand/rabbit.svg'),
-    loadImage('/brand/wordmark-two.svg'),
+    loadImage('/brand/wordmark-one.svg'),
     loadImage('/brand/qr.png')
   ])
 
@@ -143,16 +144,33 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   const ctx = canvas.getContext('2d')!
 
   // ----- คำนวณความสูงเนื้อหาทั้งก้อน แล้ววางให้อยู่กึ่งกลางแนวตั้ง (เว้นที่ด้านล่างไว้ให้คิวอาร์) -----
-  const logoSize = 210 // วงกลมโลโก้
-  const wordW = 210 // ชื่อ Moonie Calm (ไฟล์ wordmark-two.svg สัดส่วน 236 x 159)
-  const wordH = Math.round((wordW * 159) / 236)
-  const logoGap = 28 // ระยะระหว่างวงกลมกับชื่อ
-  const brandH = logoSize
+  // ----- มุมขวาบน: โลโก้วงกลม (บน) + ชื่อ MoonieCalm (ล่าง) จัดกึ่งกลางกันเอง แล้วชิดขอบขวาของการ์ด -----
+  // อยากให้โลโก้ใหญ่/เล็กลง แก้ที่ logoSize กับ wordW สองตัวนี้ ที่เหลือคำนวณตามเอง
+  // wordmark-one.svg สัดส่วน 387 x 71 (ถ้าเปลี่ยนไฟล์ชื่อใหม่แล้วขนาดไม่เท่านี้ ให้แก้เลข 387 กับ 71 ตามไฟล์)
+  const WM_W = 387
+  const WM_H = 71
+  const logoSize = 190 // วงกลมโลโก้
+  const wordW = 340
+  const wordH = Math.round((wordW * WM_H) / WM_W)
+  const lockGap = 14 // ระยะระหว่างวงกลมกับชื่อ
+  const lockW = Math.max(logoSize, wordW)
+  const lockMarginRight = 90 // ขอบขวา (เผื่อที่ให้ประกายด้านขวาของชื่อ)
+  const lockMarginTop = 70
+  const lockX = WIDTH - lockMarginRight - lockW
+  const logoX = lockX + (lockW - logoSize) / 2
+  const logoY = lockMarginTop
+  const wordX = lockX + (lockW - wordW) / 2
+  const wordY = logoY + logoSize + lockGap
+  const lockBottom = wordY + wordH
+  // ----- มุมขวาล่าง: คิวอาร์ ชิดขวา + ข้อความ "ลองเล่นได้ที่" อยู่ฝั่งซ้าย -----
+  const rightMargin = 80 // ขอบขวาของคิวอาร์
+  const bottomMargin = 80 // ขอบล่างของคิวอาร์
+  const qrPlate = 216
+  const qrX = WIDTH - rightMargin - qrPlate
+  const qrY = HEIGHT - bottomMargin - qrPlate
   const avatarSize = 840 // อวตารไม่มีกรอบ วางเต็มๆ
-  const gap = 40
   const textGap = 14 // ระยะจากรูปอวตารถึงข้อความ (ข้อความอยู่ใต้รูป ไม่ทับตัวอวตาร ไม่มีกรอบ)
   const textW = WIDTH - 260 // ความกว้างที่ข้อความยินดีด้วยใช้ได้ (ชื่อยาวจะถูกลดขนาดตัวอักษรให้พอดี)
-  const bottomReserve = 120 // พื้นที่ด้านล่างที่เว้นไว้ให้คิวอาร์ + ลิงก์ (ยิ่งน้อย เนื้อหายิ่งขยับลงล่าง)
   const title = `ยินดีด้วย ${input.nickname}!`
   // ชื่อยาวมาก ค่อยๆ ลดขนาดตัวอักษรจนพอดีกรอบ ถ้าเล็กสุดแล้วยังไม่พอก็ตัดขึ้นบรรทัดใหม่
   let titleSize = 62
@@ -167,11 +185,11 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   const subtitleH = 50
   const textH = titleLines.length * titleLineH + 12 + subtitleH
 
-  const contentH = brandH + gap + avatarSize + textGap + textH
-  const top = Math.max(60, Math.round((HEIGHT - bottomReserve - contentH) / 2))
-  const brandY = top
+  const contentH = avatarSize + textGap + textH
+  // อวตาร + ข้อความ อยู่กึ่งกลางช่องว่างระหว่าง "ใต้ชื่อโลโก้มุมขวาบน" กับ "บนสุดของคิวอาร์" (ขยับขึ้น 30 ให้ดูสมดุล)
+  const top = Math.round(lockBottom + (qrY - lockBottom - contentH) / 2 - 30)
   const avatarX = (WIDTH - avatarSize) / 2
-  const avatarY = brandY + brandH + gap
+  const avatarY = top
   const avatarCy = avatarY + avatarSize / 2
   const textY = avatarY + avatarSize + textGap
 
@@ -192,19 +210,17 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   drawStar(ctx, 110, 1180, 30, COLORS.predicted)
   drawStar(ctx, 975, 1240, 36, COLORS.lavender, 0.15)
 
-  // ----- โลโก้ + ชื่อแอป (วงกลมซ้าย ชื่อขวา) จัดกลุ่มให้อยู่กึ่งกลางการ์ด -----
-  const lockupW = logoSize + logoGap + wordW
-  const logoX = (WIDTH - lockupW) / 2
+  // ----- โลโก้มุมขวาบน: วงกลมอยู่บนชื่อ (เหมือนหน้าแรก) -----
   if (moonImg) {
     // 1) พระจันทร์
-    ctx.drawImage(moonImg, logoX, brandY, logoSize, logoSize)
+    ctx.drawImage(moonImg, logoX, logoY, logoSize, logoSize)
     // 2) กระต่าย: ตัดให้อยู่ในวงกลมเหมือนในแอป
     if (rabbitImg) {
       ctx.save()
       ctx.beginPath()
-      ctx.arc(logoX + logoSize / 2, brandY + logoSize / 2, logoSize / 2, 0, Math.PI * 2)
+      ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2)
       ctx.clip()
-      ctx.drawImage(rabbitImg, logoX, brandY, logoSize, logoSize)
+      ctx.drawImage(rabbitImg, logoX, logoY, logoSize, logoSize)
       ctx.restore()
     }
     // 3) ประกายในวงกลมโลโก้ (ตำแหน่งตามโลโก้ในแอป วัดบนกรอบ 240 แล้วย่อ/ขยายตามขนาด)
@@ -218,20 +234,34 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
       { x: 206, y: 169, s: 10, color: COLORS.coral }
     ]
     for (const sp of sparks) {
-      drawStar(ctx, logoX + (sp.x + sp.s / 2) * k, brandY + (sp.y + sp.s / 2) * k, (sp.s / 2) * k * 1.3, sp.color)
+      drawStar(ctx, logoX + (sp.x + sp.s / 2) * k, logoY + (sp.y + sp.s / 2) * k, (sp.s / 2) * k * 1.3, sp.color)
     }
   }
-  const wordX = logoX + logoSize + logoGap
+
+  // ชื่อ MoonieCalm ใต้วงกลม (wordmark-one.svg = โลโก้หลัก ตัวหนังสือเท่านั้น ไม่มีประกายในไฟล์)
   if (wordmarkImg) {
-    ctx.drawImage(wordmarkImg, wordX, brandY + (logoSize - wordH) / 2, wordW, wordH)
+    ctx.drawImage(wordmarkImg, wordX, wordY, wordW, wordH)
   } else {
     // ถ้ารูปชื่อโหลดไม่ได้ ใช้ตัวหนังสือแทน
-    ctx.textAlign = 'left'
+    ctx.textAlign = 'center'
     ctx.textBaseline = 'alphabetic'
-    ctx.font = `700 64px ${FONT_FAMILY}`
+    ctx.font = `700 52px ${FONT_FAMILY}`
     ctx.fillStyle = COLORS.ink
-    ctx.fillText('Moonie', wordX, brandY + logoSize / 2 - 4)
-    ctx.fillText('Calm', wordX, brandY + logoSize / 2 + 64)
+    ctx.fillText('MoonieCalm', wordX + wordW / 2, wordY + wordH - 6)
+  }
+  // ประกายฟรุ้งฟริ้งรอบชื่อ (ตำแหน่งวัดบนกรอบไฟล์ชื่อ 387 x 71 แล้วย่อ/ขยายตาม wordW)
+  // x, y = กึ่งกลางประกาย, r = รัศมี  อยากเพิ่ม/ลบ/ย้ายประกาย แก้ในรายการนี้ได้เลย
+  const wk = wordW / WM_W
+  const nameSparks = [
+    { x: -16, y: 10, r: 12, color: COLORS.lavender }, // ซ้ายบน
+    { x: -6, y: 58, r: 7, color: COLORS.coral }, // ซ้ายล่าง
+    { x: 150, y: 9, r: 7, color: COLORS.predicted }, // ข้างหูกระต่ายบนตัว i (ซ้าย)
+    { x: 212, y: 12, r: 9, color: COLORS.lavender }, // ข้างหูกระต่ายบนตัว i (ขวา)
+    { x: 403, y: 12, r: 11, color: COLORS.yellow }, // ขวาบน
+    { x: 398, y: 58, r: 7, color: COLORS.coral } // ขวาล่าง
+  ]
+  for (const sp of nameSparks) {
+    drawStar(ctx, wordX + sp.x * wk, wordY + sp.y * wk, sp.r * wk * 1.3, sp.color)
   }
 
   // ----- อวตาร: ไม่มีกรอบ ไม่มีเงา เบลอขอบ 4 ด้านให้กลืนกับพื้นหลัง -----
@@ -286,10 +316,7 @@ export async function renderAvatarCardImage(input: AvatarCardImageInput): Promis
   ctx.font = `500 ${subtitleSize}px ${FONT_FAMILY}`
   fillCentered('นี่คืออวตารตัวจิ๋วของคุณ', textY + titleLines.length * titleLineH + 12 + subtitleSize + 4)
 
-  // ----- มุมขวาล่าง: คิวอาร์โค้ด (แผ่นขาวรองให้สแกนง่าย) + ที่อยู่เว็บอยู่ฝั่งซ้าย -----
-  const qrPlate = 216
-  const qrX = WIDTH - 80 - qrPlate
-  const qrY = HEIGHT - 60 - qrPlate
+  // ----- คิวอาร์โค้ด (แผ่นขาวรองให้สแกนง่าย) + ที่อยู่เว็บอยู่ฝั่งซ้าย (ตำแหน่งคำนวณไว้ด้านบนแล้ว) -----
   if (qrImg) {
     ctx.save()
     ctx.shadowColor = `rgba(${hexToRgbText(COLORS.coral)}, 0.2)`

@@ -25,7 +25,19 @@
 
       <div class="name-wrap reveal-item reveal-side" style="--d: 0s">
         <span class="name-glow" aria-hidden="true" />
-        <BrandWordmark lines="one" :size="42" />
+        <BrandWordmark lines="one" :size="44" />
+        <!-- ฟรุ้งฟริ้งรอบชื่อ: เด้งออกมาหลังชื่อเลื่อนเข้ามา แล้วกะพริบเบาๆ (ตำแหน่ง/ขนาด/สี แก้ได้ที่ nameSparkles ด้านล่าง) -->
+        <svg
+          v-for="(s, i) in nameSparkles"
+          :key="`name-${i}`"
+          class="name-spark"
+          viewBox="0 0 20 20"
+          :fill="s.color"
+          aria-hidden="true"
+          :style="{ left: s.left, top: s.top, width: `${s.size}px`, height: `${s.size}px`, marginLeft: `${-s.size / 2}px`, marginTop: `${-s.size / 2}px`, '--i': i }"
+        >
+          <path d="M10 0C10.778 5.889 14.111 9.222 20 10C14.111 10.778 10.778 14.111 10 20C9.222 14.111 5.889 10.778 0 10C5.889 9.222 9.222 5.889 10 0Z" />
+        </svg>
       </div>
 
       <h1 class="welcome reveal-item" style="--d: 0.18s">ยินดีต้อนรับ</h1>
@@ -63,6 +75,17 @@ const staticSparkles = [
   { left: '4.9%', top: '34%', size: 24, color: 'var(--color-lavender)' },
   { left: '81.5%', top: '43.1%', size: 26, color: 'var(--color-lavender)' },
   { left: '92%', top: '76%', size: 14, color: 'var(--color-coral)' }
+]
+
+// ฟรุ้งฟริ้งรอบชื่อ MoonieCalm (left/top = ตำแหน่งกึ่งกลางประกาย เป็น % ของกรอบชื่อ, size = ขนาด px)
+// อยากเพิ่ม/ลบ/ย้ายประกาย แก้ในรายการนี้ได้เลย ประกายจะเด้งออกมาตามลำดับ (ดวงแรกก่อน)
+const nameSparkles = [
+  { left: '-4%', top: '14%', size: 20, color: 'var(--color-lavender)' }, // ซ้ายบน
+  { left: '-2%', top: '82%', size: 12, color: 'var(--color-coral)' }, // ซ้ายล่าง
+  { left: '39%', top: '13%', size: 12, color: 'var(--color-period-predicted)' }, // ข้างหูกระต่ายบนตัว i (ซ้าย)
+  { left: '55%', top: '17%', size: 15, color: 'var(--color-lavender)' }, // ข้างหูกระต่ายบนตัว i (ขวา)
+  { left: '104%', top: '17%', size: 18, color: 'var(--color-yellow)' }, // ขวาบน
+  { left: '103%', top: '82%', size: 12, color: 'var(--color-coral)' } // ขวาล่าง
 ]
 
 // ---------- อนิเมชันเปิดแอป ----------
@@ -280,6 +303,53 @@ function goToLogin() {
   margin-top: 18px; /* ชื่อแอปอยู่ใกล้โลโก้ขึ้น (เดิม 34px ตามฟิกม่า เธอบอกว่าห่างไป) */
 }
 
+/* ฟรุ้งฟริ้งรอบชื่อ: เริ่มเล่นตอนเข้าช่วง reveal (ชื่อเลื่อนเข้ามา 0.8 วิ) เด้งออกมาทีละดวง แล้วกะพริบวนไป */
+.name-spark {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+}
+
+.phase-reveal .name-spark {
+  --pop-delay: 0.8s;
+  animation:
+    name-spark-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    name-spark-twinkle 3s ease-in-out infinite;
+  animation-delay: calc(var(--pop-delay) + var(--i) * 0.12s), calc(var(--pop-delay) + 0.6s + var(--i) * 0.4s);
+}
+
+.is-fast.phase-reveal .name-spark {
+  --pop-delay: 0.1s;
+}
+
+.is-instant.phase-reveal .name-spark {
+  --pop-delay: 0.2s;
+}
+
+@keyframes name-spark-pop {
+  from {
+    opacity: 0;
+    transform: scale(0) rotate(-120deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes name-spark-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.75) rotate(18deg);
+  }
+}
+
 /* แสงโคเรลจางๆ ฟุ้งหลังชื่อแอป (วงรีเบลอในฟิกม่า) */
 .name-glow {
   position: absolute;
@@ -415,7 +485,8 @@ function goToLogin() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .static-spark {
+  .static-spark,
+  .phase-reveal .name-spark {
     animation: none;
   }
   .phase-reveal .reveal-item,

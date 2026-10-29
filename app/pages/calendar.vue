@@ -134,8 +134,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gradient-to-b from-moon-bg to-moon-bg-end text-moon-ink">
-    <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + คำอธิบายสัญลักษณ์ + หัวตารางวัน -->
+  <!-- พื้นหลังปฏิทินเป็นสีขาว (bg-moon-card = #FFFFFF) เดิมเป็นไล่สีชมพูอ่อน -->
+  <main class="min-h-screen bg-moon-card text-moon-ink">
+    <!-- แถบบน: ปุ่มกลับ + ชื่อหน้า + โลโก้กระต่าย (ขวาบน) / ใต้โลโก้มีคำอธิบายสัญลักษณ์ / ล่างสุดเป็นหัวตารางวัน -->
     <header class="sticky top-0 z-20 border-b border-moon-pink-soft bg-moon-card px-2 pb-2 pt-3">
       <div class="flex h-10 items-center gap-3 px-2">
         <button
@@ -147,16 +148,20 @@ onMounted(async () => {
           <FaIcon name="chevron-left" class="h-[14px] w-2" />
         </button>
         <h1 class="text-lg font-semibold">ปฏิทิน</h1>
-        <div class="ml-auto flex items-center gap-3 text-xs">
-          <span class="flex items-center gap-1">
-            <span class="h-3 w-3 rounded-full bg-moon-pink-soft" /> มาแล้ว
-          </span>
-          <span class="flex items-center gap-1">
-            <span class="h-3 w-3 rounded-full border-2 border-dashed border-moon-coral" /> คาดไว้
-          </span>
-        </div>
-        <!-- โลโก้รอง (หน้าอื่นวางที่ BrandCorner มุมขวาบน แต่หน้านี้ขวาบนมีคำอธิบายสัญลักษณ์ จึงวางต่อท้ายในแถบ) -->
-        <BrandLogoMark :size="42" class="shrink-0" aria-hidden="true" />
+        <!-- โลโก้รอง (หน้าอื่นวางที่ BrandCorner มุมขวาบน หน้านี้วางในแถบ ชิดขวา) -->
+        <BrandLogoMark :size="42" class="ml-auto shrink-0" aria-hidden="true" />
+      </div>
+      <!-- คำอธิบายสัญลักษณ์: อยู่ใต้โลโก้กระต่าย ชิดขวา ขนาดใหญ่ขึ้นให้อ่านง่าย (ตัวอักษรปรับที่ text-sm / วงปรับที่ h-4 w-4) -->
+      <div class="mt-1 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-3 text-sm">
+        <span class="flex items-center gap-1.5">
+          <span class="h-4 w-4 rounded-full bg-moon-coral" /> วันนี้
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="h-4 w-4 rounded-full bg-moon-pink-soft ring-1 ring-moon-pink" /> มาแล้ว
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="h-4 w-4 rounded-full border-2 border-dashed border-moon-coral" /> คาดไว้
+        </span>
       </div>
       <!-- หัวตารางวันในสัปดาห์ (7 คอลัมน์เท่ากับตารางด้านล่าง) -->
       <div class="mt-3 grid grid-cols-7 text-center text-xs text-moon-muted">
@@ -196,7 +201,7 @@ onMounted(async () => {
                 class="flex h-10 w-10 items-center justify-center rounded-full text-base"
                 :class="[
                   cell.isToday ? 'bg-moon-coral text-moon-bg' : '',
-                  !cell.isToday && cell.kind === 'logged' ? 'bg-moon-pink-soft' : '',
+                  !cell.isToday && cell.kind === 'logged' ? 'bg-moon-pink-soft ring-1 ring-moon-pink' : '', // มีขอบชมพูบางๆ ให้เห็นชัดบนพื้นขาว
                   !cell.isToday && cell.kind === 'predicted' ? 'border-2 border-dashed border-moon-coral' : ''
                 ]"
               >

@@ -70,6 +70,12 @@ const daysLogged = computed(() => {
 
 // ครบ 28 วันแล้ว (วันที่ 28 ของรอบ) -> เลขวันขึ้นเอฟเฟกต์
 const isCycleComplete = computed(() => daysLogged.value >= CYCLE_LENGTH_DAYS)
+// ติ๊กเป้าหมายของวันนี้ครบทุกข้อแล้ว (ต้องมีเป้าหมายอย่างน้อย 1 ข้อ)
+const allGoalsChecked = computed(() =>
+  activeGoals.value.length > 0 && activeGoals.value.every(g => checkedGoals.value[g.goal_code])
+)
+// เลขวันขึ้นเอฟเฟกต์สีไล่เฉด + ขยับ เมื่อ "ครบ 28 วัน" หรือ "ติ๊กเป้าหมายครบทุกข้อของวันนี้"
+const showDayEffect = computed(() => isCycleComplete.value || allGoalsChecked.value)
 // ประกายรอบเลข: ตำแหน่งเป็น % ของกล่องเลข, size = px, delay = วินาที, color = สีประกาย
 const doneSparkles = [
   { left: '-14%', top: '-6%', size: 14, delay: 0, color: 'var(--color-period-predicted)' },
@@ -78,6 +84,8 @@ const doneSparkles = [
   { left: '-18%', top: '62%', size: 10, delay: 1.6, color: 'var(--color-lavender)' },
   { left: '42%', top: '-22%', size: 9, delay: 0.9, color: 'var(--color-period-day)' }
 ]
+// ประกายที่ใช้จริง: ครบ 28 วัน = ครบ 5 ดวง / แค่ติ๊กครบวันนี้ = โชว์แค่ 2 ดวงเล็กๆ ให้ฟรุ้งฟริ้งนิดเดียว (อยากเพิ่ม/ลด แก้เลข 2 ตรง slice)
+const visibleDaySparkles = computed(() => (isCycleComplete.value ? doneSparkles : doneSparkles.slice(0, 2)))
 
 const progressPercent = computed(() => Math.min(100, Math.round((daysLogged.value / CYCLE_LENGTH_DAYS) * 100)))
 
@@ -634,7 +642,7 @@ async function logout() {
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
            เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
-      <div class="relative mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+      <div class="mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
         <div class="mt-[12px] flex items-center px-[23px]">
@@ -646,11 +654,11 @@ async function logout() {
             <span class="relative inline-block">
               <span
                 class="inline-block text-[48px] font-semibold leading-none"
-                :class="isCycleComplete ? 'days-done' : 'text-moon-period'"
+                :class="showDayEffect ? 'days-done' : 'text-moon-period'"
               >{{ String(daysLogged).padStart(2, '0') }}</span>
-              <template v-if="isCycleComplete">
+              <template v-if="showDayEffect">
                 <svg
-                  v-for="(star, i) in doneSparkles"
+                  v-for="(star, i) in visibleDaySparkles"
                   :key="i"
                   viewBox="0 0 24 24"
                   class="days-done-star pointer-events-none absolute"
@@ -667,20 +675,37 @@ async function logout() {
 
           <!-- ขวา: เส้นเวลาเป้าหมาย + สถานะ (กล่องกว้างพอดีข้อความที่ยาวที่สุด ข้อความยังอยู่บรรทัดเดียว) -->
           <div v-if="activeGoals.length" class="min-w-0 flex-1">
-            <div class="relative flex w-max max-w-full flex-col gap-[2px]">
-              <!-- เส้นตั้งสีประจำเดือน -->
-              <span aria-hidden="true" class="absolute bottom-[11px] left-0 top-[11px] w-px bg-moon-period" />
+            <div class="flex w-max max-w-full flex-col gap-[2px]">
               <div
-                v-for="goal in activeGoals"
+                v-for="(goal, gi) in activeGoals"
                 :key="goal.id"
-                class="relative flex h-[22px] items-center gap-[6px]"
+                class="relative flex h-[22px] items-center gap-[8px]"
               >
-                <span aria-hidden="true" class="h-px w-[10px] shrink-0 bg-moon-period" />
+                <!-- ก้อนกลมหน้าข้อความ + เส้นโยงจากข้อบนลงมาหาก้อนนี้ (เว้นช่องว่างสั้นๆ ที่หัวท้ายเส้น ไม่ชนก้อนกลม)
+                     ข้อที่ทำแล้ว = สีชมพูหลัก / ยังไม่ทำ = สีเทา  (แก้สีที่ bg-moon-period และ bg-moon-ink/20)
+                     ก้อนกลมกว้าง 10px: ถ้าเปลี่ยนขนาดก้อน ต้องปรับ -top-[12px] h-[10px] ของเส้นให้เว้นช่องไฟเท่าเดิมด้วย -->
+                <span aria-hidden="true" class="relative block h-[10px] w-[10px] shrink-0">
+                  <span
+                    v-if="gi > 0"
+                    class="absolute -top-[12px] left-1/2 block h-[10px] w-[2px] -translate-x-1/2 rounded-full transition-colors duration-300"
+                    :class="checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
+                  />
+                  <span
+                    class="block h-[10px] w-[10px] rounded-full transition-colors duration-300"
+                    :class="checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
+                  />
+                </span>
                 <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
-                <!-- ช่องสถานะกว้างเท่ากันทุกแถว กดทำแล้ว (วงกลม -> "สำเร็จ") กล่องจะได้ไม่ขยับไปมา -->
-                <span class="flex w-[34px] shrink-0 justify-start">
-                  <span v-if="checkedGoals[goal.goal_code]" class="text-xs">สำเร็จ</span>
-                  <span v-else aria-hidden="true" class="h-[15px] w-[15px] rounded-full border border-dashed border-moon-period" />
+                <!-- ช่องสถานะกว้างเท่ากันทุกแถว: ยังไม่ทำ = วงกลมเปล่ารอ / ทำแล้ว = วงกลมสีชมพูหลัก + ติ๊กถูกสีขาว (เด้งโผล่เบาๆ) -->
+                <span class="flex w-[18px] shrink-0 justify-start">
+                  <span
+                    v-if="checkedGoals[goal.goal_code]"
+                    class="goal-tick flex h-[18px] w-[18px] items-center justify-center rounded-full bg-moon-period"
+                    aria-label="สำเร็จ"
+                  >
+                    <FaIcon name="check" class="h-[9px] w-[9px] text-white" />
+                  </span>
+                  <span v-else aria-hidden="true" class="h-[18px] w-[18px] rounded-full border-[1.5px] border-moon-ink/25" />
                 </span>
               </div>
             </div>
@@ -923,6 +948,28 @@ async function logout() {
   .press-hint,
   .press-hint::after,
   .checkin-pulse {
+    animation: none;
+  }
+}
+
+/* ===== ติ๊กถูกสำเร็จในการ์ดเป้าหมาย: เด้งโผล่เบาๆ ตอนติ๊ก ===== */
+.goal-tick {
+  animation: goal-tick-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes goal-tick-pop {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-tick {
     animation: none;
   }
 }

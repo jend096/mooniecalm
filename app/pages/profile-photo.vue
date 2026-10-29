@@ -79,7 +79,7 @@ function cancel() {
   <div class="relative flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end">
     <button
       type="button"
-      class="absolute left-6 top-14 z-20 text-base font-medium text-moon-muted"
+      class="absolute left-6 top-14 z-20 text-base font-medium text-moon-muted transition-opacity duration-100 active:opacity-50"
       @click="cancel"
     >
       ยกเลิก

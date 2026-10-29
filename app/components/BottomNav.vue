@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { FaIconName } from '~/utils/fa-icons'
+// ชื่อไอคอนของแต่ละปุ่ม (มีทั้งแบบเส้นใน NavOutlineIcon.vue และแบบทึบใน FaIcon ชื่อเดียวกัน)
+type NavIcon = 'house' | 'clipboard-check' | 'square-plus' | 'chart-line' | 'location-dot'
 
 // แถบเมนูล่าง 5 ปุ่ม ตามฟิกม่า (หน้าหลัก / เช็คอิน / บันทึก / สรุปเดือน / รพ.ใกล้ฉัน)
-// active = ปุ่มที่กำลังอยู่ (สีชมพู) ส่ง 'none' ถ้าหน้านั้นไม่ใช่ปุ่มใดเลย
+// active = ปุ่มที่กำลังอยู่ ส่ง 'none' ถ้าหน้านั้นไม่ใช่ปุ่มใดเลย
+// ปุ่มที่ยังไม่ได้กด = ไอคอนเส้น (NavOutlineIcon.vue) / ปุ่มที่กำลังอยู่ = ไอคอนทึบสีขาวบนวงกลมสีชมพู + ตัวหนังสือสีชมพู
 withDefaults(
   defineProps<{ active?: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital' | 'none' }>(),
   { active: 'home' }
 )
 
 // to = null แปลว่ายังไม่มีหน้านี้ (ปุ่มจะจางและกดไม่ได้ จนกว่าจะทำหน้านั้นเสร็จ แล้วค่อยใส่ path)
-const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', label: string, icon: FaIconName, to: string | null }[] = [
+const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', label: string, icon: NavIcon, to: string | null }[] = [
   { key: 'home', label: 'หน้าหลัก', icon: 'house', to: '/home' },
   { key: 'checkin', label: 'เช็คอิน', icon: 'clipboard-check', to: '/checkin' },
   { key: 'symptoms', label: 'บันทึก', icon: 'square-plus', to: '/symptoms' },
@@ -27,15 +29,18 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
       <NuxtLink
         v-if="tab.to"
         :to="tab.to"
-        class="flex flex-1 flex-col items-center justify-center gap-1 py-3"
+        class="flex flex-1 flex-col items-center justify-center gap-1 py-1.5"
         :class="active === tab.key ? 'text-moon-period' : 'text-moon-ink'"
       >
-        <!-- หน้าที่เปิดอยู่: ไอคอนขยายใหญ่ขึ้น (ขยายด้วย scale เลยไม่ดันความสูงของแถบเมนู) -->
-        <FaIcon
-          :name="tab.icon"
-          class="h-5 w-5 origin-center transition-transform duration-200"
-          :class="active === tab.key ? 'scale-[1.5]' : ''"
-        />
+        <!-- วงกลมหลังไอคอน: ปุ่มที่กำลังอยู่ = วงกลมสีชมพูเข้ม (bg-moon-period) ลอยขึ้นนิดหนึ่ง + ไอคอนทึบสีขาว
+             ปุ่มอื่น = ไม่มีวงกลม (โปร่งใส) ไอคอนเป็นเส้นสีเทาเข้ม  ขนาดวงกลมปรับที่ h-10 w-10 -->
+        <span
+          class="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-200"
+          :class="active === tab.key ? 'bg-moon-period text-white shadow-[0_4px_10px_color-mix(in_srgb,var(--color-period-day)_45%,transparent)] -translate-y-1 scale-105' : 'bg-transparent'"
+        >
+          <FaIcon v-if="active === tab.key" :name="tab.icon" class="h-5 w-5" />
+          <NavOutlineIcon v-else :name="tab.icon" class="h-6 w-6" />
+        </span>
         <span :class="active === tab.key ? 'text-xs font-semibold' : 'text-[11px] font-medium'">{{ tab.label }}</span>
       </NuxtLink>
 
@@ -43,9 +48,11 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         v-else
         type="button"
         disabled
-        class="flex flex-1 flex-col items-center justify-center gap-1 py-3 text-moon-ink opacity-40"
+        class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-moon-ink opacity-40"
       >
-        <FaIcon :name="tab.icon" class="h-5 w-5" />
+        <span class="flex h-10 w-10 items-center justify-center">
+          <NavOutlineIcon :name="tab.icon" class="h-6 w-6" />
+        </span>
         <span class="text-[11px] font-medium">{{ tab.label }}</span>
       </button>
     </template>

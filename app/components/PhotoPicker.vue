@@ -163,23 +163,25 @@ const imgStyle = computed(() => ({
     <div class="flex items-center justify-center" :style="frameStyle">
       <!-- ยังไม่ได้เลือกรูป: กดวงกลมเพื่อเลือกรูป
            มีรูปปัจจุบัน = โชว์รูปนั้น / ไม่มีรูป = โชว์เงาหัวคนสีจางๆ
-           ไอคอนดินสอมุมขวาล่างบอกว่ากดเปลี่ยนรูปได้ (ปรับขนาดที่ h-11 w-11 / สีที่ bg-moon-ink) -->
+           ไอคอนดินสอมุมขวาล่างกดเปลี่ยนรูปได้เหมือนกัน (ปรับขนาดที่ h-11 w-11 / สีที่ bg-moon-ink) -->
       <div v-if="!photoUrl" class="relative" :style="circleStyle">
         <label
-          class="relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-moon-ink/20 bg-moon-card"
+          class="press-fade relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-moon-ink/20 bg-moon-card"
         >
           <img v-if="currentUrl" :src="currentUrl" alt="" class="absolute inset-0 h-full w-full object-cover">
           <FaIcon v-else name="user" class="h-[48%] w-[48%] text-moon-ink/15" />
           <input type="file" accept="image/*" class="hidden" @change="onPhotoSelected">
         </label>
-        <!-- วางที่ขอบวงกลมทแยงขวาล่าง (14.6% = ตำแหน่งขอบวงกลมที่มุม 45 องศา ลบครึ่งหนึ่งของปุ่ม) กดทะลุไปโดนวงกลมข้างล่าง -->
-        <span
-          aria-hidden="true"
-          class="pointer-events-none absolute flex h-11 w-11 items-center justify-center rounded-full bg-moon-ink text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]"
+        <!-- วางที่ขอบวงกลมทแยงขวาล่าง (14.6% = ตำแหน่งขอบวงกลมที่มุม 45 องศา ลบครึ่งหนึ่งของปุ่ม)
+             ปุ่มดินสอเป็น label + input ไฟล์ของตัวเอง กดที่ไอคอนแล้วเลือกรูปได้เหมือนกดที่วงกลม (เดิมกดทะลุ ไอคอนกดไม่ติดตรงส่วนที่ล้นออกนอกวงกลม) -->
+        <label
+          aria-label="เปลี่ยนรูป"
+          class="press-fade absolute flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-moon-ink text-white shadow-[0_2px_6px_rgba(0,0,0,0.25)]"
           style="right: calc(14.6% - 22px); bottom: calc(14.6% - 22px)"
         >
           <FaIcon name="pencil" class="h-[18px] w-[18px]" />
-        </span>
+          <input type="file" accept="image/*" class="hidden" @change="onPhotoSelected">
+        </label>
       </div>
 
       <!-- เลือกรูปแล้ว: ลากเลื่อน/บีบซูมได้ ส่วนนอกวงกลมถูกคลุมให้จาง -->
@@ -212,7 +214,7 @@ const imgStyle = computed(() => ({
 
     <!-- ซ่อนไว้ตอนยังไม่เลือกรูป (แต่เก็บที่ไว้ ไม่ให้หน้าขยับ) -->
     <label
-      class="mt-4 cursor-pointer text-sm font-medium text-moon-ink underline underline-offset-4"
+      class="press-fade mt-4 cursor-pointer text-sm font-medium text-moon-ink underline underline-offset-4"
       :class="{ invisible: !photoUrl }"
     >
       เปลี่ยนรูป
@@ -220,3 +222,17 @@ const imgStyle = computed(() => ({
     </label>
   </div>
 </template>
+
+<style scoped>
+/* กดแล้วจางลง + ยุบลงนิดหนึ่ง เหมือนถูกกดจริง (label ไม่ได้อยู่ในกฎกดยุบของปุ่มใน assets/css/press.css เลยทำให้เอง)
+   อยากให้จางมาก/น้อยลง แก้ opacity / อยากให้ยุบมาก/น้อยลง แก้ scale */
+.press-fade {
+  transition: opacity 0.12s ease, scale 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.press-fade:active {
+  opacity: 0.55;
+  scale: 0.94;
+}
+</style>
