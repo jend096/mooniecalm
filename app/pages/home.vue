@@ -2,6 +2,7 @@
 import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
 import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
+import { isCycleFinished } from '~/utils/goal-claim'
 
 interface GoalType {
   id: number
@@ -56,6 +57,10 @@ function hideLayer(slot: string) {
 
 const activeGoals = ref<GoalType[]>([])
 const cycleStartDate = ref<string | null>(null)
+const cycleEndDate = ref<string | null>(null)
+// รอบ 28 วันจบแล้วและยังไม่กดรับผล = "รอรับผล" (กฎเดียวกับหน้าเช็คอิน: วันนี้ > วันสุดท้าย วันที่ 28 ยังเช็คอินได้ตามปกติ)
+// ตอนนี้การ์ดเป้าหมายจะไม่โชว์วงกลมว่างของรอบใหม่ แต่ให้ข้อความพองขึ้นลงชวนกดไปรับผลก่อน
+const awaitingClaim = computed(() => isCycleFinished(cycleEndDate.value, getLocalDateString()))
 const checkedGoals = ref<Record<string, boolean>>({})
 
 // คำนวณวันที่กำลังทำอยู่: วันแรกเริ่มที่ วันที่ 1 จนถึง วันที่ 28
@@ -450,6 +455,7 @@ onMounted(async () => {
     .filter((g): g is GoalType => !!g)
 
   cycleStartDate.value = cycleRes.data?.cycle_start_date ?? today
+  cycleEndDate.value = cycleRes.data?.cycle_end_date ?? null
 
   for (const goal of activeGoals.value) {
     const column = GOAL_CODE_TO_COLUMN[goal.goal_code]
@@ -688,16 +694,22 @@ async function logout() {
                   <span
                     v-if="gi > 0"
                     class="absolute -top-[12px] left-1/2 block h-[10px] w-[2px] -translate-x-1/2 rounded-full transition-colors duration-300"
-                    :class="checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
+                    :class="awaitingClaim || checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
                   />
                   <span
                     class="block h-[10px] w-[10px] rounded-full transition-colors duration-300"
-                    :class="checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
+                    :class="awaitingClaim || checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
                   />
                 </span>
-                <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
+                <!-- รอรับผล (รอบจบแล้ว): ข้อความพองขึ้นลงเบาๆ ให้รู้สึกว่าต้องกดเข้าไปรับผลก่อน (class goal-await) -->
+                <span
+                  class="min-w-0 flex-1 truncate text-xs font-medium"
+                  :class="awaitingClaim ? 'goal-await' : ''"
+                  :style="awaitingClaim ? { animationDelay: `${gi * 0.15}s` } : undefined"
+                >{{ goal.title }}</span>
                 <!-- ช่องสถานะกว้างเท่ากันทุกแถว: ยังไม่ทำ = วงกลมเปล่ารอ / ทำแล้ว = วงกลมสีชมพูหลัก + ติ๊กถูกสีขาว (เด้งโผล่เบาๆ) -->
-                <span class="flex w-[18px] shrink-0 justify-start">
+                <!-- รอรับผล (รอบจบแล้ว) = ไม่โชว์วงกลมสถานะเลย (ยังไม่รู้ผลผ่าน/ไม่ผ่านจนกว่าจะกดรับ) -->
+                <span v-if="!awaitingClaim" class="flex w-[18px] shrink-0 justify-start">
                   <span
                     v-if="checkedGoals[goal.goal_code]"
                     class="goal-tick flex h-[18px] w-[18px] items-center justify-center rounded-full bg-moon-period"
@@ -718,7 +730,7 @@ async function logout() {
           class="btn-primary checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] pl-[10px] pr-[51px]"
           @click="goToCheckin"
         >
-          เช็คอินกันเถอะ
+          {{ awaitingClaim ? 'รับผลรอบ 28 วัน' : 'เช็คอินกันเถอะ' }}
           <span class="absolute right-[10px] flex h-[31px] w-[31px] items-center justify-center rounded-full bg-moon-coral">
             <FaIcon name="chevron-right" class="h-3 w-[7px] text-white" />
           </span>
@@ -948,6 +960,31 @@ async function logout() {
   .press-hint,
   .press-hint::after,
   .checkin-pulse {
+    animation: none;
+  }
+}
+
+/* ===== ครบ 28 วัน รอรับผล: ข้อความเป้าหมายพองขึ้นลงเบาๆ (ขยายสูงสุด 6%) ไล่ทีละแถว =====
+   ปรับความแรงที่ scale(1.06) / ความเร็วที่ 2.4s  จุดพองเริ่มจากซ้าย (transform-origin) ให้ตัวหนังสือไม่ล้นไปทางขวา */
+.goal-await {
+  transform-origin: 0% 50%;
+  animation: goal-await-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes goal-await-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-await {
     animation: none;
   }
 }

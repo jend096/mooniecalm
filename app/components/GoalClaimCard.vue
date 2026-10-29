@@ -26,7 +26,7 @@
       </button>
     </template>
 
-    <!-- ขั้น 2: ผลของแต่ละเป้าหมาย โผล่ทีละข้อพร้อมหลอดสถานะ (ข้อที่ผ่านอยู่บน ไม่ผ่านอยู่ล่างและจาง) -->
+    <!-- ผลของแต่ละเป้าหมาย โผล่ทีละข้อพร้อมหลอดสถานะ (ข้อที่ผ่านอยู่บน ไม่ผ่านอยู่ล่างและจาง) -->
     <template v-else-if="step === 'result'">
       <h2 class="text-[18px] font-semibold text-moon-ink">ผลของรอบนี้</h2>
 
@@ -90,6 +90,15 @@
           </div>
         </div>
       </div>
+
+      <!-- ข้ามอนิเมชัน: ข้อความจางๆ ไม่มีกรอบ กดแล้วไปหน้าอวตารที่ได้ทันที (ไม่ต้องรอข้อต่อๆ ไป) -->
+      <button
+        type="button"
+        class="skip-link mx-auto -mb-1 px-3 py-1 text-[13px] font-normal text-moon-muted/60"
+        @click="skipResults"
+      >
+        ข้าม
+      </button>
     </template>
 
     <!-- ขั้น 3: อวตารที่ได้ หน้าตาเหมือนตอนได้อวตารครั้งแรก (ไม่บอกว่าเปลี่ยนอะไร) -->
@@ -290,6 +299,14 @@ function startResults() {
   timers.push(setTimeout(() => { step.value = 'reveal' }, endAt))
 }
 
+// กด "ข้าม": ยกเลิกตัวจับเวลาที่ค้างอยู่ทั้งหมดก่อน (ไม่งั้นพอครบเวลามันจะดีดกลับมาหน้าอวตารซ้ำอีกรอบ) แล้วไปหน้าอวตารที่ได้เลย
+function skipResults() {
+  timers.forEach(t => clearTimeout(t))
+  timers.length = 0
+  shownCount.value = items.value.length
+  step.value = 'reveal'
+}
+
 onBeforeUnmount(() => timers.forEach(t => clearTimeout(t)))
 
 // ประกายตกแต่ง (ตำแหน่งเป็น % / px จากกึ่งกลาง, size = px, delay = วินาที)
@@ -405,6 +422,16 @@ function fail() {
 </script>
 
 <style scoped>
+/* ปุ่ม "ข้าม": ตัวหนังสือจางๆ ตอนกดจะจางลงอีกเหมือนมีคนกดจริง (ไม่มีกรอบ) */
+.skip-link {
+  transition: opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.skip-link:active {
+  opacity: 0.35;
+}
+
 /* ประกายหน้า "ครบ 28 วัน": ค่อยๆ โผล่ ขยาย หมุนเล็กน้อย แล้วหายไป วนซ้ำ */
 .twinkle {
   opacity: 0;
