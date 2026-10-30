@@ -648,7 +648,10 @@ async function logout() {
       <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
            เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
-      <div class="mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]">
+      <div
+        class="mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/55 shadow-[0_3px_8px_rgba(0,0,0,0.25)] backdrop-blur-[8px]"
+        :class="awaitingClaim ? 'goal-card-await' : ''"
+      >
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
         <div class="mt-[12px] flex items-center px-[23px]">
@@ -701,12 +704,7 @@ async function logout() {
                     :class="awaitingClaim || checkedGoals[goal.goal_code] ? 'bg-moon-period' : 'bg-moon-ink/20'"
                   />
                 </span>
-                <!-- รอรับผล (รอบจบแล้ว): ข้อความพองขึ้นลงเบาๆ ให้รู้สึกว่าต้องกดเข้าไปรับผลก่อน (class goal-await) -->
-                <span
-                  class="min-w-0 flex-1 truncate text-xs font-medium"
-                  :class="awaitingClaim ? 'goal-await' : ''"
-                  :style="awaitingClaim ? { animationDelay: `${gi * 0.15}s` } : undefined"
-                >{{ goal.title }}</span>
+                <span class="min-w-0 flex-1 truncate text-xs font-medium">{{ goal.title }}</span>
                 <!-- ช่องสถานะกว้างเท่ากันทุกแถว: ยังไม่ทำ = วงกลมเปล่ารอ / ทำแล้ว = วงกลมสีชมพูหลัก + ติ๊กถูกสีขาว (เด้งโผล่เบาๆ) -->
                 <!-- รอรับผล (รอบจบแล้ว) = ไม่โชว์วงกลมสถานะเลย (ยังไม่รู้ผลผ่าน/ไม่ผ่านจนกว่าจะกดรับ) -->
                 <span v-if="!awaitingClaim" class="flex w-[18px] shrink-0 justify-start">
@@ -727,12 +725,12 @@ async function logout() {
         <!-- ปุ่มเช็คอิน -->
         <button
           type="button"
-          class="btn-primary checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] pl-[10px] pr-[51px]"
+          class="btn-primary checkin-btn checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] pl-[10px] pr-[51px] [--btn-height:51px] [--btn-radius:10px] [--btn-font-size:16px]"
           @click="goToCheckin"
         >
           {{ awaitingClaim ? 'รับผลรอบ 28 วัน' : 'เช็คอินกันเถอะ' }}
           <span class="absolute right-[10px] flex h-[31px] w-[31px] items-center justify-center rounded-full bg-moon-coral">
-            <FaIcon name="chevron-right" class="h-3 w-[7px] text-white" />
+            <img src="/icons/checkin-arrow.svg" alt="" aria-hidden="true" class="h-[15px] w-[15px]">
           </span>
         </button>
       </div>
@@ -744,9 +742,13 @@ async function logout() {
           class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/snack')"
         >
+          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): วงกลมครีม -> ตัวการ์ตูน -> ข้อความ -> ฟองคำพูด -> วงกลมไอคอนถ้วย
+               ตัวการ์ตูน/ฟองคำพูดเป็นเวกเตอร์ SVG ที่ export จาก Figma เก็บไว้ที่ public/home/ -->
           <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
+          <img src="/home/snack-person.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[78px] top-[86px] h-[101.73px] w-[84px]">
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
-          <span class="press-hint press-hint-food absolute bottom-6 right-[50px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-moon-card">
+          <img src="/home/snack-bubble.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[64px] top-[76px] h-[38.16px] w-[41px]">
+          <span class="press-hint press-hint-food absolute bottom-[5px] left-[5px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
               <path d="M 35.4167 33.3333 L 2.0833 33.3333 C 0.9375 33.3333 0 34.2708 0 35.4167 C 0 36.5625 0.9375 37.5 2.0833 37.5 L 35.4167 37.5 C 36.5625 37.5 37.5 36.5625 37.5 35.4167 C 37.5 34.2708 36.5625 33.3333 35.4167 33.3333 Z M 37.5 0 L 14.5833 0 L 14.5833 5 L 18.3542 8.0208 C 18.6042 8.2083 18.75 8.5208 18.75 8.8333 L 18.75 17.7083 C 18.75 18.2917 18.2917 18.75 17.7083 18.75 L 9.375 18.75 C 8.7917 18.75 8.3333 18.2917 8.3333 17.7083 L 8.3333 8.8333 C 8.3333 8.5208 8.4792 8.2083 8.7292 8.0208 L 12.5 5 L 12.5 0 L 8.3333 0 C 6.0417 0 4.1667 1.875 4.1667 4.1667 L 4.1667 20.8333 C 4.1667 25.4375 7.8958 29.1667 12.5 29.1667 L 25 29.1667 C 29.6042 29.1667 33.3333 25.4375 33.3333 20.8333 L 33.3333 14.5833 L 37.5 14.5833 C 39.7917 14.5833 41.6667 12.7083 41.6667 10.4167 L 41.6667 4.1667 C 41.6667 1.875 39.7917 0 37.5 0 Z M 37.5 10.4167 L 33.3333 10.4167 L 33.3333 4.1667 L 37.5 4.1667 L 37.5 10.4167 Z" />
             </svg>
@@ -758,9 +760,12 @@ async function logout() {
           class="relative h-[188px] flex-[162] overflow-hidden rounded-[20px] bg-moon-lavender-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/guide')"
         >
+          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): เฟอร์นิเจอร์ (กลับด้านซ้าย-ขวา) -> วงกลมลาเวนเดอร์ -> ข้อความ -> ตัวการ์ตูน -> วงกลมไอคอน -->
+          <img src="/home/pain-furniture.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[116px] top-[81px] h-[91.9px] w-[42px] -scale-x-100">
           <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[114px] w-[118px] rounded-full bg-moon-lavender/[0.29]" />
           <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">ตอนนี้<br>ปวดตรงไหน</span>
-          <span class="press-hint press-hint-pain absolute bottom-[29px] right-[49px] flex h-[65px] w-[65px] items-center justify-center rounded-full bg-moon-card">
+          <img src="/home/pain-character.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[34px] top-[107px] h-[80.92px] w-[123.83px]">
+          <span class="press-hint press-hint-pain absolute bottom-[7px] left-[7px] flex h-[67px] w-[67px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 35 35" class="h-[35px] w-[35px] text-moon-lavender" fill="currentColor" aria-hidden="true">
               <path d="M 29.4691 0 L 33.1466 9.66 C 36.3322 18.0367 35.3718 27.4167 30.57 35 L 18.9754 35 L 18.9754 27.8367 L 25.37 21.4433 L 23.3088 19.39 L 17.4998 25.1533 L 11.7142 19.39 L 9.6529 21.4433 L 16.0475 27.8367 L 16.0475 35 L 4.4295 35 C 2.0594 31.2635 0.593 27.0297 0.1458 22.6322 C -0.3013 18.2348 0.2831 13.794 1.8529 9.66 L 5.507 0 L 29.4691 0 Z M 18.0151 2.8933 L 16.6799 2.8933 C 13.4944 2.8933 11.8781 6.6967 14.0565 8.9833 L 15.4151 10.3833 L 11.5502 14.5833 L 13.7052 16.5433 L 15.8836 14.1867 L 17.4529 12.5067 L 21.3412 16.5667 L 23.4493 14.56 L 19.4439 10.3833 L 20.6385 9.1467 C 22.8403 6.86 21.2944 2.8933 18.0151 2.8933 Z M 18.0151 5.81 C 18.3196 5.81 18.5538 5.9733 18.6709 6.2767 C 18.8115 6.58 18.7646 6.8833 18.5304 7.1167 L 17.4295 8.26 L 16.1881 6.9533 C 15.7664 6.5333 16.0709 5.81 16.6799 5.81 L 18.0151 5.81 Z" />
             </svg>
@@ -964,29 +969,34 @@ async function logout() {
   }
 }
 
-/* ===== ครบ 28 วัน รอรับผล: ข้อความเป้าหมายพองขึ้นลงเบาๆ (ขยายสูงสุด 6%) ไล่ทีละแถว =====
-   ปรับความแรงที่ scale(1.06) / ความเร็วที่ 2.4s  จุดพองเริ่มจากซ้าย (transform-origin) ให้ตัวหนังสือไม่ล้นไปทางขวา */
-.goal-await {
-  transform-origin: 0% 50%;
-  animation: goal-await-pulse 2.4s ease-in-out infinite;
+/* ===== ครบ 28 วัน รอรับผล: ทั้งกล่องเป้าหมายขยับเบาๆ + ขอบเรืองสีชมพู ให้รู้สึกว่าต้องกดเข้าไปรับผล =====
+   จังหวะ 1.9s เท่ากับปุ่มเช็คอิน (.checkin-pulse) ทั้งสองอย่างเลยขยับพร้อมกัน ไม่สั่นสวนกัน
+   ปรับความแรงที่ scale(1.02) / ความเร็วที่ 1.9s / ความเรืองที่ 14px กับ 45% */
+.goal-card-await {
+  animation: goal-card-await-pulse 1.9s ease-in-out infinite;
 }
 
-@keyframes goal-await-pulse {
+@keyframes goal-card-await-pulse {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.75;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
   }
   50% {
-    transform: scale(1.06);
-    opacity: 1;
+    transform: scale(1.02);
+    box-shadow: 0 3px 14px color-mix(in srgb, var(--color-period-day) 45%, transparent);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .goal-await {
+  .goal-card-await {
     animation: none;
   }
+}
+
+/* ปุ่มเช็คอินหน้าแรก: ตัวหนังสือกึ่งหนา (500) ตามดีไซน์ (ปุ่มอื่นในแอปยังเป็น 600) */
+.checkin-btn {
+  font-weight: 500;
 }
 
 /* ===== ติ๊กถูกสำเร็จในการ์ดเป้าหมาย: เด้งโผล่เบาๆ ตอนติ๊ก ===== */
