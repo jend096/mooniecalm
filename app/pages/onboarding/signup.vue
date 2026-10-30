@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { savePendingOnboarding } from '~/utils/save-onboarding-profile'
+import { savePendingOnboarding, hasOnboardingAnswers } from '~/utils/save-onboarding-profile'
 const config = useRuntimeConfig()
 const isSupabaseConfigured = Boolean(config.public.supabase?.url && config.public.supabase?.key)
 
@@ -9,6 +9,7 @@ const showConsent = ref(false) // true = กำลังโชว์ป๊อป
 const sendingLink = ref(false) // true = กำลังส่งอีเมล (ไว้เลือกข้อความบนหน้ารอโหลด)
 const pendingAction = ref<'email' | 'google'>('email') // ปุ่มที่กดค้างไว้ตอนยังไม่ได้ยินยอม พอกดยินยอมแล้วจะทำต่อให้
 const statusMessage = ref('')
+const linkSent = ref(false) // true = ส่งลิงก์ไปที่อีเมลสำเร็จแล้ว (โชว์ข้อความ "ไปดูในเมล" ใต้ช่องอีเมล)
 
 let hasCompletedLogin = false
 let unsubscribe: (() => void) | undefined
@@ -39,6 +40,23 @@ async function completeLogin(userId: string) {
     // ถ้าพบโปรไฟล์ และมีชื่อเล่นบันทึกอยู่แล้ว (เป็นผู้ใช้เดิม) -> พาไปหน้าหลักทันที
     if (profile && profile.nickname) {
       await navigateTo('/home', { replace: true })
+      return
+    }
+
+    // ผู้ใช้ใหม่ที่ "ยังไม่เคยตอบคำถามสร้างอวตาร" (เช่น กด "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" ด้วยอีเมลที่ไม่เคยสมัคร)
+    // -> ห้ามสร้างโปรไฟล์เปล่า พาไปเริ่มตอบคำถามตั้งแต่ต้นก่อน (ตอบครบแล้วจะวนกลับมาหน้านี้ เจอ session เดิม แล้วบันทึกต่อเอง)
+    const { data: sessionData } = await supabase.auth.getSession()
+    let answered = hasOnboardingAnswers(sessionData.session?.user.user_metadata)
+    if (!answered && profile) {
+      // โปรไฟล์เดิมที่ยังไม่มีชื่อ แต่เคยบันทึกอวตารลงฐานข้อมูลไว้แล้ว ถือว่าเคยตอบแล้ว (ไม่ต้องให้ตอบซ้ำ)
+      const { count, error: countError } = await supabase
+        .from('user_avatar_state')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+      answered = countError ? true : (count ?? 0) > 0 // เช็คไม่ได้ -> ทำเหมือนเดิม ไม่เด้งมั่ว
+    }
+    if (!answered) {
+      await navigateTo('/onboarding/step-3', { replace: true })
       return
     }
 
@@ -76,6 +94,7 @@ async function continueWithEmail() {
   loading.value = true
   sendingLink.value = true
   statusMessage.value = ''
+  linkSent.value = false
 
   const supabase = useSupabaseClient()
   const { error } = await supabase.auth.signInWithOtp({
@@ -93,7 +112,8 @@ async function continueWithEmail() {
   if (error) {
     statusMessage.value = error.message
   } else {
-    statusMessage.value = 'ส่งลิงก์เข้าสู่ระบบไปที่อีเมลของคุณแล้ว กรุณากดลิงก์ในอีเมล'
+    // ส่งสำเร็จ: โชว์ข้อความให้ไปดูในเมลที่ใต้ช่องอีเมล (ดู linkSent ใน template)
+    linkSent.value = true
   }
 }
 
@@ -196,32 +216,89 @@ onMounted(async () => {
 onUnmounted(() => {
   unsubscribe?.()
 })
+
+// ประกายตกแต่งพื้นหลัง 4 ดวง (ตำแหน่งเป็น % ของหน้าจอ) เหมือนหน้า index
+const staticSparkles = [
+  { left: '11.9%', top: '22%', size: 16, color: 'var(--color-period-predicted)' },
+  { left: '4.9%', top: '34%', size: 24, color: 'var(--color-lavender)' },
+  { left: '81.5%', top: '43.1%', size: 26, color: 'var(--color-lavender)' },
+  { left: '92%', top: '76%', size: 14, color: 'var(--color-coral)' }
+]
+
+// ฟรุ้งฟริ้งรอบโลโก้ชื่อแอป (left/top = ตำแหน่งกึ่งกลางประกาย เป็น % ของกรอบชื่อ, size = px) เด้งออกมาทีละดวง
+const nameSparkles = [
+  { left: '-4%', top: '14%', size: 20, color: 'var(--color-lavender)' },
+  { left: '-2%', top: '82%', size: 12, color: 'var(--color-coral)' },
+  { left: '39%', top: '13%', size: 12, color: 'var(--color-period-predicted)' },
+  { left: '55%', top: '17%', size: 15, color: 'var(--color-lavender)' },
+  { left: '104%', top: '17%', size: 18, color: 'var(--color-yellow)' },
+  { left: '103%', top: '82%', size: 12, color: 'var(--color-coral)' }
+]
 </script>
 
 <template>
-  <div class="flex min-h-dvh flex-col bg-gradient-to-b from-moon-bg to-moon-bg-end px-6">
+  <div class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end px-6">
+    <!-- ตกแต่งเหมือนหน้า index: หูกระต่ายสีพาสเทลบน/ล่าง + ประกายลอยจางๆ (อยู่หลังเนื้อหา ไม่บังปุ่ม) -->
+    <div class="deco" aria-hidden="true">
+      <img class="ears ears-top" src="/brand/ears-top.svg" alt="" draggable="false">
+      <img class="ears ears-bottom" src="/brand/ears-bottom.svg" alt="" draggable="false">
+      <AmbientSparkles />
+      <svg
+        v-for="(s, i) in staticSparkles"
+        :key="i"
+        class="static-spark"
+        viewBox="0 0 20 20"
+        :fill="s.color"
+        :style="{ left: s.left, top: s.top, width: `${s.size}px`, height: `${s.size}px`, animationDelay: `${i * -0.7}s` }"
+      >
+        <path d="M10 0C10.778 5.889 14.111 9.222 20 10C14.111 10.778 10.778 14.111 10 20C9.222 14.111 5.889 10.778 0 10C5.889 9.222 9.222 5.889 10 0Z" />
+      </svg>
+    </div>
+
     <!-- กดส่งอีเมลแล้ว (หรือกำลังเช็คลิงก์ที่กลับมา) ขึ้นหน้ารอโหลดคลุมจอ -->
     <!-- เครื่องนี้ยังไม่เคยกดยินยอมเก็บข้อมูลสุขภาพ (เช่นกดมาที่หน้านี้ตรงๆ) -> ถามก่อนส่งลิงก์ -->
     <ConsentDialog v-if="showConsent" @accept="acceptConsentAndSend" @decline="showConsent = false" />
 
     <LoadingOverlay v-if="loading" :text="sendingLink ? 'กำลังส่งลิงก์ไปที่อีเมล...' : 'กำลังเข้าสู่ระบบ...'" />
 
-    <div class="flex flex-col items-center pt-[162px] text-center">
-      <h1 class="text-3xl font-semibold text-moon-ink">
-        เข้าสู่ระบบ<br>MoonieCalm
-      </h1>
+    <div class="relative z-10 flex flex-col items-center pt-[162px] text-center">
+      <h1 class="text-3xl font-semibold text-moon-ink">เข้าสู่ระบบ</h1>
+      <!-- ชื่อแอปใช้รูปโลโก้ (BrandWordmark) แทนตัวหนังสือ + แสงโคเรลฟุ้งหลังชื่อ + ประกายเด้งรอบชื่อ เหมือนหน้า index
+           ปรับขนาดชื่อที่ :size (หน้า index ใช้ 44) / ประกายแก้ที่ nameSparkles ใน <script> -->
+      <div class="name-wrap">
+        <span class="name-glow" aria-hidden="true" />
+        <BrandWordmark lines="one" :size="44" />
+        <svg
+          v-for="(s, i) in nameSparkles"
+          :key="`name-${i}`"
+          class="name-spark"
+          viewBox="0 0 20 20"
+          :fill="s.color"
+          aria-hidden="true"
+          :style="{ left: s.left, top: s.top, width: `${s.size}px`, height: `${s.size}px`, marginLeft: `${-s.size / 2}px`, marginTop: `${-s.size / 2}px`, '--i': i }"
+        >
+          <path d="M10 0C10.778 5.889 14.111 9.222 20 10C14.111 10.778 10.778 14.111 10 20C9.222 14.111 5.889 10.778 0 10C5.889 9.222 9.222 5.889 10 0Z" />
+        </svg>
+      </div>
       <p class="mt-3 text-sm font-normal text-moon-muted">
         เข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพ ติดตามรอบเดือน และดูแลพฤติกรรมของคุณได้อย่างต่อเนื่อง
       </p>
     </div>
 
-    <div class="mt-[43px] flex flex-col gap-[22px] px-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
-      <input
-        v-model="email"
-        type="email"
-        placeholder="อีเมล"
-        class="h-[52px] w-full rounded-2xl border border-moon-pink-soft bg-moon-card px-4 text-lg font-normal text-moon-ink outline-none placeholder:text-moon-muted focus:border-moon-pink"
-      >
+    <div class="relative z-10 mt-[43px] flex flex-col gap-[22px] px-3 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
+      <div>
+        <input
+          v-model="email"
+          @input="linkSent = false"
+          type="email"
+          placeholder="อีเมล"
+          class="h-[52px] w-full rounded-2xl border border-moon-pink-soft bg-moon-card px-4 text-lg font-normal text-moon-ink outline-none placeholder:text-moon-muted focus:border-moon-pink"
+        >
+        <!-- ส่งลิงก์สำเร็จ (หลังหน้ารอโหลดหาย): โชว์ข้อความให้ไปดูในเมลต่อ แก้ข้อความตรงนี้ได้เลย -->
+        <p v-if="linkSent" class="mt-2 px-1 text-sm font-medium text-moon-ink">
+          ส่งลิงก์เข้าสู่ระบบไปที่อีเมลเรียบร้อยแล้วค่ะ 
+        </p>
+      </div>
       <BaseButton
         label="เข้าสู่ระบบ"
         :disabled="!email || loading"
@@ -250,9 +327,127 @@ onUnmounted(() => {
         ดำเนินการต่อด้วย Google
       </button>
 
+      <!-- กลับหน้าแรก: เผื่อผู้ใช้เข้ามาหน้านี้ผิด หรือไม่แน่ใจว่าเคยสมัครแล้ว กดกลับไปเริ่มใหม่ที่หน้าแรกได้ (ที่ "/" คือหน้าแรกของแอป) -->
+      <NuxtLink to="/" class="-mt-2 text-center text-sm font-normal text-moon-muted underline underline-offset-4">
+        กลับหน้าแรก
+      </NuxtLink>
+
       <p v-if="statusMessage" class="text-center text-xs font-normal text-moon-muted">
         {{ statusMessage }}
       </p>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* พื้นหลังตกแต่ง (คัดมาจากหน้า index: ขนาดตามฟิกม่า เฟรมกว้าง 428) */
+.deco {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.ears {
+  position: absolute;
+  left: 50%;
+  z-index: 0;
+  width: 428px;
+  max-width: none;
+  height: 140px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ears-top {
+  top: 0;
+}
+
+.ears-bottom {
+  bottom: 0;
+}
+
+.static-spark {
+  position: absolute;
+  z-index: 0;
+  display: block;
+  pointer-events: none;
+  animation: spark-twinkle 3.2s ease-in-out infinite;
+}
+
+@keyframes spark-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8) rotate(18deg);
+  }
+}
+
+/* กรอบโลโก้ชื่อแอป (ให้ประกายและแสงฟุ้งอ้างอิงตำแหน่งจากกรอบนี้) */
+.name-wrap {
+  position: relative;
+  margin-top: 12px;
+}
+
+/* ประกายรอบชื่อ: เด้งออกมาทีละดวงตอนเปิดหน้า แล้วกะพริบวนไป (ดวงที่ --i ยิ่งมาก ยิ่งเด้งช้า) */
+.name-spark {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+  animation:
+    name-spark-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    name-spark-twinkle 3s ease-in-out infinite;
+  animation-delay: calc(0.3s + var(--i) * 0.12s), calc(0.9s + var(--i) * 0.4s);
+}
+
+@keyframes name-spark-pop {
+  from {
+    opacity: 0;
+    transform: scale(0) rotate(-120deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes name-spark-twinkle {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.75) rotate(18deg);
+  }
+}
+
+/* แสงโคเรลจางๆ ฟุ้งหลังชื่อแอป */
+.name-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-coral) 20%, transparent), color-mix(in srgb, var(--color-coral) 0%, transparent));
+  transform: translate(-50%, -30%);
+  pointer-events: none;
+}
+
+/* คนที่ตั้งค่าลดการเคลื่อนไหว: ประกายนิ่ง ไม่กระพริบ */
+@media (prefers-reduced-motion: reduce) {
+  .static-spark,
+  .name-spark {
+    animation: none;
+  }
+}
+</style>

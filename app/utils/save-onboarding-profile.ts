@@ -157,6 +157,20 @@ export function resolveOnboardingData(
   }
 }
 
+// เช็คว่าผู้ใช้คนนี้ "เคยตอบคำถามสร้างอวตารแล้วหรือยัง" (ไว้กันไม่ให้สร้างโปรไฟล์เปล่าให้คนที่กด "เข้าสู่ระบบ" โดยยังไม่เคยตอบอะไร)
+// หาคำตอบจาก 3 ที่ เหมือนตอนบันทึกจริง: จดจำในเบราว์เซอร์นี้ / ที่แนบไปกับลิงก์อีเมล (userMetadata) / ที่จดไว้ก่อนเด้งไปหน้า Google
+// คืนค่า true = มีคำตอบอย่างน้อยหนึ่งข้อ
+export function hasOnboardingAnswers(userMetadata: Record<string, unknown> | undefined): boolean {
+  let local = buildOnboardingMetadata()
+  if (isEmptySelections(local.avatar_selections)) {
+    local.avatar_selections = readAvatarSelectionsFromStorage()
+  }
+  const pending = readPendingOnboarding()
+  if (pending) local = fillMissing(local, pending)
+  const data = resolveOnboardingData(userMetadata, local)
+  return !isEmptySelections(data.avatar_selections)
+}
+
 export async function saveOnboardingProfile(userId: string) {
   const sessionClient = useSupabaseClient()
   const { data: sessionData } = await sessionClient.auth.getSession()
@@ -217,4 +231,9 @@ export async function saveOnboardingProfile(userId: string) {
 
   // บันทึกครบแล้ว ลบที่จดไว้ก่อนไปหน้า Google ทิ้ง ไม่ให้ค้างไปใช้กับบัญชีอื่น
   clearPendingOnboarding()
+
+  // บันทึกลงฐานข้อมูลแล้ว ล้างคำตอบอวตารที่จำไว้ในเครื่อง (ทั้งในความจำและ localStorage)
+  // ไม่งั้นคำตอบเก่าค้างอยู่ แล้วคนถัดไปที่ใช้เครื่องนี้ (หรือบัญชีใหม่ที่ยังไม่เคยตอบ) จะถูกนับว่า "เคยตอบแล้ว" ทั้งที่ไม่ได้ตอบ
+  const avatarSelections = useAvatarSelections()
+  avatarSelections.value = emptyAvatarSelections()
 }

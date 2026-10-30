@@ -20,6 +20,17 @@
       </svg>
     </div>
 
+    <!-- แตะที่ไหนก็ได้เพื่อข้ามอนิเมชันตอนอวตารลอยขึ้น (ชั้นโปร่งใสคลุมทั้งจอ อยู่เฉพาะตอนอนิเมชันยังเล่นไม่จบ จบแล้วหายไป ปุ่มอื่นกดได้ปกติ)
+         ใช้ชั้นคลุมทั้งจอแทนการดักที่หน้าหลัก เพราะปุ่มอวตารถูกปิดไว้ระหว่างอนิเมชัน (disabled) แตะตรงตัวอวตารจะไม่ส่งสัญญาณขึ้นมา -->
+    <div
+      v-if="!isLoading && stage !== 'done'"
+      class="fixed inset-0 z-30"
+      aria-hidden="true"
+      @click="skipIntro"
+    >
+      <p class="absolute inset-x-0 bottom-10 text-center text-sm font-medium text-moon-ink/60">แตะที่ไหนก็ได้เพื่อข้าม</p>
+    </div>
+
     <!-- ประกายดาวจางๆ ลอยกระจายทั่วหน้าจอตลอดเวลา (อยู่หลังเนื้อหา) -->
     <div class="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
       <svg
@@ -396,12 +407,25 @@ const ambientSparkles = [
   { left: '66%', top: '95%', size: 12, dur: 9, delay: 0.2, color: 'text-moon-lavender', op: 0.95 }
 ]
 
+let introStartAt = 0 // เวลาที่เริ่มอนิเมชัน (ไว้กันแตะข้ามเร็วเกินไป)
+const SKIP_GUARD_MS = 400 // เริ่มอนิเมชันแล้วต้องผ่านเวลานี้ก่อนถึงจะแตะข้ามได้ (กันนิ้วที่ค้างมาจากหน้าก่อนหน้า)
+
+// แตะข้ามอนิเมชัน: หยุดตัวจับเวลา แล้วกระโดดไปท่าสุดท้ายเลย (อวตารเลื่อนลงมาที่การ์ดนุ่มๆ ด้วย transition เดิม ข้อความขึ้นตามมา)
+function skipIntro() {
+  if (stage.value === 'done') return
+  if (Date.now() - introStartAt < SKIP_GUARD_MS) return
+  stageTimers.forEach(clearTimeout)
+  stage.value = 'done'
+  prepareCardImage() // เตรียมรูปการ์ดแชร์ไว้ เหมือนตอนอนิเมชันเล่นจนจบ
+}
+
 function startIntro() {
   // คนที่ตั้งค่าลดแอนิเมชันไว้ ข้ามไปแสดงการ์ดเลย
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     stage.value = 'done'
     return
   }
+  introStartAt = Date.now()
 
   // วัดตำแหน่งอวตารที่วางอยู่ในการ์ด แล้วคำนวณว่าต้องเลื่อนไปกลางจอเท่าไหร่
   const rect = avatarRef.value?.getBoundingClientRect()

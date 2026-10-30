@@ -25,11 +25,23 @@ function goNext() {
   navigateTo('/onboarding/reveal')
 }
 
-// แตะ (หรือครบเวลารอ) -> ดึงกระต่ายขึ้น แล้วไปหน้าถัดไป ทำได้ครั้งเดียว
+const SKIP_GUARD_MS = 500 // หลังเริ่มดึงกระต่ายแล้ว ต้องผ่านเวลานี้ก่อนถึงจะแตะข้ามได้ (กันแตะรัวสองทีแล้วข้ามทันทีโดยไม่ได้เห็นอนิเมชัน)
+let risingAt = 0
+
+// แตะ (หรือครบเวลารอ) -> ดึงกระต่ายขึ้น แล้วไปหน้าถัดไป
+// แตะซ้ำตอนอนิเมชันกำลังเล่นอยู่ (stage = rising) -> ข้ามอนิเมชัน ไปหน้าถัดไปเลย (แตะตรงไหนของจอก็ได้)
 function pullRabbit() {
+  if (stage.value === 'rising') {
+    if (Date.now() - risingAt < SKIP_GUARD_MS) return
+    timers.forEach(clearTimeout)
+    timers.length = 0
+    goNext()
+    return
+  }
   if (stage.value !== 'moon') return
   if (autoTimer) clearTimeout(autoTimer)
   stage.value = 'rising'
+  risingAt = Date.now()
   timers.push(setTimeout(goNext, CELEBRATE_MS))
 }
 
@@ -74,6 +86,8 @@ onBeforeUnmount(() => {
       <Transition name="hint-fade">
         <p v-if="stage === 'moon'" class="tap-hint">แตะพระจันทร์เพื่อดึงกระต่ายขึ้นมา</p>
       </Transition>
+      <!-- ตอนอนิเมชันกำลังเล่น: ใบ้ว่าแตะที่ไหนก็ได้เพื่อข้าม -->
+      <p v-if="stage === 'rising'" class="tap-hint">แตะที่ไหนก็ได้เพื่อข้าม</p>
     </div>
   </div>
 </template>

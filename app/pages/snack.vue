@@ -463,7 +463,7 @@ onMounted(async () => {
             <!-- สีพื้นไล่เฉดอ่อนๆ + ชั้นสีของใบถัดไปค่อยๆ จางเข้า-ออก ให้สีเปลี่ยนไหลต่อกันไม่กระตุก -->
             <span class="absolute inset-0" :style="{ background: card.base }" />
             <span class="shuffle-tint absolute inset-0" :style="{ background: card.tint }" />
-            <RabbitBlob class="absolute left-1/2 top-[34px] h-[150px] w-[150px] -translate-x-1/2 text-white/70" />
+            <RabbitBlob class="absolute left-1/2 top-[34px] h-[150px] w-[150px] -translate-x-1/2 text-white/100" />
             <svg viewBox="0 0 24 24" class="shuffle-sparkle absolute bottom-4 right-4 h-5 w-5 text-white" fill="currentColor" aria-hidden="true">
               <path d="M12 0 Q13.4 10.6 24 12 Q13.4 13.4 12 24 Q10.6 13.4 0 12 Q10.6 10.6 12 0Z" />
             </svg>
