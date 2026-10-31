@@ -186,16 +186,24 @@ export async function saveOnboardingProfile(userId: string) {
 
   const data = resolveOnboardingData(sessionData.session?.user.user_metadata, local)
 
-  const { data: profile, error } = await supabase.from('user_profiles').upsert({
+  // ใส่เฉพาะช่องที่ "มีค่าจริง" เท่านั้น ถ้าส่งค่าว่าง (null) ไปด้วย จะเขียนทับข้อมูลเดิมของผู้ใช้เดิมจนหายหมด
+  // (เช่น ล็อกอินเมลเดิมในเครื่องที่ความจำคำตอบถูกล้างไปแล้ว) ช่องที่ไม่ใส่ = ฐานข้อมูลคงค่าเดิมไว้
+  const profileFields: Record<string, unknown> = {
     auth_user_id: userId,
-    email: sessionData.session?.user.email,
-    birth_date: data.birth_date,
-    weight_kg: data.weight_kg,
-    height_cm: data.height_cm,
-    last_period_date: data.last_period_date,
-    period_duration_days: data.period_duration_days,
-    allergies: data.food_allergies
-  }, { onConflict: 'auth_user_id' }).select('id').single()
+    email: sessionData.session?.user.email
+  }
+  if (data.birth_date !== null) profileFields.birth_date = data.birth_date
+  if (data.weight_kg !== null) profileFields.weight_kg = data.weight_kg
+  if (data.height_cm !== null) profileFields.height_cm = data.height_cm
+  if (data.last_period_date !== null) profileFields.last_period_date = data.last_period_date
+  if (data.period_duration_days !== null) profileFields.period_duration_days = data.period_duration_days
+  if (data.food_allergies.length > 0) profileFields.allergies = data.food_allergies
+
+  const { data: profile, error } = await supabase
+    .from('user_profiles')
+    .upsert(profileFields, { onConflict: 'auth_user_id' })
+    .select('id')
+    .single()
 
   if (error) throw error
 

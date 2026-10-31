@@ -24,8 +24,10 @@ async function completeLogin(userId: string) {
   const supabase = useSupabaseClient()
 
   try {
+    // ใช้ตัวเชื่อมที่แนบคีย์+สิทธิ์ผู้ใช้ครบ (ตัวมาตรฐาน .from ไม่แนบคีย์ ทำให้ค้นไม่เจอ แล้วระบบนึกว่าเป็นผู้ใช้ใหม่)
+    const authed = await getAuthedSupabaseClient()
     // ดึงข้อมูลจาก user_profiles โดยหาจาก auth_user_id ที่ตรงกับรหัส Auth ของผู้ใช้
-    const { data, error } = await supabase
+    const { data, error } = await authed
       .from('user_profiles')
       .select('id, nickname')
       .eq('auth_user_id', userId)
@@ -34,7 +36,11 @@ async function completeLogin(userId: string) {
     const profile = data as { id: number, nickname: string | null } | null
 
     if (error) {
+      // เช็คโปรไฟล์ไม่ได้ (เน็ต/สิทธิ์) -> ไม่รู้ว่าเป็นผู้ใช้เดิมหรือใหม่ จึงไม่ทำอะไรกับข้อมูล ให้ลองใหม่
       console.error('Supabase query error:', error)
+      statusMessage.value = 'เช็คข้อมูลบัญชีไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง'
+      hasCompletedLogin = false
+      return
     }
 
     // ถ้าพบโปรไฟล์ และมีชื่อเล่นบันทึกอยู่แล้ว (เป็นผู้ใช้เดิม) -> พาไปหน้าหลักทันที
@@ -49,7 +55,7 @@ async function completeLogin(userId: string) {
     let answered = hasOnboardingAnswers(sessionData.session?.user.user_metadata)
     if (!answered && profile) {
       // โปรไฟล์เดิมที่ยังไม่มีชื่อ แต่เคยบันทึกอวตารลงฐานข้อมูลไว้แล้ว ถือว่าเคยตอบแล้ว (ไม่ต้องให้ตอบซ้ำ)
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await authed
         .from('user_avatar_state')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', profile.id)
