@@ -23,3 +23,6 @@ logs
 .env.*
 !.env.example
 .claude
+
+# ไฟล์ทดสอบชั่วคราว ไม่เอาขึ้น git
+_to_delete/
