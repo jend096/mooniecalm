@@ -198,7 +198,7 @@
             class="shrink-0 rounded-full border border-moon-coral bg-moon-pink px-3 py-[6px] text-xs font-medium leading-[18px] text-moon-ink shadow-sm transition active:scale-95"
             @click="item.onDone?.($event)"
           >
-            {{ item.kind === 'guide' ? 'ยังไม่ได้ทำ' : 'ยังไม่ได้กิน' }}
+            {{ item.kind === 'guide' ? 'ยังไม่ได้ทำ' : 'ยังไม่ได้ทาน' }}
           </button>
         </div>
       </div>
