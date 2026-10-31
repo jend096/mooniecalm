@@ -510,12 +510,6 @@ function goToCheckin() {
   navigateTo('/checkin')
 }
 
-async function logout() {
-  const supabase = useSupabaseClient()
-  await supabase.auth.signOut()
-  navigateTo('/')
-}
-
 </script>
 
 <template>
@@ -531,7 +525,7 @@ async function logout() {
     <AmbientSparkles />
 
     <div class="relative z-10 flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
-      <!-- หัวหน้า: รูปโปรไฟล์ + ทักทาย (ซ้าย) / ออกจากระบบ (ขวา) -->
+      <!-- หัวหน้า: รูปโปรไฟล์ + ทักทาย (ปุ่มออกจากระบบย้ายไปอยู่ในเมนูโลโก้มุมขวาบนแล้ว ดู BrandCorner.vue) -->
       <div class="flex items-center justify-between gap-3 px-[38px] pt-[59px]">
         <div class="flex min-w-0 items-center gap-[14px]">
           <!-- กดรูปเพื่อไปหน้าเปลี่ยนรูปโปรไฟล์ -->
@@ -551,13 +545,6 @@ async function logout() {
             <span class="truncate text-xl">{{ nickname }}</span>
           </p>
         </div>
-        <button
-          type="button"
-          class="flex-shrink-0 text-xs font-medium text-moon-muted"
-          @click="logout"
-        >
-          ออกจากระบบ
-        </button>
       </div>
 
       <div v-if="hasPeriodData">

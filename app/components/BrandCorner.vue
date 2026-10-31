@@ -20,15 +20,68 @@ const top = computed(() => {
   return 18
 })
 const right = computed(() => (route.path === '/home' ? 38 : 24)) // หน้าหลักเว้นขอบ 38px ตามหัวหน้าของหน้านั้น
+
+// ===== เมนู "ออกจากระบบ" ที่โลโก้มุมขวาบน =====
+// หน้าที่ล็อกอินแล้ว: แตะโลโก้ -> มีกล่องเล็กๆ "ออกจากระบบ" ขึ้นมาใต้โลโก้ (แตะนอกกล่องหรือเปลี่ยนหน้า = ปิด)
+// หน้าอื่น (เช่น onboarding ที่ยังไม่ได้ล็อกอิน) โลโก้เป็นแค่ลายตกแต่ง กดไม่ได้เหมือนเดิม
+// อยากให้หน้าไหนมีเมนู ก็เพิ่ม path ในรายการนี้
+const MENU_PAGES = new Set(['/home', '/checkin', '/guide', '/snack', '/symptoms', '/profile-photo'])
+const hasMenu = computed(() => MENU_PAGES.has(route.path))
+const open = ref(false)
+const loggingOut = ref(false)
+watch(() => route.path, () => { open.value = false }) // เปลี่ยนหน้าแล้วปิดเมนูเอง
+
+async function logout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  const supabase = useSupabaseClient()
+  await supabase.auth.signOut()
+  open.value = false
+  loggingOut.value = false
+  await navigateTo('/')
+}
 </script>
 
 <template>
+  <!-- ไม่มีเมนู = ลายตกแต่งกดไม่ได้ (pointer-events-none) / มีเมนู = กดโลโก้แล้วเปิดกล่องออกจากระบบ -->
   <div
     v-if="visible"
-    class="pointer-events-none absolute z-[25]"
+    class="absolute z-[25]"
+    :class="hasMenu ? '' : 'pointer-events-none'"
     :style="{ top: `${top}px`, right: `${right}px` }"
-    aria-hidden="true"
+    :aria-hidden="hasMenu ? undefined : 'true'"
   >
-    <BrandLogoMark :size="LOGO_SIZE" />
+    <BrandLogoMark v-if="!hasMenu" :size="LOGO_SIZE" />
+
+    <template v-else>
+      <!-- พื้นโปร่งใสเต็มจอ: แตะตรงไหนนอกกล่องก็ปิดเมนู -->
+      <div v-if="open" class="fixed inset-0 z-0" @click="open = false" />
+
+      <button
+        type="button"
+        class="relative z-10 block"
+        aria-label="เมนูบัญชี"
+        aria-haspopup="true"
+        :aria-expanded="open"
+        @click="open = !open"
+      >
+        <BrandLogoMark :size="LOGO_SIZE" />
+      </button>
+
+      <!-- กล่องเมนู: ลอยใต้โลโก้ชิดขวา (ปรับความกว้างที่ min-w / มุมโค้งที่ rounded) -->
+      <div
+        v-if="open"
+        class="absolute right-0 top-full z-10 mt-2 min-w-[150px] rounded-2xl border border-moon-pink-soft bg-moon-card p-1.5 shadow-2xl"
+      >
+        <button
+          type="button"
+          class="w-full rounded-xl px-4 py-3 text-left text-sm font-medium text-moon-ink"
+          :disabled="loggingOut"
+          @click="logout"
+        >
+          ออกจากระบบ
+        </button>
+      </div>
+    </template>
   </div>
 </template>

@@ -71,7 +71,7 @@ const startHereIds = computed(() => {
   return guides.value.filter(isQuickGuide).slice(0, 2).map(g => g.id)
 })
 
-// คู่มือที่ตรงกับเป้าหมายของผู้ใช้ -> ได้ป้าย "แนะนำสำหรับคุณ" (ไม่บอกชื่อเป้าหมาย ให้ป้ายสั้นเหมือนในฟิกม่า)
+// คู่มือที่ตรงกับเป้าหมายของผู้ใช้ -> ได้ป้าย "แนะนำสำหรับคุณ" (ไม่บอกชื่อเป้าหมาย ให้ป้ายสั้น)
 function isRecommended(guide: GuideItem): boolean {
   return !!guide.linked_goal_code && goalCodes.value.includes(guide.linked_goal_code)
 }
