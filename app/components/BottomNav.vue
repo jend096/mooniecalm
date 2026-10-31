@@ -10,7 +10,7 @@ withDefaults(
   { active: 'home' }
 )
 
-// to = null แปลว่ายังไม่มีหน้านี้ (ปุ่มจะจางและกดไม่ได้ จนกว่าจะทำหน้านั้นเสร็จ แล้วค่อยใส่ path)
+// to = null แปลว่ายังไม่มีหน้านี้ (ปุ่มสีเท่าปุ่มอื่นแต่กดไม่ได้ จนกว่าจะทำหน้านั้นเสร็จ แล้วค่อยใส่ path)
 const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', label: string, icon: NavIcon, to: string | null }[] = [
   { key: 'home', label: 'หน้าหลัก', icon: 'house', to: '/home' },
   { key: 'checkin', label: 'เช็คอิน', icon: 'clipboard-check', to: '/checkin' },
@@ -48,7 +48,7 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
         v-else
         type="button"
         disabled
-        class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-moon-ink opacity-40"
+        class="flex flex-1 flex-col items-center justify-center gap-1 py-2 text-moon-ink"
       >
         <span class="flex h-10 w-10 items-center justify-center">
           <NavOutlineIcon :name="tab.icon" class="h-6 w-6" />

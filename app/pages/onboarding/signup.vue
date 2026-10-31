@@ -261,8 +261,9 @@ const nameSparkles = [
 
     <LoadingOverlay v-if="loading" :text="sendingLink ? 'กำลังส่งลิงก์ไปที่อีเมล...' : 'กำลังเข้าสู่ระบบ...'" />
 
-    <div class="relative z-10 flex flex-col items-center pt-[162px] text-center">
-      <h1 class="text-3xl font-semibold text-moon-ink">เข้าสู่ระบบ</h1>
+    <div class="relative z-10 flex flex-col items-center pt-[72px] text-center">
+      <!-- กระต่าย+พระจันทร์ เหมือนหน้า index (นิ่ง ไม่เล่นอนิเมชันเปิดแอป) ปรับขนาดที่ :size (หน้า index ใช้ 212) -->
+      <BrandLogoMark :size="170" />
       <!-- ชื่อแอปใช้รูปโลโก้ (BrandWordmark) แทนตัวหนังสือ + แสงโคเรลฟุ้งหลังชื่อ + ประกายเด้งรอบชื่อ เหมือนหน้า index
            ปรับขนาดชื่อที่ :size (หน้า index ใช้ 44) / ประกายแก้ที่ nameSparkles ใน <script> -->
       <div class="name-wrap">
@@ -280,7 +281,8 @@ const nameSparkles = [
           <path d="M10 0C10.778 5.889 14.111 9.222 20 10C14.111 10.778 10.778 14.111 10 20C9.222 14.111 5.889 10.778 0 10C5.889 9.222 9.222 5.889 10 0Z" />
         </svg>
       </div>
-      <p class="mt-3 text-sm font-normal text-moon-muted">
+      <h1 class="mt-3 text-3xl font-semibold text-moon-ink">เข้าสู่ระบบ</h1>
+      <p class="mt-2 text-sm font-normal text-moon-muted">
         เข้าสู่ระบบเพื่อบันทึกข้อมูลสุขภาพ ติดตามรอบเดือน และดูแลพฤติกรรมของคุณได้อย่างต่อเนื่อง
       </p>
     </div>

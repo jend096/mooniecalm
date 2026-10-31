@@ -6,7 +6,8 @@
 const route = useRoute()
 
 // หน้าแรก / หน้ารอ มีโลโก้ใหญ่ของตัวเอง, ปฏิทินวางโลโก้ไว้ในแถบบนของหน้าเอง (ขวาบนมีคำอธิบายสัญลักษณ์)
-const HIDDEN = new Set(['/', '/onboarding/loading', '/calendar'])
+// หน้าเข้าสู่ระบบ (/onboarding/signup) ก็ซ่อน เพราะมีกระต่าย+ชื่อแอปใหญ่ของตัวเองแล้ว
+const HIDDEN = new Set(['/', '/onboarding/loading', '/calendar', '/onboarding/signup'])
 const LOGO_SIZE = 42 // ขนาดโลโก้รอง (px) พี่เบอร์รี่ว่าตัวเล็กไปไม่ชัด จึงขยายจาก 34
 // หน้าที่มีปุ่มย้อนกลับกลมซ้ายบน (กลางปุ่มอยู่ที่ 44px จากขอบบน) จัดโลโก้ให้กึ่งกลางเท่าปุ่ม (top = 44 - ครึ่งหนึ่งของโลโก้)
 const WITH_BACK_BUTTON = new Set(['/checkin', '/guide', '/snack', '/symptoms'])
