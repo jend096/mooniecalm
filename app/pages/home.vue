@@ -375,6 +375,40 @@ function onPromptSecondary() {
   if (code) dismissPrompt(code)
 }
 
+// ---------- ผู้ใช้ที่ยังไม่มีวันที่ประจำเดือนล่าสุดในฐานข้อมูล ----------
+// ปฏิทินจะโชว์ได้ก็ต่อเมื่อมี "วันที่ประจำเดือนมาล่าสุด" ถ้าตอนสมัครคำตอบข้อนี้ไม่ได้ถูกบันทึก (เป็น null)
+// ปฏิทินจะหายไปเฉยๆ เลยแสดงการ์ดให้กรอกตรงนี้แทน กดบันทึกแล้วปฏิทินขึ้นทันที
+const setupDate = ref('') // วันที่ที่เลือกในช่อง (รูปแบบ YYYY-MM-DD)
+const savingSetup = ref(false)
+const setupError = ref('')
+const todayIso = getLocalDateString() // ห้ามเลือกวันในอนาคต
+
+async function saveFirstPeriod() {
+  if (!setupDate.value || profileId.value === null || savingSetup.value) return
+  savingSetup.value = true
+  setupError.value = ''
+  const authed = await getAuthedSupabaseClient()
+  // ถ้าช่องจำนวนวันที่มา / ความยาวรอบยังว่าง ใส่ค่ามาตรฐาน 5 วัน / 28 วัน
+  const duration = periodDurationDays.value ?? 5
+  const cycle = cycleDurationDays.value ?? 28
+  const { error } = await authed
+    .from('user_profiles')
+    .update({ last_period_date: setupDate.value, period_duration_days: duration, cycle_duration_days: cycle })
+    .eq('id', profileId.value)
+  savingSetup.value = false
+  if (error) {
+    setupError.value = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ'
+    return
+  }
+  // อัปเดตค่าในหน้า → hasPeriodData เป็นจริง → ปฏิทินโผล่ขึ้นมาทันที
+  profileLastPeriod.value = setupDate.value
+  lastPeriodDate.value = setupDate.value
+  periodDurationDays.value = duration
+  cycleDurationDays.value = cycle
+  await nextTick()
+  stripRef.value?.querySelector('[data-today]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -547,6 +581,27 @@ function goToCheckin() {
         </div>
       </div>
 
+      <!-- ยังไม่มีวันที่ประจำเดือนล่าสุด: ให้กรอกตรงนี้ (กรอกแล้วปฏิทินด้านล่างจะขึ้นเอง) -->
+      <div v-if="!hasPeriodData" class="mx-[38px] mt-[19px] rounded-[24px] border border-moon-pink-soft bg-moon-card p-4">
+        <p class="text-base font-semibold text-moon-ink">ประจำเดือนมาล่าสุดวันไหน?</p>
+        <p class="mt-1 text-sm text-moon-ink/70">ใส่วันที่ไว้ก่อน เดี๋ยวปฏิทินจะคำนวณรอบให้เลย</p>
+        <div class="mt-3 flex items-center gap-2">
+          <input
+            v-model="setupDate"
+            type="date"
+            :max="todayIso"
+            class="h-[40px] min-w-0 flex-1 rounded-xl border border-moon-gray bg-white px-3 text-sm text-moon-ink"
+          >
+          <button
+            type="button"
+            class="h-[40px] shrink-0 rounded-full bg-moon-ink px-4 text-sm font-medium text-white transition active:scale-95 disabled:opacity-50"
+            :disabled="!setupDate || savingSetup"
+            @click="saveFirstPeriod"
+          >{{ savingSetup ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+        </div>
+        <p v-if="setupError" class="mt-2 text-xs text-moon-period">{{ setupError }}</p>
+      </div>
+
       <div v-if="hasPeriodData">
         <!-- แถวบน: ชื่อเดือน (ซ้าย) + ปุ่มเปิดหน้าปฏิทินเต็ม (ขวา) -->
         <div class="mt-[19px] flex items-center justify-between gap-3 pl-[47px] pr-[36px]">
@@ -709,16 +764,16 @@ function goToCheckin() {
           </div>
         </div>
 
-        <!-- ปุ่มเช็คอิน -->
+        <!-- ปุ่มเช็คอิน / รับผลรอบ 28 วัน: ขนาด มุมโค้ง ตัวอักษร ใช้ค่ามาตรฐานเดียวกับปุ่ม "ถัดไป" (BaseButton ← tokens.css: --btn-height / --btn-radius / --btn-font-size) ไม่ตั้งค่าเฉพาะปุ่มนี้แล้ว / px-[56px] = ระยะซ้ายขวาเท่ากัน ตัวหนังสืออยู่กลางปุ่มพอดี (วงกลมลูกศรลอยอยู่ขวาสุดด้วย absolute ไม่ดันข้อความ) -->
         <button
           type="button"
-          class="btn-primary checkin-btn checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] pl-[10px] pr-[51px] [--btn-height:51px] [--btn-radius:10px] [--btn-font-size:16px]"
+          class="btn-primary checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] px-[56px]"
           @click="goToCheckin"
         >
           {{ awaitingClaim ? 'รับผลรอบ 28 วัน' : 'เช็คอินกันเถอะ' }}
-          <span class="absolute right-[10px] flex h-[31px] w-[31px] items-center justify-center rounded-full bg-moon-coral">
+          <!-- <span class="absolute right-[12px] flex h-[35px] w-[35px] items-center justify-center rounded-full bg-moon-coral">
             <img src="/icons/checkin-arrow.svg" alt="" aria-hidden="true" class="h-[15px] w-[15px]">
-          </span>
+          </span> -->
         </button>
       </div>
 
@@ -979,11 +1034,6 @@ function goToCheckin() {
   .goal-card-await {
     animation: none;
   }
-}
-
-/* ปุ่มเช็คอินหน้าแรก: ตัวหนังสือกึ่งหนา (500) ตามดีไซน์ (ปุ่มอื่นในแอปยังเป็น 600) */
-.checkin-btn {
-  font-weight: 500;
 }
 
 /* ===== ติ๊กถูกสำเร็จในการ์ดเป้าหมาย: เด้งโผล่เบาๆ ตอนติ๊ก ===== */

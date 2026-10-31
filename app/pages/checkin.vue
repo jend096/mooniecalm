@@ -75,8 +75,16 @@
       >
         <!-- ซ้าย: ชื่อ + คำอธิบาย + แถบความคืบหน้า -->
         <div class="flex min-w-0 flex-1 flex-col gap-[2px]">
-          <p class="text-lg font-medium leading-[26px]" :class="isDone(goal.goal_code) ? 'text-moon-bg' : ''">{{ goal.title }}</p>
-          <p class="text-sm leading-[22px]" :class="isDone(goal.goal_code) ? 'text-white' : ''">{{ GOAL_HINTS[goal.goal_code] ?? '' }}</p>
+          <!-- ชื่อเป้าหมาย + แท็บสถานะ: จัดเป็นแถวเดียว (flex) แท็บ shrink-0 ไม่ย่อและไม่ตกบรรทัดล่าง ถ้าชื่อยาวชื่อจะขึ้นสองบรรทัดเองในกล่องของมัน ระยะห่างปรับที่ gap-1.5
+               สีตัวหนังสือเป็นสีดำ (text-moon-ink) ทั้งสองสถานะ / พื้นแท็บ: ทำแล้ว = ม่วง (bg-moon-lavender) ยังไม่ทำ = เทา (bg-moon-gray) -->
+          <div class="flex items-start gap-1.5">
+            <p class="min-w-0 text-lg font-medium leading-[26px] text-moon-ink">{{ goal.title }}</p>
+            <span
+              class="mt-[4px] shrink-0 whitespace-nowrap rounded-lg px-2 py-[2px] text-xs leading-[18px] text-moon-ink"
+              :class="isDone(goal.goal_code) ? 'bg-moon-lavender' : 'bg-moon-gray'"
+            >{{ goalStatusText(goal.goal_code) }}</span>
+          </div>
+          <p class="text-sm leading-[22px] text-moon-ink">{{ GOAL_HINTS[goal.goal_code] ?? '' }}</p>
           <!-- จำนวนวันที่ทำสำเร็จในรอบนี้ (ตัวเลขเด่นเหนือแถบ) -->
           <p class="mt-1 text-sm font-medium leading-[22px]">
             ทำมาแล้ว
@@ -91,25 +99,19 @@
           </div>
         </div>
 
-        <!-- ขวา: วงกลมติ๊ก (บน) + ป้ายสถานะวันนี้ (ล่าง) -->
-        <div class="flex w-[111px] shrink-0 flex-col items-end justify-between">
+        <!-- ขวา (ชิดล่าง): ยังไม่ได้เช็ค = ปุ่มดำ "เช็คอิน" / เช็คแล้ว = ไม่แสดงปุ่มอะไร (ยกเลิกไม่ได้)
+             ย้อนดูวันเก่า หรือครบ 28 วันแล้ว = ไม่โชว์ปุ่มเหมือนกัน กดปุ่มแล้วเรียก toggleGoal (บันทึกลง daily_checkins) -->
+        <div class="flex w-[90px] shrink-0 items-end justify-end">
           <button
+            v-if="isToday && !isAchieved(goal.goal_code) && !isDone(goal.goal_code)"
             type="button"
-            class="relative flex h-[28px] w-[28px] items-center justify-center rounded-full border-2 transition active:scale-90 before:absolute before:-inset-3 before:content-[''] disabled:active:scale-100"
-            :class="isDone(goal.goal_code) ? 'border-moon-ink bg-moon-ink' : 'border-moon-period bg-moon-card shadow-sm'"
+            class="h-[32px] rounded-full bg-moon-ink px-4 text-sm font-medium text-white transition active:scale-95 disabled:opacity-60"
             :aria-label="`เช็คอิน ${goal.title}`"
-            :disabled="!isToday || isAchieved(goal.goal_code)"
+            :disabled="savingGoalCode !== null"
             @click="toggleGoal(goal.goal_code, $event)"
           >
-            <!-- ยังไม่ติ๊ก = วงกลมว่างๆ ไม่มีเครื่องหมาย / ติ๊กแล้ว = เครื่องหมายถูกใหญ่ชัด -->
-            <FaIcon v-if="isDone(goal.goal_code)" name="check" class="h-3 w-[15px] text-white" />
+            เช็คอิน
           </button>
-          <span
-            class="whitespace-nowrap rounded-full px-2 py-2 text-xs leading-[18px]"
-            :class="isDone(goal.goal_code) ? 'bg-moon-card text-moon-coral' : 'bg-moon-cream-soft'"
-          >
-            {{ goalStatusText(goal.goal_code) }}
-          </span>
         </div>
       </div>
     </div>
@@ -763,7 +765,7 @@ function isDone(goalCode: string) {
 function goalStatusText(goalCode: string) {
   if (!isToday.value) return checkedGoals.value[goalCode] ? 'สำเร็จวันนั้น' : 'ไม่ได้เช็คไว้'
   if (isAchieved(goalCode)) return 'สำเร็จครบแล้ว!'
-  return checkedGoals.value[goalCode] ? 'สำเร็จวันนี้แล้ว' : 'ยังไม่ได้เช็คของวันนี้'
+  return checkedGoals.value[goalCode] ? 'สำเร็จวันนี้แล้ว' : 'ยังไม่สำเร็จ'
 }
 
 // กด "เริ่มเช็คอินรอบใหม่" ในการ์ดรับผล: โหลดข้อมูลใหม่ทั้งหมดของรอบใหม่
