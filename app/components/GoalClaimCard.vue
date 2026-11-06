@@ -217,7 +217,8 @@
 </template>
 
 <script setup lang="ts">
-import { CYCLE_LENGTH_DAYS, applyUpgrades, evaluateClaim, nextCycleDates } from '~/utils/goal-claim'
+import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
+import { applyUpgrades, evaluateClaim, nextCycleDates } from '~/utils/goal-claim'
 
 const props = defineProps<{
   profileId: number

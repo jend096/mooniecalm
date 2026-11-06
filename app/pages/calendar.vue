@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
+import { DEFAULT_MENSTRUAL_CYCLE_DAYS } from '~/utils/cycle-config'
 // ===== หน้าปฏิทินประจำเดือน (app/pages/calendar.vue) =====
 // ทำอะไรได้บ้าง
 //  1) เลื่อนดูหลายเดือน: วงสีทึบ = ประจำเดือนมาจริง, วงเส้นประ = ระบบคาดไว้ (รวมเดือนในอนาคต)
@@ -12,7 +14,7 @@ import { buildMonthCells, daysBetween, estimateCycleLength, getDayKind, startOfD
 const isLoading = ref(true)
 const profileId = ref<number | null>(null)
 const periodDurationDays = ref(5) // ประจำเดือนมากี่วัน (ค่าเริ่มต้นถ้าโปรไฟล์ยังไม่มี)
-const cycleDurationDays = ref(28) // ความยาวรอบ
+const cycleDurationDays = ref(DEFAULT_MENSTRUAL_CYCLE_DAYS) // ความยาวรอบ
 const profileLastPeriod = ref<string | null>(null) // วันเริ่มที่ตอบไว้ตอน onboarding
 const savedRows = ref<PeriodRow[]>([]) // แถวจากตาราง period_cycles
 
@@ -122,7 +124,7 @@ onMounted(async () => {
   profileId.value = profile.id
   profileLastPeriod.value = profile.last_period_date ?? null
   periodDurationDays.value = profile.period_duration_days ?? 5
-  cycleDurationDays.value = profile.cycle_duration_days ?? 28
+  cycleDurationDays.value = profile.cycle_duration_days ?? DEFAULT_MENSTRUAL_CYCLE_DAYS
 
   await loadRows()
   isLoading.value = false

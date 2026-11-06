@@ -157,10 +157,11 @@ export function resolveOnboardingData(
   }
 }
 
-// เช็คว่าผู้ใช้คนนี้ "เคยตอบคำถามสร้างอวตารแล้วหรือยัง" (ไว้กันไม่ให้สร้างโปรไฟล์เปล่าให้คนที่กด "เข้าสู่ระบบ" โดยยังไม่เคยตอบอะไร)
+// เช็คว่าผู้ใช้คนนี้ "ตอบคำถามสร้างอวตารครบทั้ง 4 ข้อแล้วหรือยัง" (ไว้กันไม่ให้สร้างโปรไฟล์ที่อวตารไม่ครบ)
 // หาคำตอบจาก 3 ที่ เหมือนตอนบันทึกจริง: จดจำในเบราว์เซอร์นี้ / ที่แนบไปกับลิงก์อีเมล (userMetadata) / ที่จดไว้ก่อนเด้งไปหน้า Google
-// คืนค่า true = มีคำตอบอย่างน้อยหนึ่งข้อ
-export function hasOnboardingAnswers(userMetadata: Record<string, unknown> | undefined): boolean {
+// คืนค่า true = มีคำตอบครบทั้ง 4 ช่อง (ตอบแค่ 1-3 ข้อ = false)
+// เดิมเช็คแค่ "มีอย่างน้อย 1 ข้อ" เลยปล่อยให้คนที่ตอบค้างไว้ครึ่งเดียว (เช่นของพี่โอม มี 2 จาก 4 ชิ้น) ผ่านเข้าแอปได้
+export function hasCompleteAvatarAnswers(userMetadata: Record<string, unknown> | undefined): boolean {
   let local = buildOnboardingMetadata()
   if (isEmptySelections(local.avatar_selections)) {
     local.avatar_selections = readAvatarSelectionsFromStorage()
@@ -168,7 +169,7 @@ export function hasOnboardingAnswers(userMetadata: Record<string, unknown> | und
   const pending = readPendingOnboarding()
   if (pending) local = fillMissing(local, pending)
   const data = resolveOnboardingData(userMetadata, local)
-  return !isEmptySelections(data.avatar_selections)
+  return AVATAR_SLOTS.every(slot => data.avatar_selections[slot] !== null)
 }
 
 export async function saveOnboardingProfile(userId: string) {

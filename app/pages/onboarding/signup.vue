@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { savePendingOnboarding, hasOnboardingAnswers } from '~/utils/save-onboarding-profile'
+import { savePendingOnboarding, hasCompleteAvatarAnswers } from '~/utils/save-onboarding-profile'
+import { decideLoginStep, AVATAR_SLOT_COUNT } from '~/utils/login-route'
 const config = useRuntimeConfig()
 const isSupabaseConfigured = Boolean(config.public.supabase?.url && config.public.supabase?.key)
 
@@ -43,36 +44,72 @@ async function completeLogin(userId: string) {
       return
     }
 
-    // ถ้าพบโปรไฟล์ และมีชื่อเล่นบันทึกอยู่แล้ว (เป็นผู้ใช้เดิม) -> พาไปหน้าหลักทันที
-    if (profile && profile.nickname) {
+    // นับชิ้นอวตารที่อยู่ในฐานข้อมูลจริง (ต้องครบ 4 ชิ้นถึงถือว่า "ข้อมูลเข้าฐานครบ")
+    async function countAvatarRows(profileId: number): Promise<number | null> {
+      const { count, error: countError } = await authed
+        .from('user_avatar_state')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profileId)
+      return countError ? null : (count ?? 0)
+    }
+
+    let avatarCount = 0
+    if (profile) {
+      const counted = await countAvatarRows(profile.id)
+      if (counted === null) {
+        // นับไม่ได้ -> ไม่รู้ว่าครบไหม ไม่เดาให้ (เดามั่วจะปล่อยคนข้อมูลไม่ครบเข้าแอป) ให้ลองใหม่
+        statusMessage.value = 'เช็คข้อมูลบัญชีไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง'
+        hasCompletedLogin = false
+        return
+      }
+      avatarCount = counted
+    }
+
+    // คำตอบสร้างอวตารที่รอบันทึกอยู่ (ความจำ / แนบมากับลิงก์อีเมล / จดไว้ก่อนไป Google) ต้องครบ 4 ข้อ
+    const { data: sessionData } = await supabase.auth.getSession()
+    const step = decideLoginStep({
+      hasNickname: Boolean(profile?.nickname),
+      avatarCountInDb: avatarCount,
+      hasAllAvatarAnswers: hasCompleteAvatarAnswers(sessionData.session?.user.user_metadata)
+    })
+
+    // 1) ผู้ใช้เดิม ข้อมูลครบในฐานข้อมูลแล้ว -> เข้าหน้าหลักได้เลย
+    if (step === 'home') {
       await navigateTo('/home', { replace: true })
       return
     }
 
-    // ผู้ใช้ใหม่ที่ "ยังไม่เคยตอบคำถามสร้างอวตาร" (เช่น กด "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" ด้วยอีเมลที่ไม่เคยสมัคร)
-    // -> ห้ามสร้างโปรไฟล์เปล่า พาไปเริ่มตอบคำถามตั้งแต่ต้นก่อน (ตอบครบแล้วจะวนกลับมาหน้านี้ เจอ session เดิม แล้วบันทึกต่อเอง)
-    const { data: sessionData } = await supabase.auth.getSession()
-    let answered = hasOnboardingAnswers(sessionData.session?.user.user_metadata)
-    if (!answered && profile) {
-      // โปรไฟล์เดิมที่ยังไม่มีชื่อ แต่เคยบันทึกอวตารลงฐานข้อมูลไว้แล้ว ถือว่าเคยตอบแล้ว (ไม่ต้องให้ตอบซ้ำ)
-      const { count, error: countError } = await authed
-        .from('user_avatar_state')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', profile.id)
-      answered = countError ? true : (count ?? 0) > 0 // เช็คไม่ได้ -> ทำเหมือนเดิม ไม่เด้งมั่ว
-    }
-    if (!answered) {
+    // 2) เมลใหม่ หรือข้อมูลในฐานไม่ครบและยังไม่มีคำตอบครบ -> ไปตอบคำถามตั้งแต่ step-3
+    //    (ตอบครบแล้วจะวนกลับมาหน้านี้ เจอ session เดิม แล้วบันทึกต่อเอง)
+    if (step === 'questions') {
       await navigateTo('/onboarding/step-3', { replace: true })
       return
     }
 
-    // ถ้ายังไม่มีข้อมูล หรือยังไม่เคยตั้งชื่อเล่น (ผู้ใช้ใหม่) -> บันทึกเริ่มต้นแล้วพาไป onboarding
+    // 3) มีคำตอบครบแล้ว -> บันทึกลงฐานข้อมูล แล้ว "ตรวจซ้ำ" ว่าอวตารลงฐานครบ 4 ชิ้นจริง ก่อนปล่อยไปต่อ
     await saveOnboardingProfile(userId)
-    await navigateTo('/onboarding/step-1', { replace: true })
+    const savedCount = profile ? await countAvatarRows(profile.id) : null
+    let verifiedCount = savedCount
+    if (!profile) {
+      // เมลใหม่: เพิ่งสร้างโปรไฟล์ ต้องดึง id ใหม่มานับ
+      const { data: created } = await authed.from('user_profiles').select('id').eq('auth_user_id', userId).maybeSingle()
+      verifiedCount = created ? await countAvatarRows((created as { id: number }).id) : null
+    }
+    if (verifiedCount === null || verifiedCount < AVATAR_SLOT_COUNT) {
+      console.error('[signup] บันทึกอวตารไม่ครบ', { verifiedCount })
+      statusMessage.value = 'บันทึกข้อมูลไม่ครบ กรุณาลองเข้าสู่ระบบอีกครั้ง'
+      hasCompletedLogin = false
+      return
+    }
+
+    // ผู้ใช้เดิมที่เคยตั้งชื่อแล้ว (เติมอวตารให้ครบแล้ว) -> หน้าหลัก / เมลใหม่ยังไม่มีชื่อ -> ไปตั้งชื่อเล่น
+    await navigateTo(profile?.nickname ? '/home' : '/onboarding/step-1', { replace: true })
 
   } catch (err) {
+    // บันทึก/ตรวจไม่สำเร็จ -> ห้ามพาไปต่อ (เดิมพาไป step-1 ทำให้ได้โปรไฟล์ที่อวตารว่าง) ให้ลองใหม่
     console.error('Error checking profile:', err)
-    await navigateTo('/onboarding/step-1', { replace: true })
+    statusMessage.value = 'บันทึกข้อมูลไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง'
+    hasCompletedLogin = false
   }
 }
 

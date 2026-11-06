@@ -167,7 +167,7 @@
       </div>
 
       <p class="px-9 pt-1.5 text-xs font-normal text-moon-muted">
-        ระยะเวลาในการทำ 28 วัน
+        ระยะเวลาในการทำ {{ CYCLE_LENGTH_DAYS }} วัน
       </p>
 
       <div class="mt-3 flex flex-1 flex-col gap-3 overflow-y-auto px-9 pb-4">
@@ -249,6 +249,8 @@
 </template>
 
 <script setup lang="ts">
+// เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
+import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
 interface GoalType {
   id: number
   goal_code: string
@@ -574,7 +576,8 @@ async function confirmGoals() {
   const authed = await getAuthedSupabaseClient()
   const today = new Date()
   const cycleEnd = new Date(today)
-  cycleEnd.setDate(cycleEnd.getDate() + 27)
+  // วันสุดท้ายของรอบ = วันนี้ + (จำนวนวันของรอบ - 1) เช่น 28 วัน = บวก 27
+  cycleEnd.setDate(cycleEnd.getDate() + CYCLE_LENGTH_DAYS - 1)
 
   const goalRows = selectedGoalIds.value.map(goalTypeId => ({
     user_id: profileId.value,

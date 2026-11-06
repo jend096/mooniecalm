@@ -272,14 +272,17 @@
 </template>
 
 <script setup lang="ts">
+// เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
+import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
 import { painLevelLabel, painLocationLabel, splitSteps } from '~/utils/guide-picker'
 import { isCycleFinished } from '~/utils/goal-claim'
 import type { SnackCategory } from '~/utils/snack-picker'
 
-const router = useRouter()
 
+// ปุ่มย้อนกลับ: กลับหน้าหลักเสมอ (เหมือนหน้าบันทึกอาการ/คู่มือ)
+// ไม่ใช้ router.back() เพราะถ้าเปิดหน้านี้ตรงๆ / รีเฟรชหน้า / มาจากเมนูล่าง จะไม่มีหน้าก่อนหน้าให้ย้อน ปุ่มเลยดูเหมือนกดไม่ติด
 function back() {
-  router.back()
+  navigateTo('/home')
 }
 
 interface ActiveGoal {
@@ -302,7 +305,6 @@ const GOAL_CODE_TO_PROGRESS_COLUMN: Record<string, string> = {
   reduce_cold_drinks: 'cold_drink_days_achieved'
 }
 
-const CYCLE_LENGTH_DAYS = 28
 const today = getLocalDateString()
 
 // วันที่กำลังดูอยู่ (เริ่มที่วันนี้) เลือกวันเก่าได้เพื่อดูย้อนหลัง แต่วันที่ผ่านไปแล้วแก้ไม่ได้

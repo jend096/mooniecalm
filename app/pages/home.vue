@@ -1,4 +1,7 @@
 <script setup lang="ts">
+// เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
+import { CYCLE_LENGTH_DAYS, DEFAULT_MENSTRUAL_CYCLE_DAYS } from '~/utils/cycle-config'
+import { AVATAR_SLOT_COUNT } from '~/utils/login-route'
 import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
 import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
@@ -17,7 +20,6 @@ const GOAL_CODE_TO_COLUMN: Record<string, string> = {
   reduce_cold_drinks: 'avoided_cold_drinks'
 }
 
-const CYCLE_LENGTH_DAYS = 28
 const WEEKDAY_SHORT = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 const MS_PER_DAY = 86400000
 
@@ -193,7 +195,7 @@ const allRows = computed<PeriodRow[]>(() => {
 
 // ความยาวรอบที่ใช้จริง: เฉลี่ยจากรอบที่ผู้ใช้บันทึกไว้ (ถ้ายังไม่พอ ใช้ค่าจากโปรไฟล์ หรือ 28)
 const effectiveCycleDays = computed(() =>
-  estimateCycleLength(allRows.value.map(r => r.cycle_start_date), cycleDurationDays.value ?? 28)
+  estimateCycleLength(allRows.value.map(r => r.cycle_start_date), cycleDurationDays.value ?? DEFAULT_MENSTRUAL_CYCLE_DAYS)
 )
 
 // โหลดรอบประจำเดือนทั้งหมดใหม่ แล้วอัปเดตวันเริ่มรอบล่าสุดที่ใช้คำนวณ
@@ -390,7 +392,7 @@ async function saveFirstPeriod() {
   const authed = await getAuthedSupabaseClient()
   // ถ้าช่องจำนวนวันที่มา / ความยาวรอบยังว่าง ใส่ค่ามาตรฐาน 5 วัน / 28 วัน
   const duration = periodDurationDays.value ?? 5
-  const cycle = cycleDurationDays.value ?? 28
+  const cycle = cycleDurationDays.value ?? DEFAULT_MENSTRUAL_CYCLE_DAYS
   const { error } = await authed
     .from('user_profiles')
     .update({ last_period_date: setupDate.value, period_duration_days: duration, cycle_duration_days: cycle })
@@ -476,6 +478,12 @@ onMounted(async () => {
   savedRows.value = (periodRowsRes.data ?? []) as PeriodRow[]
   if (savedRows.value.length > 0) {
     lastPeriodDate.value = savedRows.value.at(-1)!.cycle_start_date
+  }
+  // ข้อมูลอวตารในฐานข้อมูลไม่ครบ 4 ชิ้น (เช่น สมัครค้าง/บันทึกไม่ครบ) -> ไม่ให้เข้าหน้านี้ (ไม่งั้นอวตารขึ้นโล่งๆ)
+  // ส่งไปหน้าเข้าสู่ระบบ ซึ่งจะพาไปตอบคำถามสร้างอวตารที่ step-3 ต่อ (เช็คเฉพาะตอนดึงสำเร็จ กันเน็ตหลุดแล้วเด้งมั่ว)
+  if (!avatarRowsRes.error && (avatarRowsRes.data ?? []).length < AVATAR_SLOT_COUNT) {
+    navigateTo('/onboarding/signup')
+    return
   }
   for (const row of avatarRowsRes.data ?? []) {
     if (row.feature_slot in avatarState.value) {
@@ -770,7 +778,7 @@ function goToCheckin() {
           class="btn-primary checkin-pulse relative mx-[13px] mb-[12px] mt-[16px] w-[calc(100%-26px)] px-[56px]"
           @click="goToCheckin"
         >
-          {{ awaitingClaim ? 'รับผลรอบ 28 วัน' : 'เช็คอินกันเถอะ' }}
+          {{ awaitingClaim ? `รับผลรอบ ${CYCLE_LENGTH_DAYS} วัน` : 'เช็คอินกันเถอะ' }}
           <!-- <span class="absolute right-[12px] flex h-[35px] w-[35px] items-center justify-center rounded-full bg-moon-coral">
             <img src="/icons/checkin-arrow.svg" alt="" aria-hidden="true" class="h-[15px] w-[15px]">
           </span> -->
