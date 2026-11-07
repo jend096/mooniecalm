@@ -482,29 +482,7 @@ async function scrollStripToToday() {
   updateVisibleMonth()
 }
 
-// ===== โหมดทดสอบความหน่วงบน Safari มือถือ (ชั่วคราว ลบได้หลังหาต้นเหตุเจอ) =====
-// ใส่ท้ายลิงก์หน้าหลักครั้งเดียว เช่น /home?lite=blur แล้วเปลี่ยนหน้าไปมาได้ตามปกติ (จำไว้จนปิดแท็บ)
-//   ?lite=blur = ปิดเบลอ/กระจกฝ้า (วงโคเรลกับแถบขาวหลังฉาก + การ์ดเป้าหมาย)
-//   ?lite=anim = ปิดแอนิเมชันที่วนไม่หยุด (ประกายดาว วงพัลส์ เลขไล่สี)
-//   ?lite=all  = ปิดทั้งสองอย่าง   ?lite=off = กลับเป็นปกติ
-// ถ้าไม่ใส่อะไรเลย หน้าหลักเป็นเหมือนเดิมทุกอย่าง
-const liteBlur = ref(false)
-const liteAnim = ref(false)
-const liteLabel = computed(() => (liteBlur.value || liteAnim.value) ? `lite: ${liteBlur.value ? 'blur ' : ''}${liteAnim.value ? 'anim' : ''}` : '')
-function loadLiteMode() {
-  try {
-    const fromUrl = new URLSearchParams(window.location.search).get('lite')
-    if (fromUrl) sessionStorage.setItem('moonie-lite', fromUrl)
-    const mode = sessionStorage.getItem('moonie-lite')
-    liteBlur.value = mode === 'blur' || mode === 'all'
-    liteAnim.value = mode === 'anim' || mode === 'all'
-  } catch {
-    // อ่านไม่ได้ก็ใช้โหมดปกติ
-  }
-}
-
 onMounted(async () => {
-  loadLiteMode() // อ่านโหมดทดสอบก่อนวาดหน้า
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
 
@@ -652,21 +630,15 @@ function goToCheckin() {
   <div
     v-if="!isLoading"
     class="relative flex min-h-dvh flex-col overflow-hidden bg-gradient-to-b from-moon-bg to-moon-bg-end text-moon-ink"
-    :class="{ 'lite-anim': liteAnim }"
   >
-    <!-- ลายเบลอตกแต่งด้านหลัง (ตามฟิกม่า: วงกลมโคเรลเบลอ + แถบขาวเบลอ) -->
-    <template v-if="!liteBlur">
-      <div aria-hidden="true" class="pointer-events-none absolute left-[37%] top-[134px] h-[155px] w-[97px] rounded-full bg-moon-coral blur-[100px]" />
-      <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-moon-card blur-[25px]" />
-    </template>
-    <!-- โหมดทดสอบ (lite): แทนเบลอด้วยไล่สีธรรมดา หน้าตาใกล้เคียงแต่เบากว่ามาก -->
-    <template v-else>
-      <div aria-hidden="true" class="pointer-events-none absolute left-[calc(37%-100px)] top-[34px] h-[355px] w-[297px]" style="background: radial-gradient(closest-side, color-mix(in srgb, var(--color-coral) 26%, transparent), transparent)" />
-      <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-moon-card" style="mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" />
-    </template>
+    <!-- ลายตกแต่งด้านหลัง (ตามฟิกม่า: วงโคเรลฟุ้ง + แถบขาวจาง)
+         เดิมใช้ CSS blur (blur-[100px] / blur-[25px]) แต่ Safari บน iPhone วาดช้ามาก ทำให้กดเปลี่ยนมาหน้านี้แล้วค้างราว 1 วินาที
+         เลยใช้ไล่สีธรรมดาแทน (หน้าตาใกล้เคียง แต่เบากว่ามาก) ห้ามกลับไปใช้ blur / backdrop-blur ในหน้านี้ -->
+    <div aria-hidden="true" class="pointer-events-none absolute left-[calc(37%-100px)] top-[34px] h-[355px] w-[297px]" style="background: radial-gradient(closest-side, color-mix(in srgb, var(--color-coral) 26%, transparent), transparent)" />
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 top-[292px] h-[498px] bg-moon-card" style="mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)" />
 
     <!-- ประกายดาวจางๆ ลอยอยู่หลังเนื้อหา -->
-    <AmbientSparkles v-if="!liteAnim" />
+    <AmbientSparkles />
 
     <div class="relative z-10 flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
       <!-- หัวหน้า: รูปโปรไฟล์ + ทักทาย (ปุ่มออกจากระบบย้ายไปอยู่ในเมนูโลโก้มุมขวาบนแล้ว ดู BrandCorner.vue) -->
@@ -797,12 +769,13 @@ function goToCheckin() {
         </button>
       </AvatarScene>
 
-      <!-- การ์ดเป้าหมายของฉัน (กระจกฝ้าโปร่งแสง) -->
+      <!-- การ์ดเป้าหมายของฉัน (ขาวกึ่งโปร่งแสง) -->
       <!-- ทุกส่วนเรียงในลำดับปกติ (ไม่ล็อกตำแหน่ง) ความสูงการ์ดเลยพอดีเนื้อหา:
            เป้าหมายน้อยการ์ดก็เตี้ยลง เป้าหมายเยอะการ์ดก็สูงขึ้นเอง ไม่เหลือที่ว่างเกินไป -->
+      <!-- relative z-10 = การ์ดอยู่เหนือฉากอวตาร (ฉากเป็นชั้นที่วางตำแหน่งไว้ ถ้าไม่ใส่จะทับการ์ดตรงส่วนที่ซ้อนกันด้วย -mb-[28px]) -->
       <div
-        class="mx-[35px] mt-[14px] rounded-[15px] shadow-[0_3px_8px_rgba(0,0,0,0.25)]"
-        :class="[awaitingClaim ? 'goal-card-await' : '', liteBlur ? 'bg-moon-card/80' : 'bg-moon-card/55 backdrop-blur-[8px]']"
+        class="relative z-10 mx-[35px] mt-[14px] rounded-[15px] bg-moon-card/80 shadow-[0_3px_8px_rgba(0,0,0,0.25)]"
+        :class="awaitingClaim ? 'goal-card-await' : ''"
       >
         <h2 class="px-[23px] pt-[21px] text-lg font-medium leading-[26px]">เป้าหมายของฉัน</h2>
 
@@ -960,9 +933,6 @@ function goToCheckin() {
       @changed="onPeriodChanged"
     />
 
-    <!-- ป้ายบอกว่ากำลังอยู่โหมดทดสอบ (แคปหน้าจอส่งได้เลย) -->
-    <div v-if="liteLabel" class="pointer-events-none fixed left-2 top-[calc(env(safe-area-inset-top)+4px)] z-50 rounded bg-black/70 px-2 py-0.5 text-[10px] text-white">{{ liteLabel }}</div>
-
     <BottomNav active="home" />
 
     <!-- กำลังสร้างรูปแชร์ -> กระต่ายรอโหลดเต็มจอ -->
@@ -974,13 +944,6 @@ function goToCheckin() {
 </template>
 
 <style scoped>
-/* โหมดทดสอบ ?lite=anim: ปิดแอนิเมชันที่วนไม่หยุดทุกอย่างในหน้าหลัก (รวมของคอมโพเนนต์ลูก) */
-.lite-anim,
-.lite-anim :deep(*),
-.lite-anim :deep(*::before),
-.lite-anim :deep(*::after) {
-  animation: none !important;
-}
 /* เลขวันตอนครบ 28: ไล่เฉดสีของประจำเดือนวิ่งผ่านตัวเลข + เอียง/เด้งเบาๆ
    เปลี่ยนสี: แก้ var(--color-period-day / --color-period-predicted) ด้านล่าง, ความเร็ว: 2.6s (เฉด) และ 2.2s (ขยับ) */
 .days-done {
