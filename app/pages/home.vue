@@ -930,8 +930,7 @@ function goToCheckin() {
       @changed="onPeriodChanged"
     />
 
-    <!-- มีป๊อปอัพอยู่ก็ยังกดแถบเมนูล่างได้เลย (ยกแถบเมนูให้อยู่เหนือพื้นหลังมืด) -->
-    <BottomNav active="home" :above-overlay="Boolean(visiblePrompt)" />
+    <BottomNav active="home" />
 
     <!-- กำลังสร้างรูปแชร์ -> กระต่ายรอโหลดเต็มจอ -->
     <LoadingOverlay v-if="isSharing" text="กำลังสร้างรูปแชร์..." />
