@@ -786,10 +786,14 @@ function goToCheckin() {
             <!-- ครบ 28 วัน: เลขเปลี่ยนเป็นสีของประจำเดือน (ไล่เฉด --color-period-day -> --color-period-predicted ใน assets/css/tokens.css)
                  ขยับเบาๆ + มีประกายระยิบรอบเลข ให้รู้ว่าทำครบแล้ว -->
             <span class="relative inline-block">
-              <span
-                class="inline-block text-[48px] font-semibold leading-none"
-                :class="showDayEffect ? 'days-done' : 'text-moon-period'"
-              >{{ String(daysLogged).padStart(2, '0') }}</span>
+              <!-- แยกเป็น 2 ชั้น: ชั้นนอกขยับ (days-done-wiggle) / ชั้นในไล่สีในตัวอักษร (days-done-text)
+                   ถ้าใส่ทั้งขยับและไล่สีบน element เดียวกัน Safari บน iPhone จะทำให้เลขกะพริบหายเป็นช่วงๆ -->
+              <span class="inline-block" :class="showDayEffect ? 'days-done-wiggle' : ''">
+                <span
+                  class="inline-block text-[48px] font-semibold leading-none"
+                  :class="showDayEffect ? 'days-done-text' : 'text-moon-period'"
+                >{{ String(daysLogged).padStart(2, '0') }}</span>
+              </span>
               <template v-if="showDayEffect">
                 <svg
                   v-for="(star, i) in visibleDaySparkles"
@@ -946,14 +950,20 @@ function goToCheckin() {
 <style scoped>
 /* เลขวันตอนครบ 28: ไล่เฉดสีของประจำเดือนวิ่งผ่านตัวเลข + เอียง/เด้งเบาๆ
    เปลี่ยนสี: แก้ var(--color-period-day / --color-period-predicted) ด้านล่าง, ความเร็ว: 2.6s (เฉด) และ 2.2s (ขยับ) */
-.days-done {
+/* ชั้นในสุด: ไล่เฉดสีในตัวอักษร (ไม่มี transform อยู่ชั้นนี้ กันเลขหายบน Safari) */
+.days-done-text {
   background: linear-gradient(100deg, var(--color-period-day) 0%, var(--color-period-predicted) 45%, var(--color-period-day) 90%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: days-done-shimmer 2.6s linear infinite, days-done-wiggle 2.2s ease-in-out infinite;
+  animation: days-done-shimmer 2.6s linear infinite;
+}
+
+/* ชั้นนอก: ขยับ/เอียงเบาๆ (ใช้แค่ transform ไม่มีไล่สีอยู่ชั้นนี้) */
+.days-done-wiggle {
+  animation: days-done-wiggle 2.2s ease-in-out infinite;
   transform-origin: 50% 80%;
 }
 
@@ -1001,7 +1011,8 @@ function goToCheckin() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .days-done,
+  .days-done-text,
+  .days-done-wiggle,
   .days-done-star {
     animation: none;
   }
