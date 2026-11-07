@@ -7,7 +7,7 @@ import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
 import { isCycleFinished } from '~/utils/goal-claim'
 // ตัวจำข้อมูลสั้นๆ: กลับมาหน้านี้ภายใน 30 วิ -> โชว์ข้อมูลเดิมทันที แล้วแอบดึงของใหม่ตามหลัง
-import { clearPageCache, readPageCache, toCacheJson, writePageCache } from '~/utils/page-cache'
+import { clearPageCache, readPageCache, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
 
 interface GoalType {
   id: number
@@ -521,6 +521,8 @@ onMounted(async () => {
     isLoading.value = false // ถ้ามีของที่จำไว้โชว์อยู่ก็ปล่อยไว้อย่างนั้น
     return
   }
+
+  writeProfileId(authUserId, profile.id) // หน้าอื่นจะได้ไม่ต้องถามเลขโปรไฟล์ซ้ำ
 
   const today = getLocalDateString()
   const [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes, periodRowsRes] = await Promise.all([

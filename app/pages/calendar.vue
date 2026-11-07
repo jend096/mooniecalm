@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
 import { DEFAULT_MENSTRUAL_CYCLE_DAYS } from '~/utils/cycle-config'
-import { clearPageCache } from '~/utils/page-cache'
+import { clearPageCache, readPageCache, readProfileId, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
 // ===== หน้าปฏิทินประจำเดือน (app/pages/calendar.vue) =====
 // ทำอะไรได้บ้าง
 //  1) เลื่อนดูหลายเดือน: วงสีทึบ = ประจำเดือนมาจริง, วงเส้นประ = ระบบคาดไว้ (รวมเดือนในอนาคต)
@@ -103,6 +103,31 @@ async function loadRows() {
 }
 
 // ---------- เริ่มหน้า ----------
+// ข้อมูลที่หน้านี้ใช้ รวมเป็นก้อนเดียวเพื่อจำไว้ใน page-cache (กลับมาเร็วภายใน 50 วิ = โชว์ทันที แล้วแอบดึงของใหม่ตามหลัง)
+interface CalendarSnapshot {
+  profile: {
+    id: number
+    last_period_date: string | null
+    period_duration_days: number | null
+    cycle_duration_days: number | null
+  }
+  rows: PeriodRow[]
+}
+
+function applySnapshot(snap: CalendarSnapshot) {
+  profileId.value = snap.profile.id
+  profileLastPeriod.value = snap.profile.last_period_date ?? null
+  periodDurationDays.value = snap.profile.period_duration_days ?? 5
+  cycleDurationDays.value = snap.profile.cycle_duration_days ?? DEFAULT_MENSTRUAL_CYCLE_DAYS
+  savedRows.value = snap.rows
+}
+
+// เลื่อนจอไปที่เดือนปัจจุบันเลย (รอให้หน้าวาดเสร็จก่อน)
+async function scrollToCurrentMonth() {
+  await nextTick()
+  document.getElementById('month-current')?.scrollIntoView({ block: 'start' })
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -110,30 +135,54 @@ onMounted(async () => {
     navigateTo('/onboarding/signup')
     return
   }
+  const authUserId = sessionData.session.user.id
+
+  // เพิ่งเข้าหน้านี้มาไม่นาน -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<CalendarSnapshot>(authUserId, 'calendar')
+  const cachedJson = cached ? toCacheJson(cached) : ''
+  if (cached) {
+    applySnapshot(cached)
+    isLoading.value = false
+    await scrollToCurrentMonth()
+  }
 
   const authed = await getAuthedSupabaseClient()
+  const fetchRows = (id: number) => authed
+    .from('period_cycles')
+    .select('id, cycle_start_date, confirmed_end_date, predicted_start_date')
+    .eq('user_id', id)
+    .order('cycle_start_date', { ascending: true })
+
+  // รู้เลขโปรไฟล์อยู่แล้ว (เคยถามมาจากหน้าอื่น) -> ดึงรอบประจำเดือนไปพร้อมกับโปรไฟล์เลย ไม่ต้องรอต่อคิว
+  const knownId = readProfileId(authUserId)
+  const rowsEarly = knownId !== null ? fetchRows(knownId) : null
+
   const { data: profile } = await authed
     .from('user_profiles')
     .select('id, last_period_date, period_duration_days, cycle_duration_days')
-    .eq('auth_user_id', sessionData.session.user.id)
+    .eq('auth_user_id', authUserId)
     .maybeSingle()
 
   if (!profile) {
     isLoading.value = false
     return
   }
+  writeProfileId(authUserId, profile.id)
 
-  profileId.value = profile.id
-  profileLastPeriod.value = profile.last_period_date ?? null
-  periodDurationDays.value = profile.period_duration_days ?? 5
-  cycleDurationDays.value = profile.cycle_duration_days ?? DEFAULT_MENSTRUAL_CYCLE_DAYS
+  // เลขที่จำไว้ตรงกับของจริงถึงใช้ผลที่ดึงล่วงหน้า (ไม่ตรง = ดึงใหม่)
+  const rowsRes = rowsEarly && knownId === profile.id ? await rowsEarly : await fetchRows(profile.id)
 
-  await loadRows()
+  // ดึงรอบไม่สำเร็จ (เช่นเน็ตหลุด): ถ้ามีของที่จำไว้โชว์อยู่ก็คงไว้ ไม่เอาข้อมูลโหว่ไปทับ
+  if (rowsRes.error && cached) return
+
+  const fresh: CalendarSnapshot = { profile, rows: (rowsRes.data ?? []) as PeriodRow[] }
+  if (!rowsRes.error) writePageCache(authUserId, 'calendar', fresh)
+
+  // ข้อมูลใหม่เหมือนที่โชว์อยู่แล้ว = ไม่ต้องวาดซ้ำ
+  if (toCacheJson(fresh) !== cachedJson) applySnapshot(fresh)
   isLoading.value = false
 
-  // เลื่อนจอไปที่เดือนปัจจุบันเลย (รอให้หน้าวาดเสร็จก่อน)
-  await nextTick()
-  document.getElementById('month-current')?.scrollIntoView({ block: 'start' })
+  if (!cached) await scrollToCurrentMonth()
 })
 </script>
 

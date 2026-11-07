@@ -11,7 +11,7 @@
 //      clearPageCache()  <- เรียกหลัง "บันทึก/แก้ไขข้อมูล" เพื่อไม่ให้หน้าอื่นโชว์ของเก่าแวบหนึ่ง
 
 // จำไว้กี่วินาที (แก้เลขนี้ที่เดียว มีผลทุกหน้า)
-export const PAGE_CACHE_SECONDS = 30
+export const PAGE_CACHE_SECONDS = 50
 
 interface CacheEntry {
   savedAt: number // เวลาที่จำไว้ (มิลลิวินาที)
@@ -61,4 +61,30 @@ export function toCacheJson(data: unknown): string {
 // ล้างที่จำไว้ทั้งหมด: เรียกหลังบันทึก/แก้ข้อมูล และตอนออกจากระบบ
 export function clearPageCache() {
   store.clear()
+}
+
+// ===== จำ "เลขโปรไฟล์ของผู้ใช้" (user_profiles.id) =====
+// ทุกหน้าต้องถามฐานข้อมูลหาเลขนี้ก่อนถึงจะดึงข้อมูลอื่นได้ (เสียเวลา 1 รอบเน็ตทุกหน้า)
+// เลขนี้ไม่เปลี่ยนระหว่างใช้งาน จึงจำไว้นานกว่า (PROFILE_ID_CACHE_SECONDS) แยกจากที่จำข้อมูลหน้า
+// ไม่ล้างตอนบันทึกข้อมูลทั่วไป แต่ล้างตอนออกจากระบบ / สมัครบันทึกโปรไฟล์ (forgetProfileIds)
+export const PROFILE_ID_CACHE_SECONDS = 600
+
+const profileIds = new Map<string, { id: number, savedAt: number }>()
+
+export function readProfileId(authUserId: string): number | null {
+  const entry = profileIds.get(authUserId)
+  if (!entry) return null
+  if (Date.now() - entry.savedAt > PROFILE_ID_CACHE_SECONDS * 1000) {
+    profileIds.delete(authUserId)
+    return null
+  }
+  return entry.id
+}
+
+export function writeProfileId(authUserId: string, id: number) {
+  profileIds.set(authUserId, { id, savedAt: Date.now() })
+}
+
+export function forgetProfileIds() {
+  profileIds.clear()
 }

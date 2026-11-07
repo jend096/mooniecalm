@@ -255,6 +255,7 @@ import {
 } from '~/utils/symptom-logs'
 import type { SymptomType } from '~/utils/symptom-logs'
 import { parseLocalDate } from '~/utils/period-prediction'
+import { readPageCache, readProfileId, writePageCache, writeProfileId } from '~/utils/page-cache'
 
 // ===== หน้า "บันทึกอาการเพิ่มเติม" (app/pages/symptoms.vue) =====
 // กติกา:
@@ -440,6 +441,14 @@ onBeforeUnmount(() => {
   saveNote()
 })
 
+// ข้อมูลทั้งหมดของวันนี้ที่หน้านี้โชว์ จำไว้ใน page-cache (กลับมาเร็วภายใน 50 วิ = โชว์ทันที แล้วแอบดึงของใหม่ตามหลัง)
+interface SymptomsSnapshot {
+  profileId: number
+  symptomTypes: SymptomType[]
+  values: ExtraValues
+  selectedSymptomIds: number[]
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -448,22 +457,70 @@ onMounted(async () => {
     navigateTo('/onboarding/signup')
     return
   }
+  const authUserId = sessionData.session.user.id
 
-  const authed = await getAuthedSupabaseClient()
-  const { data: profile, error: profileError } = await authed
-    .from('user_profiles')
-    .select('id')
-    .eq('auth_user_id', sessionData.session.user.id)
-    .maybeSingle()
-
-  if (profileError || !profile) {
+  // เพิ่งเข้าหน้านี้มาไม่นาน -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<SymptomsSnapshot>(authUserId, 'symptoms')
+  if (cached) {
+    profileId.value = cached.profileId
+    symptomTypes.value = cached.symptomTypes
+    values.value = cached.values
+    selectedSymptomIds.value = cached.selectedSymptomIds
+    noteDraft.value = cached.values.notes ?? ''
     isLoading.value = false
-    return
+    await nextTick()
+    growNote()
   }
 
-  profileId.value = profile.id
-  symptomTypes.value = await loadSymptomTypes()
-  await loadDay()
+  const authed = await getAuthedSupabaseClient()
+
+  // เลขโปรไฟล์: เคยถามมาจากหน้าอื่นแล้วก็ใช้เลย ไม่ต้องถามฐานข้อมูลซ้ำ
+  let myProfileId = readProfileId(authUserId)
+  if (myProfileId === null) {
+    const { data: profile, error: profileError } = await authed
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle()
+
+    if (profileError || !profile) {
+      isLoading.value = false
+      return
+    }
+    myProfileId = profile.id as number
+    writeProfileId(authUserId, myProfileId)
+  }
+  profileId.value = myProfileId
+
+  // รายการอาการ / ค่าที่บันทึกของวันนี้ / อาการที่เลือกไว้ ไม่ขึ้นต่อกัน ดึงพร้อมกัน (เดิมดึงต่อคิวกัน)
+  const [types, extra, ids] = await Promise.all([
+    loadSymptomTypes(),
+    loadExtraValues(myProfileId, viewDate.value),
+    loadSavedSymptomIds(myProfileId, viewDate.value)
+  ])
+
+  // ดึงค่าของวันนี้ไม่สำเร็จ (extra = null เช่นเน็ตหลุด): ถ้ามีของที่จำไว้โชว์อยู่ก็คงไว้ ไม่เอาค่าว่างไปทับ
+  if (extra === null && cached) return
+
+  // ผู้ใช้พิมพ์ข้อความค้างอยู่ระหว่างรอ = ห้ามเอาข้อความเก่าจากฐานข้อมูลไปทับที่พิมพ์
+  const userIsTyping = cached !== null && noteDraft.value !== (cached.values.notes ?? '')
+
+  if (types.length > 0 || !cached) symptomTypes.value = types
+  values.value = extra ?? emptyExtraValues()
+  selectedSymptomIds.value = ids
+  if (!userIsTyping) noteDraft.value = values.value.notes ?? ''
+
+  // ข้อมูลครบดีถึงจำไว้ (ดึงพลาดบางส่วน = ไม่จำ)
+  if (extra !== null && types.length > 0) {
+    const snapshot: SymptomsSnapshot = {
+      profileId: myProfileId,
+      symptomTypes: types,
+      values: extra,
+      selectedSymptomIds: ids
+    }
+    writePageCache(authUserId, 'symptoms', snapshot)
+  }
+
   isLoading.value = false
   await nextTick()
   growNote() // หน้าเพิ่งโชว์ ให้กล่องสูงพอดีกับข้อความที่โหลดมา

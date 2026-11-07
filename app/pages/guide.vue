@@ -15,7 +15,7 @@
 // วันที่ข้ามระดับปวด = ไม่มีค่าระดับปวดของวันนั้น หน้าสรุปจะไม่นับวันนั้น
 // ตัวคิดว่าโชว์คู่มือไหน/เรียงยังไงอยู่ใน ~/utils/guide-picker.ts (ทดสอบแยกแล้ว)
 import type { GuideItem } from '~/utils/guide-picker'
-import { clearPageCache } from '~/utils/page-cache'
+import { clearPageCache, readPageCache, readProfileId, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
 import {
   PAIN_LEVELS,
   PAIN_LOCATIONS,
@@ -220,6 +220,22 @@ function goBack() {
   navigateTo('/home')
 }
 
+// ข้อมูลที่หน้านี้ใช้ รวมเป็นก้อนเดียวเพื่อจำไว้ใน page-cache (กลับมาเร็วภายใน 50 วิ = โชว์ทันที แล้วแอบดึงของใหม่ตามหลัง)
+interface GuideSnapshot {
+  profileId: number
+  guides: GuideItem[]
+  goalCodes: string[]
+  chosenGuideIds: number[]
+}
+
+function applySnapshot(snap: GuideSnapshot) {
+  profileId.value = snap.profileId
+  allGuides.value = snap.guides
+  goalCodes.value = snap.goalCodes
+  // ระดับปวด/จุดที่ปวดไม่ดึงของเดิมมาใส่ (เริ่มใหม่ทุกครั้ง) ดึงแค่ว่าวันนี้เลือกคู่มืออันไหนไปแล้ว
+  chosenGuideIds.value = snap.chosenGuideIds
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -227,42 +243,70 @@ onMounted(async () => {
     navigateTo('/onboarding/signup')
     return
   }
+  const authUserId = sessionData.session.user.id
+
+  // เพิ่งเข้าหน้านี้มาไม่นาน -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<GuideSnapshot>(authUserId, 'guide')
+  const cachedJson = cached ? toCacheJson(cached) : ''
+  if (cached) {
+    applySnapshot(cached)
+    isLoading.value = false
+  }
 
   const authed = await getAuthedSupabaseClient()
-  const { data: profile, error: profileError } = await authed
-    .from('user_profiles')
-    .select('id')
-    .eq('auth_user_id', sessionData.session.user.id)
-    .maybeSingle()
-  if (profileError || !profile) {
-    loadError.value = true
-    isLoading.value = false
-    return
-  }
-  profileId.value = profile.id
 
-  const [guidesRes, userGoalsRes, goalTypesRes, chosenRes] = await Promise.all([
-    authed.from('pain_relief_guides').select('id, guide_code, category, title, short_description, steps, linked_goal_code, body_area').order('id'),
-    authed.from('user_goals').select('goal_type_id').eq('user_id', profile.id).eq('is_active', true),
-    authed.from('goal_types').select('id, goal_code, title'),
-    authed.from('guide_logs').select('guide_id').eq('user_id', profile.id).eq('log_date', todayString())
+  // รายการที่ไม่ขึ้นกับผู้ใช้ เริ่มดึงไปก่อนเลย ระหว่างที่หาเลขโปรไฟล์ (ไม่ต้องรอต่อคิว)
+  const guidesReq = authed.from('pain_relief_guides').select('id, guide_code, category, title, short_description, steps, linked_goal_code, body_area').order('id')
+  const goalTypesReq = authed.from('goal_types').select('id, goal_code, title')
+
+  // เลขโปรไฟล์: เคยถามมาจากหน้าอื่นแล้วก็ใช้เลย ไม่ต้องถามฐานข้อมูลซ้ำ
+  let myProfileId = readProfileId(authUserId)
+  if (myProfileId === null) {
+    const { data: profile, error: profileError } = await authed
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle()
+    if (profileError || !profile) {
+      if (!cached) loadError.value = true
+      isLoading.value = false
+      return
+    }
+    myProfileId = profile.id as number
+    writeProfileId(authUserId, myProfileId)
+  }
+
+  const [guidesRes, goalTypesRes, userGoalsRes, chosenRes] = await Promise.all([
+    guidesReq,
+    goalTypesReq,
+    authed.from('user_goals').select('goal_type_id').eq('user_id', myProfileId).eq('is_active', true),
+    authed.from('guide_logs').select('guide_id').eq('user_id', myProfileId).eq('log_date', todayString())
   ])
   if (guidesRes.error) {
-    loadError.value = true
+    if (!cached) loadError.value = true
     isLoading.value = false
     return
   }
-  allGuides.value = (guidesRes.data ?? []) as GuideItem[]
+
+  // ดึงบางอย่างไม่สำเร็จ (เช่นเน็ตหลุด): ถ้ามีของที่จำไว้โชว์อยู่ก็คงไว้ ไม่เอาข้อมูลโหว่ไปทับ
+  const hasQueryError = [goalTypesRes, userGoalsRes, chosenRes].some(r => r.error)
+  if (hasQueryError && cached) return
 
   const typeById = new Map((goalTypesRes.data ?? []).map(g => [g.id, g]))
   const activeTypes = (userGoalsRes.data ?? [])
     .map(g => typeById.get(g.goal_type_id))
     .filter((g): g is NonNullable<typeof g> => !!g)
-  goalCodes.value = activeTypes.map(g => g.goal_code as string)
 
-  // ระดับปวด/จุดที่ปวดไม่ดึงของเดิมมาใส่ (เริ่มใหม่ทุกครั้ง) ดึงแค่ว่าวันนี้เลือกคู่มืออันไหนไปแล้ว
-  chosenGuideIds.value = (chosenRes.data ?? []).map(r => r.guide_id as number)
+  const fresh: GuideSnapshot = {
+    profileId: myProfileId,
+    guides: (guidesRes.data ?? []) as GuideItem[],
+    goalCodes: activeTypes.map(g => g.goal_code as string),
+    chosenGuideIds: (chosenRes.data ?? []).map(r => r.guide_id as number)
+  }
+  if (!hasQueryError) writePageCache(authUserId, 'guide', fresh)
 
+  // ข้อมูลใหม่เหมือนที่โชว์อยู่แล้ว = ไม่ต้องวาดซ้ำ
+  if (toCacheJson(fresh) !== cachedJson) applySnapshot(fresh)
   isLoading.value = false
 })
 </script>

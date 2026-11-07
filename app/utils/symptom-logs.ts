@@ -9,6 +9,7 @@
 //   - วันที่ผ่านมาแล้วดูย้อนหลังได้อย่างเดียว แก้ไม่ได้ (หน้าจอไม่ให้กด)
 //   - ข้อมูลเก็บแยกจากหน้าเช็คอิน หน้าเช็คอินไม่แสดงอาการเหล่านี้ ไว้ให้หน้าสรุปเดือนดึงไปใช้
 import { getAuthedSupabaseClient } from '~/utils/supabase-authed-client'
+import { clearPageCache } from '~/utils/page-cache'
 
 // แถวจากตาราง symptom_types (รายการอาการที่ให้เลือก)
 export interface SymptomType {
@@ -79,6 +80,7 @@ export async function loadSavedSymptomIds(profileId: number, logDate: string): P
 // ถ้าอาการนั้นเคยบันทึกวันนี้แล้ว (UNIQUE ชนกัน) ให้ข้าม ไม่ต้อง error
 export async function addSymptomLog(profileId: number, logDate: string, symptomId: number): Promise<boolean> {
   const authed = await getAuthedSupabaseClient()
+  clearPageCache() // กำลังบันทึก ที่จำไว้ของหน้านี้จะเป็นของเก่า
   const { error } = await authed
     .from('symptom_logs')
     .upsert(
@@ -91,6 +93,7 @@ export async function addSymptomLog(profileId: number, logDate: string, symptomI
 // เอาอาการของวันนั้นออก 1 อาการ = ลบแถวนั้นทิ้งจากฐานข้อมูล (คืน true = สำเร็จ)
 export async function removeSymptomLog(profileId: number, logDate: string, symptomId: number): Promise<boolean> {
   const authed = await getAuthedSupabaseClient()
+  clearPageCache() // กำลังบันทึก ที่จำไว้ของหน้านี้จะเป็นของเก่า
   const { error } = await authed
     .from('symptom_logs')
     .delete()

@@ -5,6 +5,7 @@
 // อาการที่เลือกได้หลายอัน อยู่ในตาราง symptom_logs แยกต่างหาก (ดู ~/utils/symptom-logs.ts)
 // ทุกแถวมีวันที่ log_date ไว้ให้หน้าสรุปเดือนจัดเข้ารอบประจำเดือนเอง
 import { getAuthedSupabaseClient } from '~/utils/supabase-authed-client'
+import { clearPageCache } from '~/utils/page-cache'
 
 export interface ExtraOption {
   code: string // ค่าที่เก็บในฐานข้อมูล
@@ -100,6 +101,7 @@ export async function saveExtraField(
   value: string | number | null
 ): Promise<boolean> {
   const authed = await getAuthedSupabaseClient()
+  clearPageCache() // กำลังบันทึก ที่จำไว้ของหน้านี้จะเป็นของเก่า
   if (value === null) {
     const { error } = await authed
       .from('daily_body_logs')

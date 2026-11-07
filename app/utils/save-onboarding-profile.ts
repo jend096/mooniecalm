@@ -1,4 +1,5 @@
 import type { AvatarSelections } from './avatar-selections-storage'
+import { clearPageCache, forgetProfileIds } from '~/utils/page-cache'
 
 // Onboarding answers are collected before signup and normally live only in the
 // Pinia store / localStorage of the browser that answered them. When the magic
@@ -245,6 +246,9 @@ export async function saveOnboardingProfile(userId: string) {
   // ไม่งั้นคำตอบเก่าค้างอยู่ แล้วคนถัดไปที่ใช้เครื่องนี้ (หรือบัญชีใหม่ที่ยังไม่เคยตอบ) จะถูกนับว่า "เคยตอบแล้ว" ทั้งที่ไม่ได้ตอบ
   const avatarSelections = useAvatarSelections()
   avatarSelections.value = emptyAvatarSelections()
+
+  forgetProfileIds() // โปรไฟล์เพิ่งถูกสร้าง/แก้ ให้หน้าอื่นถามเลขโปรไฟล์ใหม่
+  clearPageCache()
 
   // คืนจำนวนชิ้นอวตารที่ลงฐานจริง ให้หน้าที่เรียกใช้ตรวจว่าครบ 4 ไหม
   return { profileId: profile.id as number, avatarCount: savedAvatarCount }

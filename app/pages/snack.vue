@@ -4,6 +4,7 @@
 // วันหนึ่งบันทึกได้หลายเมนู (เมนูที่บันทึกไปแล้ววันนี้จะไม่ถูกสุ่มซ้ำ พอข้ามวันก็กลับมาให้สุ่มได้ใหม่)
 // ตัวคิดว่าจะโชว์เมนูไหนอยู่ใน ~/utils/snack-picker.ts (ทดสอบแยกแล้ว) หน้านี้ดูแลแค่ดึงข้อมูล + หน้าจอ
 import type { SnackChoice, SnackItem } from '~/utils/snack-picker'
+import { clearPageCache, readPageCache, readProfileId, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
 import {
   ALLERGY_OPTIONS,
   NO_ALLERGY_LABEL,
@@ -215,6 +216,7 @@ async function saveSnack() {
     }, { onConflict: 'user_id,snack_id,log_date', ignoreDuplicates: true }),
     new Promise(resolve => setTimeout(resolve, 1100))
   ])
+  clearPageCache() // บันทึกเมนูแล้ว ที่จำไว้เป็นของเก่า
   if (error) {
     saveError.value = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'
     savePhase.value = 'idle'
@@ -242,6 +244,7 @@ async function saveAllergies(next: string[]) {
   allergies.value = next
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed.from('user_profiles').update({ allergies: next }).eq('id', profileId.value)
+  clearPageCache() // รายการที่แพ้เปลี่ยน ที่จำไว้เป็นของเก่า
   if (error) {
     allergies.value = before // บันทึกไม่สำเร็จ ย้อนกลับ
     allergyError.value = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'
@@ -304,6 +307,23 @@ async function addOtherAllergy() {
   if (!allergyError.value) otherInput.value = ''
 }
 
+// ข้อมูลที่หน้านี้ใช้ รวมเป็นก้อนเดียวเพื่อจำไว้ใน page-cache (กลับมาเร็วภายใน 50 วิ = โชว์ทันที แล้วแอบดึงของใหม่ตามหลัง)
+interface SnackSnapshot {
+  profileId: number
+  allergies: string[]
+  snacks: SnackItem[]
+  goalCodes: string[]
+  todayIds: number[]
+}
+
+function applySnapshot(snap: SnackSnapshot) {
+  profileId.value = snap.profileId
+  allergies.value = snap.allergies
+  allSnacks.value = snap.snacks
+  goalCodes.value = snap.goalCodes
+  todayIds.value = snap.todayIds
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -311,46 +331,77 @@ onMounted(async () => {
     navigateTo('/onboarding/signup')
     return
   }
+  const authUserId = sessionData.session.user.id
+
+  // เพิ่งเข้าหน้านี้มาไม่นาน -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<SnackSnapshot>(authUserId, 'snack')
+  const cachedJson = cached ? toCacheJson(cached) : ''
+  if (cached) {
+    applySnapshot(cached)
+    isLoading.value = false
+  }
 
   const authed = await getAuthedSupabaseClient()
-  const { data: profile, error: profileError } = await authed
+
+  // รายการที่ไม่ขึ้นกับผู้ใช้ เริ่มดึงไปก่อนเลย ไม่ต้องรอต่อคิว
+  const snacksReq = authed
+    .from('snack_items')
+    .select('id, snack_code, name, category, image_url, description, pairing_tip, linked_goal_code, allergens, ingredients')
+  const goalTypesReq = authed.from('goal_types').select('id, goal_code, title')
+  // โปรไฟล์ (ต้องใช้รายการที่แพ้ด้วย จึงต้องถามทุกครั้ง แต่ถ้ารู้เลขโปรไฟล์แล้วก็ไม่ต้องรอผลก่อนดึงอย่างอื่น)
+  const profileReq = authed
     .from('user_profiles')
     .select('id, allergies')
-    .eq('auth_user_id', sessionData.session.user.id)
+    .eq('auth_user_id', authUserId)
     .maybeSingle()
 
+  const knownId = readProfileId(authUserId)
+  const fetchUserParts = (id: number) => Promise.all([
+    authed.from('user_goals').select('goal_type_id').eq('user_id', id).eq('is_active', true),
+    authed.from('snack_logs').select('snack_id').eq('user_id', id).eq('log_date', todayString())
+  ])
+  const userPartsEarly = knownId !== null ? fetchUserParts(knownId) : null
+
+  const { data: profile, error: profileError } = await profileReq
   if (profileError || !profile) {
-    loadError.value = true
+    if (!cached) loadError.value = true
     isLoading.value = false
     return
   }
-  profileId.value = profile.id
-  allergies.value = (profile.allergies as string[] | null) ?? []
+  writeProfileId(authUserId, profile.id)
 
-  const [snacksRes, userGoalsRes, goalTypesRes, todayLogsRes] = await Promise.all([
-    authed
-      .from('snack_items')
-      .select('id, snack_code, name, category, image_url, description, pairing_tip, linked_goal_code, allergens, ingredients'),
-    authed.from('user_goals').select('goal_type_id').eq('user_id', profile.id).eq('is_active', true),
-    authed.from('goal_types').select('id, goal_code, title'),
-    authed.from('snack_logs').select('snack_id').eq('user_id', profile.id).eq('log_date', todayString())
-  ])
+  // เลขที่จำไว้ตรงกับของจริงถึงใช้ผลที่ดึงล่วงหน้า (ไม่ตรง = ดึงใหม่)
+  const [userGoalsRes, todayLogsRes] = userPartsEarly && knownId === profile.id
+    ? await userPartsEarly
+    : await fetchUserParts(profile.id)
+  const [snacksRes, goalTypesRes] = await Promise.all([snacksReq, goalTypesReq])
 
   if (snacksRes.error) {
-    loadError.value = true
+    if (!cached) loadError.value = true
     isLoading.value = false
     return
   }
-  allSnacks.value = (snacksRes.data ?? []) as SnackItem[]
+
+  // ดึงบางอย่างไม่สำเร็จ (เช่นเน็ตหลุด): ถ้ามีของที่จำไว้โชว์อยู่ก็คงไว้ ไม่เอาข้อมูลโหว่ไปทับ
+  const hasQueryError = [goalTypesRes, userGoalsRes, todayLogsRes].some(r => r.error)
+  if (hasQueryError && cached) return
 
   const typeById = new Map((goalTypesRes.data ?? []).map(g => [g.id, g]))
   const activeTypes = (userGoalsRes.data ?? [])
     .map(g => typeById.get(g.goal_type_id))
     .filter((g): g is NonNullable<typeof g> => !!g)
-  goalCodes.value = activeTypes.map(g => g.goal_code as string)
 
-  todayIds.value = (todayLogsRes.data ?? []).map(r => r.snack_id as number)
+  const fresh: SnackSnapshot = {
+    profileId: profile.id as number,
+    allergies: (profile.allergies as string[] | null) ?? [],
+    snacks: (snacksRes.data ?? []) as SnackItem[],
+    goalCodes: activeTypes.map(g => g.goal_code as string),
+    todayIds: (todayLogsRes.data ?? []).map(r => r.snack_id as number)
+  }
+  if (!hasQueryError) writePageCache(authUserId, 'snack', fresh)
 
+  // ข้อมูลใหม่เหมือนที่โชว์อยู่แล้ว = ไม่ต้องวาดซ้ำ
+  if (toCacheJson(fresh) !== cachedJson) applySnapshot(fresh)
   isLoading.value = false
 })
 </script>

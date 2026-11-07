@@ -276,7 +276,7 @@
 import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
 import { painLevelLabel, painLocationLabel, splitSteps } from '~/utils/guide-picker'
 import { isCycleFinished } from '~/utils/goal-claim'
-import { clearPageCache } from '~/utils/page-cache'
+import { clearPageCache, readPageCache, readProfileId, writePageCache, writeProfileId } from '~/utils/page-cache'
 import type { SnackCategory } from '~/utils/snack-picker'
 
 
@@ -313,6 +313,11 @@ const viewDate = ref(today)
 const isToday = computed(() => viewDate.value === today)
 const showDayPicker = ref(false)
 const isSwitching = ref(false)
+
+// true = ระหว่างโหลดหน้านี้มีคำสั่งที่พลาด (เช่นเน็ตหลุด) -> ไม่จำข้อมูลที่โหว่ และคงของเดิมที่จำไว้
+let loadHadError = false
+// เพิ่มค่าทุกครั้งที่ผู้ใช้ติ๊กเป้าหมาย ถ้าข้อมูลที่ดึงมาเริ่มดึงก่อนการติ๊ก (เก่ากว่า) จะไม่เอามาทับ
+let checkedEditVersion = 0
 
 const isLoading = ref(true)
 const profileId = ref<number | null>(null)
@@ -355,7 +360,7 @@ async function loadCarriedRows(table: 'guide_logs' | 'snack_logs', doneColumn: s
   const from = parseLocalDate(viewDate.value)
   from.setDate(from.getDate() - CARRY_OVER_DAYS)
   const authed = await getAuthedSupabaseClient()
-  const { data } = await authed
+  const { data, error } = await authed
     .from(table)
     .select(columns)
     .eq('user_id', profileId.value)
@@ -364,6 +369,7 @@ async function loadCarriedRows(table: 'guide_logs' | 'snack_logs', doneColumn: s
     .is(doneColumn, null)
     .order('log_date')
     .order('chosen_at')
+  if (error) loadHadError = true
   return (data ?? []) as unknown as Record<string, unknown>[]
 }
 
@@ -377,12 +383,13 @@ function carryLabelOf(logDate: string): string | undefined {
 async function loadTodayPain() {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
-  const { data } = await authed
+  const { data, error } = await authed
     .from('pain_logs')
     .select('id, logged_at, pain_level, pain_location')
     .eq('user_id', profileId.value)
     .eq('log_date', viewDate.value)
     .order('logged_at')
+  if (error) loadHadError = true
   // เลือกหลายจุดในครั้งเดียว = หลายแถวที่เวลาเดียวกัน -> รวมเป็นรายการเดียว (เช่น "ปวดกลาง (5) · ท้องน้อย, หลังส่วนล่าง")
   const grouped = new Map<string, { id: number, atMs: number, time: string, level: number | null, places: string[] }>()
   for (const row of data ?? []) {
@@ -430,12 +437,13 @@ const askingGuide = ref<TodayGuide | null>(null) // คู่มือที่�
 async function loadTodayGuides() {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
-  const { data } = await authed
+  const { data, error } = await authed
     .from('guide_logs')
     .select('id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)')
     .eq('user_id', profileId.value)
     .eq('log_date', viewDate.value)
     .order('chosen_at')
+  if (error) loadHadError = true
   // ดูวันนี้อยู่ -> ดึงคู่มือที่เลือกไว้ใน 3 วันก่อนหน้าแต่ยังไม่ได้ทำ มาขึ้นรอด้วย (ไม่งั้นเลือกไว้เมื่อวานแล้วหายเงียบ)
   const carried = isToday.value ? await loadCarriedRows('guide_logs', 'done_at', 'id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)') : []
   todayGuides.value = [...carried, ...(data ?? [])].map((row) => {
@@ -467,6 +475,7 @@ async function markGuideDone(guide: TodayGuide, el?: HTMLElement) {
     sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
     const authed = await getAuthedSupabaseClient()
     const { error } = await authed.from('guide_logs').update({ done_at: new Date().toISOString() }).eq('id', guide.id)
+    clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
     if (error) return
     guide.done = true
     guide.doneTime = timeOf(new Date().toISOString())
@@ -480,6 +489,7 @@ async function answerGuideFeeling(better: boolean) {
   if (!guide) return
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed.from('guide_logs').update({ felt_better: better }).eq('id', guide.id)
+  clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
   if (!error) guide.feltBetter = better
   askingGuide.value = null
 }
@@ -492,12 +502,13 @@ const askingSnack = ref<TodaySnack | null>(null) // เมนูที่กำ�
 async function loadTodaySnacks() {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
-  const { data } = await authed
+  const { data, error } = await authed
     .from('snack_logs')
     .select(SNACK_LOG_COLUMNS)
     .eq('user_id', profileId.value)
     .eq('log_date', viewDate.value)
     .order('chosen_at')
+  if (error) loadHadError = true
   // ดูวันนี้อยู่ -> ดึงของว่างที่เลือกไว้ใน 3 วันก่อนหน้าแต่ยังไม่ได้กิน มาขึ้นรอด้วย (ถามว่ากินที่เลือกไว้หรือยัง)
   const carried = isToday.value ? await loadCarriedRows('snack_logs', 'eaten_at', SNACK_LOG_COLUMNS) : []
   todaySnacks.value = [...carried, ...(data ?? [])].map((row) => {
@@ -533,6 +544,7 @@ async function markEaten(snack: TodaySnack, el?: HTMLElement) {
     sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
     const authed = await getAuthedSupabaseClient()
     const { error } = await authed.from('snack_logs').update({ eaten_at: new Date().toISOString() }).eq('id', snack.id)
+    clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
     if (error) return
     snack.eaten = true
     snack.eatenTime = timeOf(new Date().toISOString())
@@ -546,6 +558,7 @@ async function answerFeeling(better: boolean) {
   if (!snack) return
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed.from('snack_logs').update({ felt_better: better }).eq('id', snack.id)
+  clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
   if (!error) snack.feltBetter = better
   askingSnack.value = null
 }
@@ -671,7 +684,7 @@ async function refreshProgress() {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
 
-  const { data } = await authed
+  const { data, error } = await authed
     .from('goal_cycle_progress')
     .select('goal_cycle_id, sleep_days_achieved, exercise_days_achieved, sugar_days_achieved, cold_drink_days_achieved, cycle_end_date')
     .eq('user_id', profileId.value)
@@ -679,6 +692,10 @@ async function refreshProgress() {
     .order('cycle_start_date', { ascending: false })
     .limit(1)
     .maybeSingle()
+  if (error) {
+    loadHadError = true
+    return // ดึงความคืบหน้าไม่ได้ ไม่เขียนทับค่าเดิมด้วยศูนย์
+  }
 
   // แปลงเป็น Record เพราะ TypeScript รู้แค่ชื่อคอลัมน์ที่ select ไว้ตายตัว อ่านด้วยชื่อคอลัมน์ที่เป็น string ทั่วไปจะขึ้นแดง
   const progress = data as Record<string, number | null> | null
@@ -701,39 +718,56 @@ async function refreshProgress() {
 }
 
 // โหลดเป้าหมายที่เปิดอยู่ + ติ๊กของวันนี้ + ความคืบหน้ารอบ (ใช้ตอนเปิดหน้า และหลังกดรับผลรอบใหม่)
-async function loadGoals() {
+// keepOld = true: ตอนรีเฟรชเบื้องหลังหลังโชว์ของที่จำไว้ ไม่ล้างค่าเดิมก่อน (ไม่งั้นติ๊กจะหายแวบหนึ่ง)
+async function loadGoals(keepOld = false) {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
 
-  checkedGoals.value = {}
-  goalDayCounts.value = {}
+  if (!keepOld) {
+    checkedGoals.value = {}
+    goalDayCounts.value = {}
+  }
 
   const [goalTypesRes, userGoalsRes] = await Promise.all([
     authed.from('goal_types').select('id, goal_code, title'),
     authed.from('user_goals').select('goal_type_id').eq('user_id', profileId.value).eq('is_active', true)
   ])
 
+  if (goalTypesRes.error || userGoalsRes.error) {
+    loadHadError = true
+    return
+  }
+
   const goalTypeById = new Map((goalTypesRes.data ?? []).map(g => [g.id, g]))
   activeGoals.value = (userGoalsRes.data ?? [])
     .map(g => goalTypeById.get(g.goal_type_id))
     .filter((g): g is ActiveGoal => !!g)
 
-  for (const goal of activeGoals.value) goalDayCounts.value[goal.goal_code] = 0
+  for (const goal of activeGoals.value) {
+    if (!(goal.goal_code in goalDayCounts.value)) goalDayCounts.value[goal.goal_code] = 0
+  }
 
-  await loadChecked()
-  await refreshProgress()
+  // ติ๊กของวันนี้ กับความคืบหน้ารอบ ไม่ขึ้นต่อกัน ดึงพร้อมกันได้
+  await Promise.all([loadChecked(), refreshProgress()])
 }
 
 // โหลดว่า "วันที่กำลังดู" ติ๊กเป้าหมายอะไรไว้บ้าง
 async function loadChecked() {
   if (!profileId.value) return
   const authed = await getAuthedSupabaseClient()
-  const { data } = await authed
+  const versionAtStart = checkedEditVersion
+  const { data, error } = await authed
     .from('daily_checkins')
     .select('*')
     .eq('user_id', profileId.value)
     .eq('checkin_date', viewDate.value)
     .maybeSingle()
+  if (error) {
+    loadHadError = true
+    return
+  }
+  // ระหว่างรอ ผู้ใช้ติ๊กเป้าหมายไปแล้ว -> ข้อมูลที่ดึงมาเก่ากว่าการติ๊ก ไม่เอามาทับ
+  if (versionAtStart !== checkedEditVersion) return
   const next: Record<string, boolean> = {}
   for (const goal of activeGoals.value) {
     const column = GOAL_CODE_TO_CHECKIN_COLUMN[goal.goal_code]
@@ -776,6 +810,50 @@ async function reloadAfterClaim() {
   await loadTodayGuides() // ป้าย "แนะนำสำหรับคุณ" ขึ้นกับเป้าหมายที่เปิดอยู่
 }
 
+// ข้อมูลทั้งหมดของวันนี้ที่หน้านี้โชว์ จำไว้ใน page-cache (กลับมาเร็วภายใน 50 วิ = โชว์ทันที แล้วแอบดึงของใหม่ตามหลัง)
+interface CheckinSnapshot {
+  profileId: number
+  activeGoals: ActiveGoal[]
+  checkedGoals: Record<string, boolean>
+  goalDayCounts: Record<string, number>
+  daysRemaining: number | null
+  openCycleId: number | null
+  cycleFinished: boolean
+  todayPainLogs: TodayPain[]
+  todaySnacks: TodaySnack[]
+  todayGuides: TodayGuide[]
+}
+
+// เก็บสภาพหน้าตอนนี้เป็นก้อนเดียว (ไว้จำ)
+function buildSnapshot(id: number): CheckinSnapshot {
+  return {
+    profileId: id,
+    activeGoals: activeGoals.value,
+    checkedGoals: checkedGoals.value,
+    goalDayCounts: goalDayCounts.value,
+    daysRemaining: daysRemaining.value,
+    openCycleId: openCycleId.value,
+    cycleFinished: cycleFinished.value,
+    todayPainLogs: todayPainLogs.value,
+    todaySnacks: todaySnacks.value,
+    todayGuides: todayGuides.value
+  }
+}
+
+// เอาก้อนที่จำไว้ไปใส่ตัวแปรของหน้า
+function applySnapshot(snap: CheckinSnapshot) {
+  profileId.value = snap.profileId
+  activeGoals.value = snap.activeGoals
+  checkedGoals.value = snap.checkedGoals
+  goalDayCounts.value = snap.goalDayCounts
+  daysRemaining.value = snap.daysRemaining
+  openCycleId.value = snap.openCycleId
+  cycleFinished.value = snap.cycleFinished
+  todayPainLogs.value = snap.todayPainLogs
+  todaySnacks.value = snap.todaySnacks
+  todayGuides.value = snap.todayGuides
+}
+
 onMounted(async () => {
   const supabase = useSupabaseClient()
   const { data: sessionData } = await supabase.auth.getSession()
@@ -784,27 +862,47 @@ onMounted(async () => {
     navigateTo('/onboarding/signup')
     return
   }
+  const authUserId = sessionData.session.user.id
+
+  // เพิ่งเข้าหน้านี้มาไม่นาน -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<CheckinSnapshot>(authUserId, 'checkin')
+  if (cached) {
+    applySnapshot(cached)
+    isLoading.value = false
+  }
 
   const authed = await getAuthedSupabaseClient()
 
-  const { data: profile, error: profileError } = await authed
-    .from('user_profiles')
-    .select('id')
-    .eq('auth_user_id', sessionData.session.user.id)
-    .maybeSingle()
+  // เลขโปรไฟล์: เคยถามมาจากหน้าอื่นแล้วก็ใช้เลย ไม่ต้องถามฐานข้อมูลซ้ำ
+  let myProfileId = readProfileId(authUserId)
+  if (myProfileId === null) {
+    const { data: profile, error: profileError } = await authed
+      .from('user_profiles')
+      .select('id')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle()
 
-  if (profileError || !profile) {
-    isLoading.value = false
-    return
+    if (profileError || !profile) {
+      isLoading.value = false
+      return
+    }
+    myProfileId = profile.id as number
+    writeProfileId(authUserId, myProfileId)
   }
+  profileId.value = myProfileId
 
-  profileId.value = profile.id
+  // เดิมโหลดทีละอย่างต่อกัน 4 รอบ ตอนนี้ดึงพร้อมกัน 2 รอบ:
+  // รอบแรก เป้าหมาย + ความปวด (ไม่ขึ้นต่อกัน) / รอบสอง ของว่าง + คู่มือ (ต้องรู้เป้าหมายก่อนถึงใส่ป้าย "แนะนำ" ได้)
+  loadHadError = false
+  await Promise.all([loadGoals(Boolean(cached)), loadTodayPain()])
+  await Promise.all([loadTodaySnacks(), loadTodayGuides()])
 
-  await loadGoals()
-
-  await loadTodayPain()
-  await loadTodaySnacks()
-  await loadTodayGuides()
+  if (loadHadError) {
+    // มีบางอย่างดึงไม่สำเร็จ (เช่นเน็ตหลุด): ถ้ามีของที่จำไว้ ก็คืนค่าเดิม ไม่ให้ข้อมูลโหว่ๆ ทับ / และไม่จำข้อมูลที่ไม่ครบ
+    if (cached) applySnapshot(cached)
+  } else {
+    writePageCache(authUserId, 'checkin', buildSnapshot(myProfileId))
+  }
 
   isLoading.value = false
 })
@@ -814,6 +912,7 @@ async function toggleGoal(goalCode: string, e?: Event) {
   if (!isToday.value || !column || !profileId.value || savingGoalCode.value || isAchieved(goalCode)) return
 
   const newValue = !checkedGoals.value[goalCode]
+  checkedEditVersion++
   const buttonEl = e?.currentTarget as HTMLElement | undefined // จำปุ่มไว้ก่อน (หลัง await ค่า currentTarget จะหาย)
   savingGoalCode.value = goalCode
 
@@ -825,6 +924,7 @@ async function toggleGoal(goalCode: string, e?: Event) {
   }, { onConflict: 'user_id,checkin_date' })
 
   clearPageCache() // ติ๊กเป้าหมายแล้ว หน้าหลักที่จำไว้เป็นของเก่า
+  checkedEditVersion++
   if (!error) {
     checkedGoals.value = { ...checkedGoals.value, [goalCode]: newValue }
     if (newValue) sparkleBurst(buttonEl) // ติ๊ก "ทำแล้ว" -> ดาวแวบขึ้นที่ปุ่ม
