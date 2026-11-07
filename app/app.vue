@@ -1,38 +1,45 @@
 <script setup lang="ts">
 // ===== โครงหน้าทั้งแอป + หน้ารอโหลดตอนเปลี่ยนหน้า =====
-// ทุกครั้งที่เปลี่ยนหน้า จะมีกระต่ายโผล่ขึ้น-หุบลง (LoadingOverlay) ขึ้นคลุมจออย่างน้อย ~0.6 วินาที จะได้เห็นว่ากำลังเปลี่ยนหน้า
-// ใช้สัญญาณ "เริ่ม/จบการเปลี่ยนหน้า" ของ router ซึ่งมาทุกครั้งที่เปลี่ยนหน้า
-// (เดิมใช้ page:start / page:finish ซึ่ง Nuxt ส่งเฉพาะตอนหน้านั้นต้องรอโหลดไฟล์/ข้อมูล พอเปิดหน้าที่เคยโหลดแล้วจึงไม่ขึ้นหน้ารอโหลด ทำให้บางครั้งหาย)
+// เดิม: ทุกครั้งที่เปลี่ยนหน้าจะมีกระต่ายขึ้นคลุมจออย่างน้อย 0.5 วินาที ต่อให้หน้านั้นพร้อมแล้ว ทำให้เห็นวาบๆ ทุกครั้งที่กดเปลี่ยนหน้า
+// ตอนนี้: ขึ้นเฉพาะตอน "รอจริงๆ" นานเกิน SHOW_AFTER_MS (เช่นกดหน้าที่ยังไม่เคยเปิดแล้วเน็ตช้า) เปลี่ยนหน้าได้เร็วก็ไม่ขึ้นเลย
+// และพอหน้าใหม่พร้อมก็ปิดทันที ไม่ค้าง
+// หน้าที่ดึงข้อมูลเอง (หน้าหลัก ปฏิทิน เช็คอิน ฯลฯ) มีหน้ารอของตัวเองในหน้านั้นอยู่แล้ว (ดู LoadingOverlay + page-cache)
 // ข้าม: หน้าแรก (index มีแอนิเมชันเปิดแอปของตัวเอง) / onboarding/loading (มีกระต่ายให้แตะอยู่แล้ว)
 const nuxtApp = useNuxtApp()
 const router = useRouter()
 
 const SKIP_PATHS = ['/', '/onboarding/loading']
-const MIN_VISIBLE_MS = 500
+const SHOW_AFTER_MS = 600 // รอนานเกินเท่านี้ถึงขึ้นหน้ารอ (ปรับเลขนี้ได้)
 
 const navLoading = ref(false)
 let appReady = false // ตอนเปิดเว็บครั้งแรกไม่ต้องขึ้น (รอให้แอปขึ้นเสร็จก่อน)
-let shownAt = 0
-let hideTimer: ReturnType<typeof setTimeout> | undefined
+let showTimer: ReturnType<typeof setTimeout> | undefined
 
 nuxtApp.hook('app:mounted', () => { appReady = true })
 
-// เริ่มเปลี่ยนหน้า -> ขึ้นหน้ารอโหลด (ดูที่หน้าปลายทาง "to" เพราะตอนนี้ router ยังอยู่หน้าเดิม)
+function stopNavLoading() {
+  clearTimeout(showTimer)
+  navLoading.value = false
+}
+
+// เริ่มเปลี่ยนหน้า -> ตั้งเวลาไว้ ถ้ายังไม่เสร็จเมื่อครบเวลาค่อยขึ้นหน้ารอ (ดูที่หน้าปลายทาง "to" เพราะตอนนี้ router ยังอยู่หน้าเดิม)
 const removeGuard = router.beforeEach((to, from) => {
   if (!appReady) return
   if (to.fullPath === from.fullPath) return // กดไปหน้าเดิม ไม่ได้เปลี่ยนหน้าจริง
   if (SKIP_PATHS.includes(to.path)) return
-  clearTimeout(hideTimer)
-  navLoading.value = true
-  shownAt = Date.now()
+  clearTimeout(showTimer)
+  showTimer = setTimeout(() => { navLoading.value = true }, SHOW_AFTER_MS)
 })
-onBeforeUnmount(removeGuard)
+// เปลี่ยนหน้าเสร็จ (หรือพลาด) -> เลิกตั้งเวลา และปิดหน้ารอทันที
+const removeAfter = router.afterEach(stopNavLoading)
+const removeError = router.onError(stopNavLoading)
+nuxtApp.hook('page:loading:end', stopNavLoading)
 
-// หน้าใหม่พร้อมแล้ว (หรือเปลี่ยนหน้าไม่สำเร็จ) -> รอให้ครบเวลาขั้นต่ำก่อนค่อยปิด (ไม่ให้วูบหายเร็วเกินไป)
-nuxtApp.hook('page:loading:end', () => {
-  if (!navLoading.value) return
-  clearTimeout(hideTimer)
-  hideTimer = setTimeout(() => { navLoading.value = false }, Math.max(0, MIN_VISIBLE_MS - (Date.now() - shownAt)))
+onBeforeUnmount(() => {
+  removeGuard()
+  removeAfter()
+  removeError()
+  clearTimeout(showTimer)
 })
 </script>
 
@@ -43,7 +50,8 @@ nuxtApp.hook('page:loading:end', () => {
       <NuxtPage />
       <!-- โลโก้รองมุมขวาบนของทุกหน้า (ดูเงื่อนไขในคอมโพเนนต์) -->
       <BrandCorner />
-      <LoadingOverlay v-if="navLoading" />
+      <!-- delay 0 เพราะรอมาตั้ง SHOW_AFTER_MS แล้ว ไม่ต้องรอซ้ำ -->
+      <LoadingOverlay v-if="navLoading" :delay="0" />
     </div>
   </div>
 </template>
