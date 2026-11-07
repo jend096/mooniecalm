@@ -219,6 +219,7 @@
 <script setup lang="ts">
 import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
 import { applyUpgrades, evaluateClaim, nextCycleDates } from '~/utils/goal-claim'
+import { clearPageCache } from '~/utils/page-cache'
 
 const props = defineProps<{
   profileId: number
@@ -368,6 +369,7 @@ async function claim() {
 
   const authed = await getAuthedSupabaseClient()
   const nowIso = new Date().toISOString()
+  clearPageCache() // กำลังเปลี่ยนอวตาร/เป้าหมาย/รอบ หน้าหลักที่จำไว้จะเป็นของเก่า
 
   // 1) เปลี่ยนชิ้นส่วนอวตารที่ผ่านเกณฑ์
   if (!avatarSaved.value && changes.value.length) {
@@ -411,6 +413,7 @@ async function claim() {
     .eq('id', props.goalCycleId)
     .is('claimed_at', null)
 
+  clearPageCache()
   finalAvatar.value = upgradedAvatar.value
   saving.value = false
   step.value = 'done'

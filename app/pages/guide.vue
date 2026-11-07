@@ -15,6 +15,7 @@
 // วันที่ข้ามระดับปวด = ไม่มีค่าระดับปวดของวันนั้น หน้าสรุปจะไม่นับวันนั้น
 // ตัวคิดว่าโชว์คู่มือไหน/เรียงยังไงอยู่ใน ~/utils/guide-picker.ts (ทดสอบแยกแล้ว)
 import type { GuideItem } from '~/utils/guide-picker'
+import { clearPageCache } from '~/utils/page-cache'
 import {
   PAIN_LEVELS,
   PAIN_LOCATIONS,
@@ -133,6 +134,7 @@ async function syncDailySummary(): Promise<boolean> {
   if (levels.length) summary.pain_level = Math.max(...levels)
 
   const { error: upsertError } = await authed.from('daily_checkins').upsert(summary, { onConflict: 'user_id,checkin_date' })
+  clearPageCache() // เช็คอินวันนี้เปลี่ยน ที่จำไว้เป็นของเก่า
   return !upsertError
 }
 

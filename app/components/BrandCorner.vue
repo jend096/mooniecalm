@@ -3,6 +3,7 @@
 // วางที่ app.vue ที่เดียว ทุกหน้าได้โลโก้ตัวเล็ก (พระจันทร์ + กระต่าย) โดยไม่ต้องใส่ทีละหน้า
 // โลโก้นี้เป็น "โลโก้รอง" ส่วนโลโก้หลัก (ชื่อ Moonie Calm) ใช้ที่หน้าแรกกับหน้ารอ (หน้าเผยอวตารใช้โลโก้รองนี้เหมือนหน้าอื่น)
 // หน้าที่ไม่ใส่โลโก้มุมนี้ (มีโลโก้ของตัวเองอยู่แล้ว หรือมุมขวาบนไม่ว่าง) ดูที่ HIDDEN ด้านล่าง
+import { clearPageCache } from '~/utils/page-cache'
 const route = useRoute()
 // path ที่ตัด "/" ท้ายออก: ตอนรันในเครื่อง (npm run dev) โฟลเดอร์ public/home ทำให้ /home ถูกพาไป /home/ (มี / ท้าย)
 // ถ้าเทียบตรงๆ จะไม่ตรงกับรายการด้านล่าง เมนูเลยไม่ขึ้น จึงตัด / ท้ายออกก่อนเทียบเสมอ
@@ -37,6 +38,7 @@ watch(path, () => { open.value = false }) // เปลี่ยนหน้า�
 async function logout() {
   if (loggingOut.value) return
   loggingOut.value = true
+  clearPageCache() // ออกจากระบบ ล้างข้อมูลที่จำไว้ของบัญชีนี้ทิ้ง
   const supabase = useSupabaseClient()
   await supabase.auth.signOut()
   open.value = false

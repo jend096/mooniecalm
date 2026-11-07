@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // เลข 28 ทั้งแอปรวมอยู่ที่ app/utils/cycle-config.ts (แก้ที่นั่นที่เดียว)
 import { DEFAULT_MENSTRUAL_CYCLE_DAYS } from '~/utils/cycle-config'
+import { clearPageCache } from '~/utils/page-cache'
 // ===== หน้าปฏิทินประจำเดือน (app/pages/calendar.vue) =====
 // ทำอะไรได้บ้าง
 //  1) เลื่อนดูหลายเดือน: วงสีทึบ = ประจำเดือนมาจริง, วงเส้นประ = ระบบคาดไว้ (รวมเดือนในอนาคต)
@@ -83,6 +84,7 @@ function showMessage(text: string) {
 
 // เมนูบันทึกสำเร็จ -> โหลดข้อมูลใหม่ แล้วปิดเมนู
 async function onChanged(text: string) {
+  clearPageCache() // ข้อมูลรอบเปลี่ยนแล้ว หน้าหลักที่จำไว้เป็นของเก่า
   await loadRows()
   showMessage(text)
   closeSheet()

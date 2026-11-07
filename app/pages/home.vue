@@ -6,6 +6,8 @@ import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
 import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
 import { isCycleFinished } from '~/utils/goal-claim'
+// ตัวจำข้อมูลสั้นๆ: กลับมาหน้านี้ภายใน 30 วิ -> โชว์ข้อมูลเดิมทันที แล้วแอบดึงของใหม่ตามหลัง
+import { clearPageCache, readPageCache, toCacheJson, writePageCache } from '~/utils/page-cache'
 
 interface GoalType {
   id: number
@@ -266,6 +268,7 @@ function openDay(date: Date) {
 
 // เมนูบันทึกสำเร็จ -> โหลดใหม่ ปิดเมนู แสดงข้อความ
 async function onPeriodChanged(text: string) {
+  clearPageCache() // ข้อมูลรอบเปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
   await loadPeriodRows()
   periodMessage.value = text
   selectedDate.value = null
@@ -402,6 +405,7 @@ async function saveFirstPeriod() {
     setupError.value = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ'
     return
   }
+  clearPageCache()
   // อัปเดตค่าในหน้า → hasPeriodData เป็นจริง → ปฏิทินโผล่ขึ้นมาทันที
   profileLastPeriod.value = setupDate.value
   lastPeriodDate.value = setupDate.value
@@ -409,6 +413,73 @@ async function saveFirstPeriod() {
   cycleDurationDays.value = cycle
   await nextTick()
   stripRef.value?.querySelector('[data-today]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+}
+
+// ข้อมูลทั้งหมดที่หน้านี้ใช้ (รวมเป็นก้อนเดียว เพื่อจำไว้ใน page-cache ได้)
+interface HomeSnapshot {
+  profile: {
+    id: number
+    nickname: string | null
+    profile_image_url: string | null
+    last_period_date: string | null
+    period_duration_days: number | null
+    cycle_duration_days: number | null
+  }
+  avatarRows: { feature_slot: string, current_asset_code: string | null }[]
+  goalTypes: GoalType[]
+  userGoals: { goal_type_id: number }[]
+  cycle: { cycle_start_date: string | null, cycle_end_date: string | null } | null
+  checkin: Record<string, unknown> | null
+  periodRows: PeriodRow[]
+}
+
+// เอาข้อมูลในก้อนไปใส่ตัวแปรของหน้า (ใช้ทั้งตอนโชว์ของที่จำไว้ และตอนได้ข้อมูลใหม่)
+function applySnapshot(snap: HomeSnapshot) {
+  const profile = snap.profile
+  profileId.value = profile.id
+  profileLastPeriod.value = profile.last_period_date ?? null
+  nickname.value = profile.nickname ?? ''
+  profileImageUrl.value = profile.profile_image_url ?? ''
+  lastPeriodDate.value = profile.last_period_date ?? null
+  periodDurationDays.value = profile.period_duration_days ?? null
+  cycleDurationDays.value = profile.cycle_duration_days ?? null
+
+  // ถ้ามีรอบประจำเดือนที่บันทึกไว้ ให้ใช้วันเริ่มรอบล่าสุดแทนค่าจากโปรไฟล์
+  savedRows.value = snap.periodRows
+  if (savedRows.value.length > 0) {
+    lastPeriodDate.value = savedRows.value.at(-1)!.cycle_start_date
+  }
+
+  for (const row of snap.avatarRows) {
+    if (row.feature_slot in avatarState.value) {
+      avatarState.value[row.feature_slot as keyof typeof avatarState.value] = row.current_asset_code
+    }
+  }
+
+  const goalTypeById = new Map(snap.goalTypes.map(g => [g.id, g]))
+  activeGoals.value = snap.userGoals
+    .map(g => goalTypeById.get(g.goal_type_id))
+    .filter((g): g is GoalType => !!g)
+
+  const today = getLocalDateString()
+  cycleStartDate.value = snap.cycle?.cycle_start_date ?? today
+  cycleEndDate.value = snap.cycle?.cycle_end_date ?? null
+
+  const nextChecked: Record<string, boolean> = {}
+  for (const goal of activeGoals.value) {
+    const column = GOAL_CODE_TO_COLUMN[goal.goal_code]
+    nextChecked[goal.goal_code] = column ? Boolean(snap.checkin?.[column]) : false
+  }
+  checkedGoals.value = nextChecked
+
+  loadDismissedPrompts()
+}
+
+// เลื่อนแถบวันให้วันนี้อยู่ตรงกลาง (ต้องรอให้หน้าวาดเสร็จก่อน)
+async function scrollStripToToday() {
+  await nextTick()
+  stripRef.value?.querySelector('[data-today]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
+  updateVisibleMonth()
 }
 
 onMounted(async () => {
@@ -421,6 +492,16 @@ onMounted(async () => {
   }
 
   const authUserId = sessionData.session.user.id
+
+  // เพิ่งเข้าหน้านี้มาไม่ถึง 30 วิ -> โชว์ข้อมูลที่จำไว้ทันที (ไม่ขึ้นหน้าโหลด) แล้วดึงของใหม่เงียบๆ ต่อด้านล่าง
+  const cached = readPageCache<HomeSnapshot>(authUserId, 'home')
+  const cachedJson = cached ? toCacheJson(cached) : ''
+  if (cached) {
+    applySnapshot(cached)
+    isLoading.value = false
+    await scrollStripToToday()
+  }
+
   const authed = await getAuthedSupabaseClient()
 
   const { data: profile, error: profileError } = await authed
@@ -430,22 +511,16 @@ onMounted(async () => {
     .maybeSingle()
 
   if (!profile && !profileError) {
+    clearPageCache()
     await supabase.auth.signOut()
     navigateTo('/onboarding/signup')
     return
   }
 
   if (profileError || !profile) {
-    isLoading.value = false
+    isLoading.value = false // ถ้ามีของที่จำไว้โชว์อยู่ก็ปล่อยไว้อย่างนั้น
     return
   }
-  profileId.value = profile.id
-  profileLastPeriod.value = profile.last_period_date ?? null
-  nickname.value = profile.nickname ?? ''
-  profileImageUrl.value = profile.profile_image_url ?? ''
-  lastPeriodDate.value = profile.last_period_date ?? null
-  periodDurationDays.value = profile.period_duration_days ?? null
-  cycleDurationDays.value = profile.cycle_duration_days ?? null
 
   const today = getLocalDateString()
   const [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes, periodRowsRes] = await Promise.all([
@@ -474,43 +549,38 @@ onMounted(async () => {
       .order('cycle_start_date', { ascending: true })
   ])
 
-  // ถ้ามีรอบประจำเดือนที่บันทึกไว้ ให้ใช้วันเริ่มรอบล่าสุดแทนค่าจากโปรไฟล์
-  savedRows.value = (periodRowsRes.data ?? []) as PeriodRow[]
-  if (savedRows.value.length > 0) {
-    lastPeriodDate.value = savedRows.value.at(-1)!.cycle_start_date
-  }
   // ข้อมูลอวตารในฐานข้อมูลไม่ครบ 4 ชิ้น (เช่น สมัครค้าง/บันทึกไม่ครบ) -> ไม่ให้เข้าหน้านี้ (ไม่งั้นอวตารขึ้นโล่งๆ)
   // ส่งไปหน้าเข้าสู่ระบบ ซึ่งจะพาไปตอบคำถามสร้างอวตารที่ step-3 ต่อ (เช็คเฉพาะตอนดึงสำเร็จ กันเน็ตหลุดแล้วเด้งมั่ว)
   if (!avatarRowsRes.error && (avatarRowsRes.data ?? []).length < AVATAR_SLOT_COUNT) {
+    clearPageCache()
     navigateTo('/onboarding/signup')
     return
   }
-  for (const row of avatarRowsRes.data ?? []) {
-    if (row.feature_slot in avatarState.value) {
-      avatarState.value[row.feature_slot as keyof typeof avatarState.value] = row.current_asset_code
-    }
+
+  // ดึงบางอย่างไม่สำเร็จ (เช่นเน็ตหลุดช่วงสั้นๆ): ถ้ามีของที่จำไว้โชว์อยู่แล้วก็คงไว้ ไม่เอาข้อมูลโหว่ๆ ไปทับ
+  const hasQueryError = [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes, periodRowsRes].some(r => r.error)
+  if (hasQueryError && cached) {
+    return
   }
 
-  const goalTypeById = new Map((goalTypesRes.data ?? []).map(g => [g.id, g]))
-  activeGoals.value = (userGoalsRes.data ?? [])
-    .map(g => goalTypeById.get(g.goal_type_id))
-    .filter((g): g is GoalType => !!g)
-
-  cycleStartDate.value = cycleRes.data?.cycle_start_date ?? today
-  cycleEndDate.value = cycleRes.data?.cycle_end_date ?? null
-
-  for (const goal of activeGoals.value) {
-    const column = GOAL_CODE_TO_COLUMN[goal.goal_code]
-    checkedGoals.value[goal.goal_code] = column ? Boolean(checkinRes.data?.[column]) : false
+  const fresh: HomeSnapshot = {
+    profile,
+    avatarRows: (avatarRowsRes.data ?? []) as HomeSnapshot['avatarRows'],
+    goalTypes: (goalTypesRes.data ?? []) as GoalType[],
+    userGoals: (userGoalsRes.data ?? []) as HomeSnapshot['userGoals'],
+    cycle: cycleRes.data ?? null,
+    checkin: (checkinRes.data ?? null) as HomeSnapshot['checkin'],
+    periodRows: (periodRowsRes.data ?? []) as PeriodRow[]
   }
 
-  loadDismissedPrompts()
+  // ข้อมูลครบดี -> จำไว้ใช้รอบหน้า (ถ้าดึงไม่ครบ ไม่จำ จะได้ไม่จำของที่โหว่)
+  if (!hasQueryError) writePageCache(authUserId, 'home', fresh)
+
+  // ข้อมูลใหม่เหมือนที่โชว์อยู่แล้ว = ไม่ต้องวาดซ้ำ (หน้าจะไม่กระตุก) / ต่างกัน = อัปเดตตาม
+  if (toCacheJson(fresh) !== cachedJson) applySnapshot(fresh)
   isLoading.value = false
 
-  // รอให้หน้าวาดเสร็จ แล้วเลื่อนแถบวันให้วันนี้อยู่ตรงกลาง
-  await nextTick()
-  stripRef.value?.querySelector('[data-today]')?.scrollIntoView({ inline: 'center', block: 'nearest' })
-  updateVisibleMonth()
+  if (!cached) await scrollStripToToday()
 })
 
 const toastMessage = ref('')

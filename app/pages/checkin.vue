@@ -276,6 +276,7 @@
 import { CYCLE_LENGTH_DAYS } from '~/utils/cycle-config'
 import { painLevelLabel, painLocationLabel, splitSteps } from '~/utils/guide-picker'
 import { isCycleFinished } from '~/utils/goal-claim'
+import { clearPageCache } from '~/utils/page-cache'
 import type { SnackCategory } from '~/utils/snack-picker'
 
 
@@ -824,6 +825,7 @@ async function toggleGoal(goalCode: string, e?: Event) {
     [column]: newValue
   }, { onConflict: 'user_id,checkin_date' })
 
+  clearPageCache() // ติ๊กเป้าหมายแล้ว หน้าหลักที่จำไว้เป็นของเก่า
   if (!error) {
     checkedGoals.value = { ...checkedGoals.value, [goalCode]: newValue }
     if (newValue) sparkleBurst(buttonEl) // ติ๊ก "ทำแล้ว" -> ดาวแวบขึ้นที่ปุ่ม

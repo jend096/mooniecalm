@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // หน้าแก้ไขโปรไฟล์: เปลี่ยนรูป + แก้ชื่อเล่น (เข้าจากการกดรูปที่หน้าหลัก)
 // ปุ่มบันทึกกดได้เมื่อ "เลือกรูปใหม่" หรือ "แก้ชื่อ" อย่างใดอย่างหนึ่ง (ชื่อห้ามว่าง)
+import { clearPageCache } from '~/utils/page-cache'
+
 const NICKNAME_MAX_LENGTH = 30 // ชื่อยาวสุดกี่ตัวอักษร (กันชื่อยาวจนการ์ดแชร์/หน้าแรกล้น)
 
 const picker = ref<{ getCroppedBlob: (size?: number) => Promise<Blob> } | null>(null)
@@ -66,6 +68,7 @@ async function save() {
     console.error('[profile-photo] upload failed:', err)
     errorMessage.value = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง'
   } finally {
+    clearPageCache() // ชื่อ/รูปอาจเปลี่ยนแล้ว หน้าหลักที่จำไว้เป็นของเก่า
     saving.value = false
   }
 }
