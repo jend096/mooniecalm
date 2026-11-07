@@ -325,8 +325,8 @@ async function changeDay(dateStr: string) {
   isSwitching.value = true
   await saveNote() // เก็บข้อความที่ค้างอยู่ของวันเดิมก่อนเปลี่ยนวัน
   viewDate.value = dateStr
-  // ให้หน้ารอโหลดโชว์อย่างน้อย ~0.4 วิ จะได้เห็นว่ากำลังเปลี่ยนวัน (ไม่วูบหายเร็วเกินไป)
-  await Promise.all([loadDay(), new Promise(resolve => setTimeout(resolve, 400))])
+  // ไม่หน่วงเวลาเทียมแล้ว: โหลดเสร็จเมื่อไหร่ก็แสดงเมื่อนั้น (หน้ารอจะโผล่เฉพาะตอนเน็ตช้าจริง ดู LoadingOverlay)
+  await loadDay()
   isSwitching.value = false
 }
 

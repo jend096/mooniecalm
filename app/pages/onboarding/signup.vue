@@ -16,25 +16,30 @@ let hasCompletedLogin = false
 let unsubscribe: (() => void) | undefined
 const route = useRoute()
 
-// ตรวจสอบสถานะโปรไฟล์ของผู้ใช้
+// ตรวจสอบสถานะโปรไฟล์ของผู้ใช้ แล้วพาไปหน้าที่ถูกต้อง
+// ทำงานบนอินเทอร์เน็ต (ถามฐานข้อมูล/บันทึก) อาจใช้เวลาหลายวินาทีถ้าเน็ตช้า จึงขึ้นหน้ารอตลอดช่วงนี้
+// (เดิมไม่ขึ้นอะไรเลย ผู้ใช้นึกว่าค้างแล้วกดล็อกอินซ้ำ ซึ่งทำให้เริ่มใหม่ตั้งแต่ต้น)
 async function completeLogin(userId: string) {
   if (hasCompletedLogin) return
   hasCompletedLogin = true
   unsubscribe?.()
+  sendingLink.value = false
+  loading.value = true
 
   const supabase = useSupabaseClient()
 
   try {
     // ใช้ตัวเชื่อมที่แนบคีย์+สิทธิ์ผู้ใช้ครบ (ตัวมาตรฐาน .from ไม่แนบคีย์ ทำให้ค้นไม่เจอ แล้วระบบนึกว่าเป็นผู้ใช้ใหม่)
     const authed = await getAuthedSupabaseClient()
-    // ดึงข้อมูลจาก user_profiles โดยหาจาก auth_user_id ที่ตรงกับรหัส Auth ของผู้ใช้
+    // ดึงโปรไฟล์ + ชิ้นอวตารที่อยู่ในฐานข้อมูลจริง ในคำสั่งเดียว (เดิมแยกเป็น 2 คำสั่งต่อกัน)
+    // user_avatar_state(id) = แนบแถวอวตารของผู้ใช้คนนี้มาด้วย เอาจำนวนแถวไปนับว่าครบ 4 ไหม
     const { data, error } = await authed
       .from('user_profiles')
-      .select('id, nickname')
+      .select('id, nickname, user_avatar_state(id)')
       .eq('auth_user_id', userId)
       .maybeSingle()
     // ระบุหน้าตาแถวเอง เพราะโปรเจกต์ยังไม่มีไฟล์ชนิดตารางของ Supabase (ไม่ระบุจะขึ้นแดงตอนอ่าน profile.nickname)
-    const profile = data as { id: number, nickname: string | null } | null
+    const profile = data as { id: number, nickname: string | null, user_avatar_state: { id: number }[] | null } | null
 
     if (error) {
       // เช็คโปรไฟล์ไม่ได้ (เน็ต/สิทธิ์) -> ไม่รู้ว่าเป็นผู้ใช้เดิมหรือใหม่ จึงไม่ทำอะไรกับข้อมูล ให้ลองใหม่
@@ -44,26 +49,8 @@ async function completeLogin(userId: string) {
       return
     }
 
-    // นับชิ้นอวตารที่อยู่ในฐานข้อมูลจริง (ต้องครบ 4 ชิ้นถึงถือว่า "ข้อมูลเข้าฐานครบ")
-    async function countAvatarRows(profileId: number): Promise<number | null> {
-      const { count, error: countError } = await authed
-        .from('user_avatar_state')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', profileId)
-      return countError ? null : (count ?? 0)
-    }
-
-    let avatarCount = 0
-    if (profile) {
-      const counted = await countAvatarRows(profile.id)
-      if (counted === null) {
-        // นับไม่ได้ -> ไม่รู้ว่าครบไหม ไม่เดาให้ (เดามั่วจะปล่อยคนข้อมูลไม่ครบเข้าแอป) ให้ลองใหม่
-        statusMessage.value = 'เช็คข้อมูลบัญชีไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง'
-        hasCompletedLogin = false
-        return
-      }
-      avatarCount = counted
-    }
+    // จำนวนชิ้นอวตารที่อยู่ในฐานข้อมูลจริง (ต้องครบ 4 ชิ้นถึงถือว่า "ข้อมูลเข้าฐานครบ")
+    const avatarCount = profile?.user_avatar_state?.length ?? 0
 
     // คำตอบสร้างอวตารที่รอบันทึกอยู่ (ความจำ / แนบมากับลิงก์อีเมล / จดไว้ก่อนไป Google) ต้องครบ 4 ข้อ
     const { data: sessionData } = await supabase.auth.getSession()
@@ -86,17 +73,17 @@ async function completeLogin(userId: string) {
       return
     }
 
-    // 3) มีคำตอบครบแล้ว -> บันทึกลงฐานข้อมูล แล้ว "ตรวจซ้ำ" ว่าอวตารลงฐานครบ 4 ชิ้นจริง ก่อนปล่อยไปต่อ
-    await saveOnboardingProfile(userId)
-    const savedCount = profile ? await countAvatarRows(profile.id) : null
-    let verifiedCount = savedCount
-    if (!profile) {
-      // เมลใหม่: เพิ่งสร้างโปรไฟล์ ต้องดึง id ใหม่มานับ
-      const { data: created } = await authed.from('user_profiles').select('id').eq('auth_user_id', userId).maybeSingle()
-      verifiedCount = created ? await countAvatarRows((created as { id: number }).id) : null
+    // 3) อวตารในฐานข้อมูลครบอยู่แล้ว แค่ยังไม่ได้ตั้งชื่อเล่น -> ไปตั้งชื่อเลย ไม่ต้องบันทึกซ้ำ
+    if (step === 'name') {
+      await navigateTo('/onboarding/step-1', { replace: true })
+      return
     }
-    if (verifiedCount === null || verifiedCount < AVATAR_SLOT_COUNT) {
-      console.error('[signup] บันทึกอวตารไม่ครบ', { verifiedCount })
+
+    // 4) มีคำตอบครบแล้ว -> บันทึกลงฐานข้อมูล
+    //    saveOnboardingProfile ขอแถวที่เพิ่งบันทึกกลับมานับด้วย จึงรู้ทันทีว่าอวตารลงฐานครบ 4 ชิ้นจริงไหม (ไม่ต้องยิงคำสั่งนับซ้ำ)
+    const saved = await saveOnboardingProfile(userId)
+    if (saved.avatarCount < AVATAR_SLOT_COUNT) {
+      console.error('[signup] บันทึกอวตารไม่ครบ', { avatarCount: saved.avatarCount })
       statusMessage.value = 'บันทึกข้อมูลไม่ครบ กรุณาลองเข้าสู่ระบบอีกครั้ง'
       hasCompletedLogin = false
       return
@@ -110,6 +97,9 @@ async function completeLogin(userId: string) {
     console.error('Error checking profile:', err)
     statusMessage.value = 'บันทึกข้อมูลไม่สำเร็จ กรุณาลองเข้าสู่ระบบอีกครั้ง'
     hasCompletedLogin = false
+  } finally {
+    // ปิดหน้ารอ (ถ้าไปหน้าอื่นสำเร็จ หน้านี้จะหายไปเองอยู่แล้ว)
+    loading.value = false
   }
 }
 
@@ -219,13 +209,14 @@ onMounted(async () => {
   const accessToken = hashParams.get('access_token')
   const refreshToken = hashParams.get('refresh_token')
 
+  // เพิ่งกลับมาจากหน้า Google/ลิงก์อีเมล (มี code หรือ token ใน URL) -> ขึ้นหน้ารอทันที ไม่ปล่อยให้หน้าดูนิ่งเหมือนค้าง
+  if (accessToken || route.query.code) loading.value = true
+
   if (accessToken && refreshToken) {
-    loading.value = true
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken
     })
-    loading.value = false
 
     if (!error && data.session?.user) {
       // ล้าง hash ออกจาก URL เพื่อความปลอดภัยและความสะอาดของ address bar
@@ -233,15 +224,22 @@ onMounted(async () => {
       await completeLogin(data.session.user.id)
       return
     }
+    loading.value = false
   }
 
   // 3. ตรวจสอบ session ปัจจุบันที่มีอยู่ในเครื่อง
   // (เช็คกับเซิร์ฟเวอร์ด้วยว่าผู้ใช้ยังมีอยู่ ไม่งั้นถ้าลบผู้ใช้ใน Supabase ไปแล้ว session เก่าที่ค้างจะพาข้ามหน้าอีเมล)
   const { data: { session } } = await supabase.auth.getSession()
-  if (session?.user && await isSessionStillValid()) {
-    await completeLogin(session.user.id)
-    return
+  if (session?.user) {
+    loading.value = true // เช็คกับเซิร์ฟเวอร์ต้องรอเน็ต ขึ้นหน้ารอไว้
+    if (await isSessionStillValid()) {
+      await completeLogin(session.user.id)
+      return
+    }
+    loading.value = false
   }
+  // ไม่มี session และไม่ได้กำลังรอ session จาก URL -> ปิดหน้ารอ (ถ้ามี code ใน URL ให้รอ event ด้านล่างต่อ)
+  if (!route.query.code) loading.value = false
 
   // 4. ดักรับ Event เมื่อมี session เข้ามา
   const { data: listener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
@@ -249,7 +247,9 @@ onMounted(async () => {
       const userId = currentSession.user.id
       // เลื่อนไปทำนอก callback (setTimeout) เพราะ Supabase ไม่แนะนำให้เรียกคำสั่ง auth อื่นซ้อนใน callback นี้ (อาจค้าง)
       setTimeout(async () => {
+        loading.value = true
         if (await isSessionStillValid()) await completeLogin(userId)
+        else loading.value = false
       }, 0)
     }
   })

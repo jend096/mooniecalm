@@ -748,13 +748,12 @@ async function changeDay(dateStr: string) {
   if (dateStr === viewDate.value || isSwitching.value) return
   isSwitching.value = true
   viewDate.value = dateStr
-  // ให้หน้ารอโหลดโชว์อย่างน้อย ~0.4 วิ จะได้เห็นว่ากำลังเปลี่ยนวัน (ไม่วูบหายเร็วเกินไป)
+  // ไม่หน่วงเวลาเทียมแล้ว: โหลดเสร็จเมื่อไหร่ก็แสดงเมื่อนั้น (หน้ารอจะโผล่เฉพาะตอนเน็ตช้าจริง ดู LoadingOverlay)
   await Promise.all([
     loadChecked(),
     loadTodayPain(),
     loadTodaySnacks(),
-    loadTodayGuides(),
-    new Promise(resolve => setTimeout(resolve, 400))
+    loadTodayGuides()
   ])
   isSwitching.value = false
 }

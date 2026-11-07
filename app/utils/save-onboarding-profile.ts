@@ -199,6 +199,11 @@ export async function saveOnboardingProfile(userId: string) {
   if (data.last_period_date !== null) profileFields.last_period_date = data.last_period_date
   if (data.period_duration_days !== null) profileFields.period_duration_days = data.period_duration_days
   if (data.food_allergies.length > 0) profileFields.allergies = data.food_allergies
+  // เก็บหลักฐานความยินยอมไปพร้อมกันในคำสั่งเดียว (เดิมแยกอีกคำสั่ง ทำให้ช้าขึ้นอีกรอบ)
+  if (data.consent_at) {
+    profileFields.consent_health_at = data.consent_at
+    profileFields.consent_version = data.consent_version
+  }
 
   const { data: profile, error } = await supabase
     .from('user_profiles')
@@ -207,15 +212,6 @@ export async function saveOnboardingProfile(userId: string) {
     .single()
 
   if (error) throw error
-
-  // เก็บหลักฐานความยินยอมแยกอีกคำสั่ง (ถ้ายังไม่ได้รัน SQL เพิ่มคอลัมน์ จะแค่เตือนในคอนโซล ไม่ให้สมัครพัง)
-  if (data.consent_at) {
-    const { error: consentError } = await supabase
-      .from('user_profiles')
-      .update({ consent_health_at: data.consent_at, consent_version: data.consent_version })
-      .eq('id', profile.id)
-    if (consentError) console.warn('[saveOnboardingProfile] เก็บความยินยอมไม่สำเร็จ (รัน consent-columns.sql แล้วหรือยัง?)', consentError)
-  }
 
   const selections = data.avatar_selections
 
@@ -230,12 +226,16 @@ export async function saveOnboardingProfile(userId: string) {
       current_asset_code: assetCode
     }))
 
+  // ขอแถวที่เพิ่งบันทึกกลับมาด้วย (.select) เพื่อนับว่าลงฐานข้อมูลจริงกี่ชิ้น
+  let savedAvatarCount = 0
   if (avatarRows.length > 0) {
-    const { error: avatarError } = await supabase
+    const { data: savedRows, error: avatarError } = await supabase
       .from('user_avatar_state')
       .upsert(avatarRows, { onConflict: 'user_id,feature_slot' })
+      .select('id')
 
     if (avatarError) throw avatarError
+    savedAvatarCount = savedRows?.length ?? 0
   }
 
   // บันทึกครบแล้ว ลบที่จดไว้ก่อนไปหน้า Google ทิ้ง ไม่ให้ค้างไปใช้กับบัญชีอื่น
@@ -245,4 +245,7 @@ export async function saveOnboardingProfile(userId: string) {
   // ไม่งั้นคำตอบเก่าค้างอยู่ แล้วคนถัดไปที่ใช้เครื่องนี้ (หรือบัญชีใหม่ที่ยังไม่เคยตอบ) จะถูกนับว่า "เคยตอบแล้ว" ทั้งที่ไม่ได้ตอบ
   const avatarSelections = useAvatarSelections()
   avatarSelections.value = emptyAvatarSelections()
+
+  // คืนจำนวนชิ้นอวตารที่ลงฐานจริง ให้หน้าที่เรียกใช้ตรวจว่าครบ 4 ไหม
+  return { profileId: profile.id as number, avatarCount: savedAvatarCount }
 }

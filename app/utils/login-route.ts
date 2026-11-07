@@ -13,12 +13,14 @@ export interface LoginCheck {
 
 // 'home'      = ข้อมูลครบแล้ว เข้าหน้าหลักได้เลย
 // 'questions' = ยังไม่มีคำตอบสร้างอวตารครบ (เมลใหม่ หรือข้อมูลในฐานไม่ครบ) -> ไปตอบที่ step-3
-// 'save'      = มีคำตอบครบแล้วแต่ยังไม่ได้อยู่ในฐานข้อมูล -> บันทึกลงฐาน (แล้วตรวจซ้ำว่าลงจริง) ก่อนไปต่อ
-export type LoginStep = 'home' | 'questions' | 'save'
+// 'name'      = อวตารในฐานข้อมูลครบแล้ว แค่ยังไม่ได้ตั้งชื่อเล่น -> ไปหน้าตั้งชื่อเลย (ไม่บันทึกซ้ำ จะได้ไม่เสียเวลา)
+// 'save'      = มีคำตอบครบแล้วแต่ยังไม่ได้อยู่ในฐานข้อมูล -> บันทึกลงฐาน (แล้วตรวจว่าลงจริง) ก่อนไปต่อ
+export type LoginStep = 'home' | 'questions' | 'name' | 'save'
 
 export function decideLoginStep(check: LoginCheck): LoginStep {
   const avatarComplete = check.avatarCountInDb >= AVATAR_SLOT_COUNT
   if (check.hasNickname && avatarComplete) return 'home'
-  if (avatarComplete || check.hasAllAvatarAnswers) return 'save'
+  if (avatarComplete) return 'name'
+  if (check.hasAllAvatarAnswers) return 'save'
   return 'questions'
 }
