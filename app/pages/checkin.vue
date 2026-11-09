@@ -69,21 +69,21 @@
         class="goal-card flex gap-0 rounded-[24px] border p-5 transition-colors"
         :class="[
           isDone(goal.goal_code)
-            ? 'goal-done border-transparent bg-moon-period/45'
+            ? 'goal-done border-transparent bg-moon-period/30'
             : 'border-moon-pink-soft bg-moon-gray-soft'
         ]"
       >
         <!-- ซ้าย: ชื่อ + คำอธิบาย + แถบความคืบหน้า -->
         <div class="flex min-w-0 flex-1 flex-col gap-[2px]">
           <!-- ชื่อเป้าหมาย + แท็บสถานะ: จัดเป็นแถวเดียว (flex) แท็บ shrink-0 ไม่ย่อและไม่ตกบรรทัดล่าง ถ้าชื่อยาวชื่อจะขึ้นสองบรรทัดเองในกล่องของมัน ระยะห่างปรับที่ gap-1.5
+               ตำแหน่งแท็บบน-ล่าง: ปรับที่ mt-0 ตรงแท็บ (เดิม mt-[4px] อยู่กลางบรรทัด / mt-0 = ขยับขึ้น 4px ชิดบน / ใส่ -mt-[2px] ถ้าอยากขึ้นอีก)
                สีตัวหนังสือเป็นสีดำ (text-moon-ink) ทั้งสองสถานะ / พื้นแท็บ: ทำแล้ว = ม่วง (bg-moon-lavender) ยังไม่ทำ = เทา (bg-moon-gray) -->
-          <div class="flex items-start gap-1.5">
-            <p class="min-w-0 text-lg font-medium leading-[26px] text-moon-ink">{{ goal.title }}</p>
-            <span
-              class="mt-[4px] shrink-0 whitespace-nowrap rounded-lg px-2 py-[2px] text-xs leading-[18px] text-moon-ink"
-              :class="isDone(goal.goal_code) ? 'bg-moon-lavender' : 'bg-moon-gray'"
-            >{{ goalStatusText(goal.goal_code) }}</span>
-          </div>
+          <!-- ป้ายสถานะต่อท้ายชื่อ ยกขึ้น "เหลื่อมบนตัวอักษร" แบบตัวยก และไม่กินที่ในบรรทัด (กล่องนอก w-0) จึงไม่มีทางตกลงมาใต้ชื่อ
+               ตำแหน่ง: ระยะห่างจากชื่อ = ml-1.5 / ยกขึ้นกี่ px = top-[-5px] (ติดลบมาก = สูงขึ้น, 0 = ชิดบนบรรทัด) -->
+          <p class="text-lg font-medium leading-[26px] text-moon-ink">{{ goal.title }}<span class="relative ml-1.5 inline-block h-0 w-0 align-top"><span
+            class="absolute left-0 top-[-3px] whitespace-nowrap rounded-lg px-2 py-[2px] text-xs font-normal leading-[18px] text-moon-ink"
+            :class="isDone(goal.goal_code) ? 'bg-moon-lavender' : 'bg-moon-gray'"
+          >{{ goalStatusText(goal.goal_code) }}</span></span></p>
           <p class="text-sm leading-[22px] text-moon-ink">{{ GOAL_HINTS[goal.goal_code] ?? '' }}</p>
           <!-- จำนวนวันที่ทำสำเร็จในรอบนี้ (ตัวเลขเด่นเหนือแถบ) -->
           <p class="mt-1 text-sm font-medium leading-[22px]">
@@ -131,9 +131,11 @@
         {{ isToday ? 'ยังไม่มีบันทึกของวันนี้' : 'วันนั้นไม่มีบันทึกไว้' }}
       </p>
 
+      <!-- สีการ์ดในไทม์ไลน์ใช้ชุดเดียวกับการ์ดเป้าหมายด้านบน: ทำแล้ว = bg-moon-period/30 (เหมือนเป้าหมายที่สำเร็จ ตัวเลข 30 = ความทึบสีชมพู ยิ่งน้อยยิ่งจาง) / ยังไม่ได้ทำ = bg-moon-gray-soft + ขอบ border-moon-pink-soft -->
       <div v-for="item in timelineDone" :key="item.key" class="flex gap-[10px]">
         <p class="w-10 shrink-0 text-xs font-medium leading-[18px] text-moon-muted">{{ item.time }}</p>
-        <div class="tl-card flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-moon-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+        <div class="tl-card flex min-w-0 flex-1 items-center gap-3 rounded-[20px] border border-transparent bg-moon-period/30 p-5">
+          <!-- แถบสีข้างการ์ด: ทำแล้ว = โคเรลเดิม (bg-moon-coral) / ยังไม่ได้ทำ = เหลืองเดิม (ดูที่การ์ดด้านล่าง) -->
           <span class="w-1 shrink-0 self-stretch rounded-sm bg-moon-coral" />
           <!-- การ์ดคู่มือกดได้ -> เปิดป๊อปอัพวิธีทำใบเดิมกลับมาอ่านซ้ำ -->
           <div
@@ -176,7 +178,7 @@
 
       <div v-for="item in timelinePending" :key="item.key" class="flex gap-[10px]">
         <p class="w-10 shrink-0 text-xs font-medium leading-[18px] text-moon-muted">{{ item.carryLabel ?? (isToday ? 'รอ' : '') }}</p>
-        <div class="tl-card tl-pending flex min-w-0 flex-1 items-center gap-3 rounded-[20px] bg-moon-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.1)]">
+        <div class="tl-card tl-pending flex min-w-0 flex-1 items-center gap-3 rounded-[20px] border border-moon-pink-soft bg-moon-gray-soft p-5">
           <span class="w-1 shrink-0 self-stretch rounded-sm bg-moon-yellow" />
           <!-- การ์ดคู่มือกดได้ทั้งใบ -> เปิดป๊อปอัพวิธีทำใบเดิมกลับมาอ่านซ้ำ (ใช้ป๊อปอัพเดียวกับหน้าคู่มือ) -->
           <div
@@ -185,7 +187,10 @@
             :role="item.onRead ? 'button' : undefined"
             @click="item.onRead?.()"
           >
-            <p class="text-sm font-semibold leading-[21px]">{{ item.title }}</p>
+            <!-- ชื่อ + ป้ายสถานะ "ยังไม่ได้ทาน/ยังไม่ได้ทำ": แถวเดียวกันเหมือนการ์ดเป้าหมายวันนี้ (ป้ายต่อท้ายชื่อ ยกขึ้นเหลื่อมบนตัวอักษร ไม่ตกลงมาใต้ชื่อ (ปรับความสูงที่ top-[-5px]) พื้นเทา ตัวดำ ไม่ใช่ปุ่ม กดไม่ได้ -->
+            <p class="text-sm font-semibold leading-[21px]">{{ item.title }}<span class="relative ml-1.5 inline-block h-0 w-0 align-top"><span
+              class="absolute left-0 top-[-3px] whitespace-nowrap rounded-lg bg-moon-gray px-2 py-[2px] text-xs font-normal leading-[18px] text-moon-ink"
+            >{{ item.kind === 'guide' ? 'ยังไม่ได้ทำ' : 'ยังไม่ได้ทาน' }}</span></span></p>
             <p v-for="line in item.lines" :key="line" class="text-xs leading-[18px] text-moon-muted">{{ line }}</p>
             <span
               v-if="item.onRead"
@@ -194,14 +199,17 @@
               {{ item.readLabel ?? 'อ่านวิธีทำ ›' }}
             </span>
           </div>
-          <button
-            v-if="isToday"
-            type="button"
-            class="shrink-0 rounded-full border border-moon-coral bg-moon-pink px-3 py-[6px] text-xs font-medium leading-[18px] text-moon-ink shadow-sm transition active:scale-95"
-            @click="item.onDone?.($event)"
-          >
-            {{ item.kind === 'guide' ? 'ยังไม่ได้ทำ' : 'ยังไม่ได้ทาน' }}
-          </button>
+          <!-- ขวา (ชิดล่าง): ปุ่มดำ "เช็คอิน" เหมือนการ์ดเป้าหมายวันนี้ กดแล้วขึ้นป๊อปอัพ "ทานแล้วหรือยัง/ทำแล้วหรือยัง" (ดู askConfirmDone ใน script) -->
+          <div v-if="isToday" class="flex shrink-0 items-end self-stretch">
+            <button
+              type="button"
+              class="h-[32px] rounded-full bg-moon-ink px-4 text-sm font-medium text-white transition active:scale-95"
+              :aria-label="`เช็คอิน ${item.title}`"
+              @click="askConfirmDone(item, $event)"
+            >
+              เช็คอิน
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -213,6 +221,20 @@
       :max="today"
       @pick="changeDay"
       @close="showDayPicker = false"
+    />
+
+    <!-- กดปุ่ม "เช็คอิน" ในรายการที่ยังไม่ได้ทำ/ทาน -> ถามก่อนว่าทำ/ทานแล้วหรือยัง
+         ตอบ "ทำแล้ว/ทานแล้ว" = บันทึกเวลา แล้วเด้งถามความรู้สึกต่อ (ป๊อปอัพด้านล่าง) / ตอบ "ยังไม่ได้..." หรือกดกากบาท = ปิดเฉยๆ ไม่บันทึก -->
+    <PromptDialog
+      v-if="confirmingItem"
+      :title="confirmingItem.kind === 'guide' ? 'ทำแล้วหรือยัง' : 'ทานแล้วหรือยัง'"
+      :message="confirmingItem.title"
+      :primary-label="confirmingItem.kind === 'guide' ? 'ทำแล้ว' : 'ทานแล้ว'"
+      :secondary-label="confirmingItem.kind === 'guide' ? 'ยังไม่ได้ทำ' : 'ยังไม่ได้ทาน'"
+      closable
+      @primary="confirmDone"
+      @secondary="confirmingItem = null"
+      @close="confirmingItem = null"
     />
 
     <PromptDialog
@@ -331,6 +353,7 @@ const cycleFinished = ref(false) // รอบนี้ครบ 28 วันแ�
 // ของว่างที่เลือกไว้วันนี้ (แถวจาก snack_logs) เลือกได้หลายอัน
 interface TodaySnack {
   id: number // id ของแถวใน snack_logs
+  snackId: number // id ของเมนู (snack_items) ไว้ใช้ตอนทานของที่ค้างมาจากวันก่อน
   name: string
   description: string | null // คำอธิบายสั้นของเมนู (โชว์ใต้ชื่อในไทม์ไลน์)
   eatenTime: string // เวลาที่กด "กินแล้ว" เช่น "12:30" (ว่าง = ยังไม่กิน)
@@ -355,7 +378,8 @@ const todayPainLogs = ref<TodayPain[]>([])
 
 // ดึงแถวที่ "เลือกไว้ใน 3 วันก่อนวันที่ดูอยู่ แต่ยังไม่ได้ทำ/กิน" (doneColumn ยังว่าง) ไว้ให้ไปขึ้นรอในวันถัดมา
 const CARRY_OVER_DAYS = 3
-async function loadCarriedRows(table: 'guide_logs' | 'snack_logs', doneColumn: string, columns: string): Promise<Record<string, unknown>[]> {
+// itemColumn = คอลัมน์บอกว่าเป็นเมนู/คู่มืออันไหน (snack_id / guide_id) ใช้เช็คว่าอันที่ค้างมา "ถูกทำไปแล้วในวันหลัง" หรือยัง
+async function loadCarriedRows(table: 'guide_logs' | 'snack_logs', doneColumn: string, itemColumn: 'snack_id' | 'guide_id', columns: string): Promise<Record<string, unknown>[]> {
   if (!profileId.value) return []
   const from = parseLocalDate(viewDate.value)
   from.setDate(from.getDate() - CARRY_OVER_DAYS)
@@ -370,7 +394,21 @@ async function loadCarriedRows(table: 'guide_logs' | 'snack_logs', doneColumn: s
     .order('log_date')
     .order('chosen_at')
   if (error) loadHadError = true
-  return (data ?? []) as unknown as Record<string, unknown>[]
+  const rows = (data ?? []) as unknown as Record<string, unknown>[]
+  if (!rows.length) return []
+
+  // ของที่ค้างมา แต่ภายหลัง (วันถัดมาจนถึงวันนี้) มีแถว "ทำ/ทานแล้ว" ของอันเดียวกันแล้ว = ไม่ต้องขึ้นเป็นของค้างอีก
+  // (แถวเก่าของวันนั้นยังเป็น "ยังไม่ได้ทำ" อยู่ในฐานข้อมูลตามจริง ถ้าไปดูวันนั้นก็ยังขึ้นยังไม่ได้ทำเหมือนเดิม)
+  const { data: laterDone, error: laterError } = await authed
+    .from(table)
+    .select(`${itemColumn}, log_date`)
+    .eq('user_id', profileId.value)
+    .gte('log_date', getLocalDateString(from))
+    .lte('log_date', viewDate.value)
+    .not(doneColumn, 'is', null)
+  if (laterError) loadHadError = true
+  const later = (laterDone ?? []) as unknown as Record<string, unknown>[]
+  return rows.filter(r => !later.some(l => l[itemColumn] === r[itemColumn] && String(l.log_date) > String(r.log_date)))
 }
 
 // ป้ายบอกว่าค้างมากี่วัน เช่น "เมื่อวาน" / "2 วันก่อน" (วันเดียวกับที่ดูอยู่ = ไม่ใช่ของค้าง)
@@ -420,6 +458,7 @@ async function loadTodayPain() {
 // คู่มือที่เลือกไว้วันนี้ (แถวจาก guide_logs) เลือกได้หลายอัน ทำงานเหมือนของว่าง
 interface TodayGuide {
   id: number // id ของแถวใน guide_logs
+  guideId: number // id ของคู่มือ (pain_relief_guides) ไว้ใช้ตอนทำของที่ค้างมาจากวันก่อน
   title: string
   chosenMs: number // เวลาที่กด "เลือกอันนี้" (ไว้จับคู่กับความปวดที่บันทึกก่อนหน้า)
   doneTime: string // เวลาที่กด "ทำแล้ว" เช่น "10:15" (ว่าง = ยังไม่ทำ)
@@ -439,13 +478,13 @@ async function loadTodayGuides() {
   const authed = await getAuthedSupabaseClient()
   const { data, error } = await authed
     .from('guide_logs')
-    .select('id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)')
+    .select('id, guide_id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)')
     .eq('user_id', profileId.value)
     .eq('log_date', viewDate.value)
     .order('chosen_at')
   if (error) loadHadError = true
   // ดูวันนี้อยู่ -> ดึงคู่มือที่เลือกไว้ใน 3 วันก่อนหน้าแต่ยังไม่ได้ทำ มาขึ้นรอด้วย (ไม่งั้นเลือกไว้เมื่อวานแล้วหายเงียบ)
-  const carried = isToday.value ? await loadCarriedRows('guide_logs', 'done_at', 'id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)') : []
+  const carried = isToday.value ? await loadCarriedRows('guide_logs', 'done_at', 'guide_id', 'id, guide_id, log_date, done_at, felt_better, chosen_at, pain_relief_guides(title, short_description, steps, linked_goal_code)') : []
   todayGuides.value = [...carried, ...(data ?? [])].map((row) => {
     const item = row.pain_relief_guides as unknown as {
       title: string
@@ -456,6 +495,7 @@ async function loadTodayGuides() {
     const goal = activeGoals.value.find(g => g.goal_code === item?.linked_goal_code)
     return {
       id: row.id as number,
+      guideId: row.guide_id as number,
       title: item?.title ?? '',
       chosenMs: Date.parse(row.chosen_at as string),
       doneTime: row.done_at ? timeOf(row.done_at as string) : '',
@@ -469,24 +509,64 @@ async function loadTodayGuides() {
   })
 }
 
-// กด "ทำแล้ว": บันทึกเวลาที่ทำทันที แล้วเด้งถามความรู้สึก
+// กำลังบันทึก "ทำแล้ว/ทานแล้ว" อยู่เบื้องหลัง (ป๊อปอัพถามความรู้สึกเด้งขึ้นทันทีโดยไม่รอบันทึกเสร็จ แต่ตอนตอบจะรอให้บันทึกเสร็จก่อน)
+let pendingSave: Promise<void> | null = null
+
+// กดยืนยัน "ทำแล้ว": เด้งถามความรู้สึกต่อทันที (ไม่ต้องรอ/ไม่ต้องปิดอะไร) แล้วบันทึกเวลาที่ทำเบื้องหลัง
+// - ของวันนี้: อัปเดตแถวเดิมว่าทำแล้ว
+// - ของที่ค้างมาจากวันก่อน: แถวเดิมของวันนั้น "ไม่แตะ" (วันนั้นยังขึ้นยังไม่ได้ทำเหมือนเดิม) แต่สร้าง/อัปเดตแถวของ "วันนี้" ให้เป็นทำแล้ว
 async function markGuideDone(guide: TodayGuide, el?: HTMLElement) {
-  if (!guide.done) {
-    sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
-    const authed = await getAuthedSupabaseClient()
-    const { error } = await authed.from('guide_logs').update({ done_at: new Date().toISOString() }).eq('id', guide.id)
-    clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
-    if (error) return
-    guide.done = true
-    guide.doneTime = timeOf(new Date().toISOString())
+  if (guide.done) { askingGuide.value = guide; return }
+  if (!profileId.value) return
+  sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
+  const nowIso = new Date().toISOString()
+
+  // ของวันนี้เอง
+  if (guide.logDate === viewDate.value) {
+    askingGuide.value = guide
+    pendingSave = (async () => {
+      const authed = await getAuthedSupabaseClient()
+      const { error } = await authed.from('guide_logs').update({ done_at: nowIso }).eq('id', guide.id)
+      clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
+      if (error) { if (askingGuide.value === guide) askingGuide.value = null; return }
+      guide.done = true
+      guide.doneTime = timeOf(nowIso)
+    })()
+    await pendingSave
+    return
   }
-  askingGuide.value = guide
+
+  // ของที่ค้างมา: เอาออกจากรายการค้าง ใส่แถวของวันนี้ที่ทำแล้วแทน (id จะได้ตอนบันทึกเสร็จ)
+  const doneGuide: TodayGuide = { ...guide, id: 0, logDate: viewDate.value, done: true, doneTime: timeOf(nowIso), feltBetter: null }
+  todayGuides.value = todayGuides.value.filter(x => x !== guide && !(x.guideId === guide.guideId && x.logDate === viewDate.value && !x.done))
+  todayGuides.value.push(doneGuide)
+  const shown = todayGuides.value[todayGuides.value.length - 1]! // ตัวที่อยู่ในรายการจริง (เป็น reactive)
+  askingGuide.value = shown
+  pendingSave = (async () => {
+    const authed = await getAuthedSupabaseClient()
+    // upsert: ถ้าวันนี้เลือกคู่มือนี้ไว้แล้ว (มีแถวอยู่) = อัปเดตว่าทำแล้ว / ถ้ายังไม่มี = สร้างแถวใหม่ของวันนี้
+    const { data, error } = await authed
+      .from('guide_logs')
+      .upsert({ user_id: profileId.value, guide_id: guide.guideId, log_date: viewDate.value, done_at: nowIso }, { onConflict: 'user_id,guide_id,log_date' })
+      .select('id')
+      .single()
+    clearPageCache()
+    if (error || !data) {
+      askingGuide.value = null
+      await loadTodayGuides() // บันทึกไม่สำเร็จ: โหลดรายการจริงจากฐานข้อมูลกลับมา (ของค้างจะกลับมาขึ้นเหมือนเดิม)
+      return
+    }
+    shown.id = data.id as number
+  })()
+  await pendingSave
 }
 
 // ตอบความรู้สึก: true = ดีขึ้น, false = เฉยๆ/ยังไม่ดีขึ้น
 async function answerGuideFeeling(better: boolean) {
   const guide = askingGuide.value
   if (!guide) return
+  await pendingSave // รอให้บันทึก "ทำแล้ว" เสร็จก่อน (ของที่ค้างมาจะได้ id แถวใหม่)
+  if (!guide.id) { askingGuide.value = null; return }
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed.from('guide_logs').update({ felt_better: better }).eq('id', guide.id)
   clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
@@ -494,7 +574,7 @@ async function answerGuideFeeling(better: boolean) {
   askingGuide.value = null
 }
 // คอลัมน์ที่ดึงจาก snack_logs (รวมข้อมูลเมนูไว้โชว์ในการ์ดรายละเอียด)
-const SNACK_LOG_COLUMNS = 'id, log_date, eaten_at, felt_better, snack_items(name, description, category, image_url, pairing_tip, ingredients, linked_goal_code)'
+const SNACK_LOG_COLUMNS = 'id, snack_id, log_date, eaten_at, felt_better, snack_items(name, description, category, image_url, pairing_tip, ingredients, linked_goal_code)'
 const todaySnacks = ref<TodaySnack[]>([])
 const readingSnack = ref<TodaySnack | null>(null) // เมนูที่กำลังเปิดการ์ดรายละเอียด (null = ไม่โชว์)
 const askingSnack = ref<TodaySnack | null>(null) // เมนูที่กำลังถามความรู้สึกอยู่ (null = ไม่มีป๊อปอัพ)
@@ -510,7 +590,7 @@ async function loadTodaySnacks() {
     .order('chosen_at')
   if (error) loadHadError = true
   // ดูวันนี้อยู่ -> ดึงของว่างที่เลือกไว้ใน 3 วันก่อนหน้าแต่ยังไม่ได้กิน มาขึ้นรอด้วย (ถามว่ากินที่เลือกไว้หรือยัง)
-  const carried = isToday.value ? await loadCarriedRows('snack_logs', 'eaten_at', SNACK_LOG_COLUMNS) : []
+  const carried = isToday.value ? await loadCarriedRows('snack_logs', 'eaten_at', 'snack_id', SNACK_LOG_COLUMNS) : []
   todaySnacks.value = [...carried, ...(data ?? [])].map((row) => {
     const item = row.snack_items as unknown as {
       name: string
@@ -523,6 +603,7 @@ async function loadTodaySnacks() {
     } | null
     return {
       id: row.id as number,
+      snackId: row.snack_id as number,
       name: item?.name ?? '',
       description: item?.description ?? null,
       eatenTime: row.eaten_at ? timeOf(row.eaten_at as string) : '',
@@ -538,24 +619,61 @@ async function loadTodaySnacks() {
   })
 }
 
-// กด "กินแล้ว": บันทึกเวลากินทันที แล้วเด้งถามความรู้สึก (ถ้ากินเองก่อนแจ้งเตือนก็ถามตรงนี้เลย)
+// กดยืนยัน "ทานแล้ว": เด้งถามความรู้สึกต่อทันที (ไม่ต้องรอ/ไม่ต้องปิดอะไร) แล้วบันทึกเวลากินเบื้องหลัง
+// - ของวันนี้: อัปเดตแถวเดิมว่ากินแล้ว
+// - ของที่ค้างมาจากวันก่อน (เช่น สุ่มชาขิงไว้เมื่อวาน แต่ไปกินวันนี้): แถวเดิมของเมื่อวาน "ไม่แตะ" (เมื่อวานยังขึ้นยังไม่ได้กิน) แต่สร้าง/อัปเดตแถวของ "วันนี้" ให้เป็นกินแล้ว
 async function markEaten(snack: TodaySnack, el?: HTMLElement) {
-  if (!snack.eaten) {
-    sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
-    const authed = await getAuthedSupabaseClient()
-    const { error } = await authed.from('snack_logs').update({ eaten_at: new Date().toISOString() }).eq('id', snack.id)
-    clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
-    if (error) return
-    snack.eaten = true
-    snack.eatenTime = timeOf(new Date().toISOString())
+  if (snack.eaten) { askingSnack.value = snack; return }
+  if (!profileId.value) return
+  sparkleBurst(el) // ดาวแวบขึ้นที่ปุ่ม
+  const nowIso = new Date().toISOString()
+
+  // ของวันนี้เอง
+  if (snack.logDate === viewDate.value) {
+    askingSnack.value = snack
+    pendingSave = (async () => {
+      const authed = await getAuthedSupabaseClient()
+      const { error } = await authed.from('snack_logs').update({ eaten_at: nowIso }).eq('id', snack.id)
+      clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
+      if (error) { if (askingSnack.value === snack) askingSnack.value = null; return }
+      snack.eaten = true
+      snack.eatenTime = timeOf(nowIso)
+    })()
+    await pendingSave
+    return
   }
-  askingSnack.value = snack
+
+  // ของที่ค้างมา: เอาออกจากรายการค้าง ใส่แถวของวันนี้ที่กินแล้วแทน (id จะได้ตอนบันทึกเสร็จ)
+  const eatenSnack: TodaySnack = { ...snack, id: 0, logDate: viewDate.value, eaten: true, eatenTime: timeOf(nowIso), feltBetter: null }
+  todaySnacks.value = todaySnacks.value.filter(x => x !== snack && !(x.snackId === snack.snackId && x.logDate === viewDate.value && !x.eaten))
+  todaySnacks.value.push(eatenSnack)
+  const shown = todaySnacks.value[todaySnacks.value.length - 1]! // ตัวที่อยู่ในรายการจริง (เป็น reactive)
+  askingSnack.value = shown
+  pendingSave = (async () => {
+    const authed = await getAuthedSupabaseClient()
+    // upsert: ถ้าวันนี้เลือกเมนูนี้ไว้แล้ว (มีแถวอยู่) = อัปเดตว่ากินแล้ว / ถ้ายังไม่มี = สร้างแถวใหม่ของวันนี้
+    const { data, error } = await authed
+      .from('snack_logs')
+      .upsert({ user_id: profileId.value, snack_id: snack.snackId, log_date: viewDate.value, eaten_at: nowIso }, { onConflict: 'user_id,snack_id,log_date' })
+      .select('id')
+      .single()
+    clearPageCache()
+    if (error || !data) {
+      askingSnack.value = null
+      await loadTodaySnacks() // บันทึกไม่สำเร็จ: โหลดรายการจริงจากฐานข้อมูลกลับมา (ของค้างจะกลับมาขึ้นเหมือนเดิม)
+      return
+    }
+    shown.id = data.id as number
+  })()
+  await pendingSave
 }
 
 // ตอบความรู้สึก: true = สบายตัว/ถูกใจ, false = เฉยๆ
 async function answerFeeling(better: boolean) {
   const snack = askingSnack.value
   if (!snack) return
+  await pendingSave // รอให้บันทึก "กินแล้ว" เสร็จก่อน (ของที่ค้างมาจะได้ id แถวใหม่)
+  if (!snack.id) { askingSnack.value = null; return }
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed.from('snack_logs').update({ felt_better: better }).eq('id', snack.id)
   clearPageCache() // ข้อมูลของหน้านี้เปลี่ยนแล้ว ที่จำไว้เป็นของเก่า
@@ -609,7 +727,7 @@ interface TimelineItem {
   needsFeeling?: boolean // ทำ/กินแล้วแต่ยังไม่ได้บอกความรู้สึก
   onFeeling?: () => void
   onRead?: () => void
-  onDone?: (e: Event) => void
+  onDone?: (el?: HTMLElement) => void // บันทึกว่าทำ/ทานแล้ว (el = ปุ่มที่ไว้ให้ดาวแวบขึ้น ไม่ใส่ก็ได้)
   readLabel?: string // ข้อความปุ่มเปิดการ์ดรายละเอียด (ไม่ใส่ = "อ่านวิธีทำ ›")
   carryLabel?: string // ค้างมาจากวันก่อน (เช่น "เมื่อวาน") ใช้แทนคำว่า "รอ" ในคอลัมน์เวลา
 }
@@ -661,7 +779,7 @@ const timelinePending = computed<TimelineItem[]>(() => [
     lines: painForGuide.value.get(g.id) ? [painForGuide.value.get(g.id)!.text] : [],
     carryLabel: carryLabelOf(g.logDate),
     onRead: () => { readingGuide.value = g },
-    onDone: (e) => { markGuideDone(g, e.currentTarget as HTMLElement) }
+    onDone: (el) => { markGuideDone(g, el) }
   })),
   ...todaySnacks.value.filter(x => !x.eaten).map<TimelineItem>(s => ({
     key: `snack-${s.id}`,
@@ -672,9 +790,24 @@ const timelinePending = computed<TimelineItem[]>(() => [
     carryLabel: carryLabelOf(s.logDate),
     readLabel: 'ดูรายละเอียด ›',
     onRead: () => { readingSnack.value = s },
-    onDone: (e) => { markEaten(s, e.currentTarget as HTMLElement) }
+    onDone: (el) => { markEaten(s, el) }
   }))
 ])
+
+// กดปุ่ม "เช็คอิน" ในการ์ดที่ยังไม่ได้ทำ/ทาน: จำรายการไว้ + ปุ่มที่กด แล้วเปิดป๊อปอัพถามว่า "ทำ/ทานแล้วหรือยัง"
+const confirmingItem = ref<TimelineItem | null>(null)
+let confirmingEl: HTMLElement | null = null
+function askConfirmDone(item: TimelineItem, e: Event) {
+  confirmingItem.value = item
+  confirmingEl = e.currentTarget as HTMLElement
+}
+// ตอบ "ทำแล้ว/ทานแล้ว": บันทึก แล้วขั้นตอนเดิมจะเด้งถามความรู้สึกต่อเอง (markGuideDone / markEaten ตั้ง askingGuide / askingSnack ให้)
+function confirmDone() {
+  const item = confirmingItem.value
+  confirmingItem.value = null
+  item?.onDone?.(confirmingEl ?? undefined)
+  confirmingEl = null
+}
 
 function isAchieved(goalCode: string) {
   return (goalDayCounts.value[goalCode] ?? 0) >= CYCLE_LENGTH_DAYS
@@ -799,9 +932,9 @@ function isDone(goalCode: string) {
 
 // ข้อความในป้ายสถานะของการ์ดเป้าหมาย
 function goalStatusText(goalCode: string) {
-  if (!isToday.value) return checkedGoals.value[goalCode] ? 'สำเร็จวันนั้น' : 'ไม่ได้เช็คไว้'
+  if (!isToday.value) return checkedGoals.value[goalCode] ? 'สำเร็จวัน' : 'ไม่ได้เช็คไว้'
   if (isAchieved(goalCode)) return 'สำเร็จครบแล้ว!'
-  return checkedGoals.value[goalCode] ? 'สำเร็จวันนี้แล้ว' : 'ยังไม่สำเร็จ'
+  return checkedGoals.value[goalCode] ? 'สำเร็จ' : 'ยังไม่สำเร็จ'
 }
 
 // กด "เริ่มเช็คอินรอบใหม่" ในการ์ดรับผล: โหลดข้อมูลใหม่ทั้งหมดของรอบใหม่

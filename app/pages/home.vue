@@ -739,9 +739,10 @@ function goToCheckin() {
           </button>
         </div>
 
-        <!-- ข้อความสถานะ -->
+        <!-- ข้อความสถานะ: รูปแบบเดิม (แคปซูลขอบโคเรล) แค่ทำตัวอักษรหนาขึ้น
+             ความหนาตัวอักษรปรับที่ font-semibold ตรง <p> ด้านล่าง (เบาลง = font-medium / หนาขึ้นอีก = font-bold) -->
         <div class="mt-px flex justify-center">
-          <p class="flex min-h-[44px] items-center rounded-[24px] border border-moon-coral bg-moon-bg px-[11px] text-center text-sm font-medium">
+          <p class="flex min-h-[44px] items-center rounded-[24px] border border-moon-coral bg-moon-bg px-[11px] text-center text-sm font-semibold">
             {{ periodStatusText }}
           </p>
         </div>

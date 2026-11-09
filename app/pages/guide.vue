@@ -210,7 +210,7 @@ async function chooseGuide(guide: GuideItem) {
   reading.value = guide
 }
 
-// ปิดการ์ดอ่านวิธีทำ (กดถัดไปหรือพื้นที่ว่าง) -> โชว์ติ๊กถูกให้รู้ว่าบันทึกแล้ว (SavedOverlay) แล้วอยู่หน้าเดิมต่อ ไม่ไปหน้าเช็คอิน
+// ปิดการ์ดอ่านวิธีทำ (กดบันทึกหรือพื้นที่ว่าง) -> โชว์ติ๊กถูกให้รู้ว่าบันทึกแล้ว (SavedOverlay) แล้วอยู่หน้าเดิมต่อ ไม่ไปหน้าเช็คอิน
 function closeReading() {
   reading.value = null
   showSaved.value = true
@@ -535,18 +535,18 @@ onMounted(async () => {
       </div>
     </Transition>
 
-    <!-- การ์ดวิธีทำ: กด "ถัดไป" หรือพื้นที่ว่าง -> ไปหน้าเช็คอิน -->
+    <!-- การ์ดวิธีทำ: กด "บันทึก" หรือพื้นที่ว่าง -> ขึ้นติ๊กถูก "บันทึกแล้ว" แล้วอยู่หน้าเดิม (ชื่อปุ่มแก้ที่ button-label ด้านล่าง) -->
     <GuideDetailDialog
       v-if="reading"
       :title="reading.title"
       :short-description="reading.short_description"
       :steps="splitSteps(reading.steps)"
       :recommended="isRecommended(reading)"
-      button-label="ถัดไป"
+      button-label="บันทึก"
       @close="closeReading"
     />
 
-    <!-- กด "ถัดไป" แล้วขึ้นติ๊กถูก "บันทึกแล้ว" ครู่หนึ่ง จากนั้นปิดเอง ผู้ใช้ยังอยู่หน้าคู่มือเดิม (อยากไปเช็คอินใช้เมนูล่าง) -->
+    <!-- กด "บันทึก" แล้วขึ้นติ๊กถูก "บันทึกแล้ว" ครู่หนึ่ง จากนั้นปิดเอง ผู้ใช้ยังอยู่หน้าคู่มือเดิม (อยากไปเช็คอินใช้เมนูล่าง) -->
     <SavedOverlay v-if="showSaved" @done="showSaved = false" />
 
     <BottomNav active="none" />
