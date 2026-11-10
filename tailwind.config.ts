@@ -49,6 +49,13 @@ export default {
         // สีของประจำเดือน
         'moon-period': moon('--color-period-day'),
         'moon-period-predicted': moon('--color-period-predicted'),
+        // สีของวันในแถบวัน/ปฏิทิน (ตั้งค่าที่ tokens.css หมวด --day-*)
+        'moon-day-today': moon('--day-today-bg'),
+        'moon-day-today-text': moon('--day-today-text'),
+        'moon-day-period': moon('--day-period-bg'),
+        'moon-day-period-text': moon('--day-period-text'),
+        'moon-day-predicted': moon('--day-predicted-border'),
+        'moon-day-none': moon('--day-none-bg'),
         // พื้นการ์ดอ่อน + ตัวหนังสือรอง
         'moon-card': moon('--color-card'),
         'moon-pink-soft': moon('--color-pink-soft'),

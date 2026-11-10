@@ -732,23 +732,25 @@ function goToCheckin() {
               :class="day.isToday ? 'text-base leading-6' : 'text-sm leading-[22px]'"
             >{{ day.weekday }}</span>
             <!-- วงกลมตัวเลข (แคปซูลวันนี้พื้นขาวเหมือนวันอื่น ต่างกันที่วงกลมข้างใน):
-                 วันนี้ = วงกลมสีเดียวกับปุ่มหลัก (bg-moon-ink) ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
-                 วันที่มีประจำเดือน = สีเข้ม (bg-moon-period สีเดียวกับในปฏิทิน) ตัวเลขขาว / วันที่คาดไว้ = เส้นประโคเรล / วันธรรมดา = เทาอ่อน -->
+                 สีของแต่ละสถานะอ่านจากโทเค้น --day-* ใน assets/css/tokens.css (ใช้ร่วมกับหน้าปฏิทิน แก้ที่นั่นที่เดียวเปลี่ยนทั้งสองหน้า)
+                 วันนี้ = วงกลมสีเดียวกับปุ่มหลัก ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
+                 วันที่มีประจำเดือน = สีเข้ม ตัวเลขขาว / วันที่คาดไว้ = เส้นประ / วันธรรมดา = เทาอ่อน -->
             <span
               class="flex shrink-0 items-center justify-center rounded-full tabular-nums"
               :class="{
-                'mt-[5px] h-[42px] w-[42px] flex-col bg-moon-ink text-base font-medium text-white': day.isToday,
-                'mt-[10px] h-[42px] w-[42px] bg-moon-period text-sm font-medium text-white': !day.isToday && day.kind === 'logged',
-                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-coral bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'predicted',
-                'mt-[10px] h-[42px] w-[42px] bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'none'
+                'relative mt-[5px] h-[42px] w-[42px] bg-moon-day-today text-base font-medium text-moon-day-today-text': day.isToday,
+                'mt-[10px] h-[42px] w-[42px] bg-moon-day-period text-sm font-medium text-moon-day-period-text': !day.isToday && day.kind === 'logged',
+                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-day-predicted bg-moon-day-none text-sm font-medium': !day.isToday && day.kind === 'predicted',
+                'mt-[10px] h-[42px] w-[42px] bg-moon-day-none text-sm font-medium': !day.isToday && day.kind === 'none'
               }"
             >
-              <span :class="day.isToday && day.kind === 'logged' ? 'leading-none' : ''">{{ day.dayNumber }}</span>
-              <!-- จุดบอกสีประจำเดือนใต้ตัวเลข (เฉพาะวันนี้ที่เป็นวันประจำเดือนมา) ขนาด/ระยะห่างปรับที่ h-[6px] w-[6px] mt-[3px] -->
+              {{ day.dayNumber }}
+              <!-- จุดบอกสีประจำเดือนใต้ตัวเลข (เฉพาะวันนี้ที่เป็นวันประจำเดือนมา) ลอยทับ (absolute) จึงไม่ดันตัวเลขให้ขยับ ตัวเลขอยู่กึ่งกลางเท่าวันอื่น
+                   ขนาดปรับที่ h-[5px] w-[5px] / ระยะจากขอบล่างวงกลมปรับที่ bottom-[4px] -->
               <span
                 v-if="day.isToday && day.kind === 'logged'"
                 aria-hidden="true"
-                class="mt-[3px] block h-[6px] w-[6px] rounded-full bg-moon-period"
+                class="absolute bottom-[4px] left-1/2 block h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-moon-day-period"
               />
             </span>
           </button>
@@ -756,13 +758,18 @@ function goToCheckin() {
 
         <!-- ข้อความสถานะ: รูปแบบเดิม (แคปซูลขอบโคเรล) แค่ทำตัวอักษรหนาขึ้น
              ความหนาตัวอักษรปรับที่ font-semibold ตรง <p> ด้านล่าง (เบาลง = font-medium / หนาขึ้นอีก = font-bold) -->
-        <div class="mt-px flex justify-center">
-          <p class="flex min-h-[44px] items-center rounded-[24px] border border-moon-coral bg-moon-bg px-[11px] text-center text-sm font-semibold">
+        <!-- ป้ายนี้เป็นปุ่ม: กดแล้วไปหน้าปฏิทิน (/calendar) / relative z-10 = ลอยอยู่หน้าฉากอวตาร (ฉากถูกดึงขึ้นมาซ้อนอยู่หลังป้าย ดูที่ -mt- ของ AvatarScene ด้านล่าง) -->
+        <div class="relative z-10 mt-px flex justify-center">
+          <button
+            type="button"
+            class="flex min-h-[44px] items-center rounded-[24px] border border-moon-coral bg-moon-bg px-[11px] text-center text-sm font-semibold transition active:scale-95"
+            @click="navigateTo('/calendar')"
+          >
             {{ periodStatusText }}
-          </p>
+          </button>
         </div>
 
-        <p v-if="periodMessage" class="mt-2 px-[38px] text-center text-xs text-moon-muted">
+        <p v-if="periodMessage" class="relative z-10 mt-2 px-[38px] text-center text-xs text-moon-muted">
           {{ periodMessage }}
         </p>
       </div>
@@ -773,7 +780,8 @@ function goToCheckin() {
            :crop-top    = ตัดส่วนบนของฉากที่ว่างทิ้ง (0.22 = ตัดออกราว 1 ใน 5) ยิ่งมาก การ์ดเช็คอิน/ปุ่มทางลัดยิ่งขึ้นมาสูง
                           แต่เกิน ~0.25 พระอาทิตย์กับเมฆจะเริ่มโดนตัดขอบบน
            -mb-[28px]   = ดึงการ์ดเป้าหมายขึ้นมาซ้อนส่วนว่างใต้เงาพื้น (เกิน -mb-[36px] การ์ดจะทับเงาพื้นกระต่าย) -->
-      <AvatarScene :layers="avatarLayers" :bunny-scale="0.65" :crop-top="0.22" class="-mb-[28px]" @layer-error="hideLayer">
+      <!-- -mt-[40px] = ดึงฉากอวตารขึ้นมาซ้อนอยู่หลังป้ายสถานะประจำเดือน (ป้ายมี z-10 อยู่ด้านหน้า) / ขึ้นอีก = เลขติดลบมากขึ้น เช่น -mt-[60px] / ไม่มีแถบประจำเดือน = ไม่ดึง -->
+      <AvatarScene :layers="avatarLayers" :bunny-scale="0.65" :crop-top="0.22" class="-mb-[28px]" :class="hasPeriodData ? '-mt-[40px]' : ''" @layer-error="hideLayer">
         <button
           type="button"
           class="absolute bottom-[36px] right-[21px] z-10 flex h-[55px] w-[55px] items-center justify-center rounded-full bg-moon-card shadow-[0_1px_6px_color-mix(in_srgb,var(--color-muted)_20%,transparent)]"
