@@ -162,7 +162,8 @@
           >
             บอกความรู้สึก
           </button>
-          <span v-else-if="item.kind !== 'pain'" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-moon-ink">
+          <!-- วงกลมติ๊กถูก: สีเดียวกับติ๊กถูกหน้าอื่นทั้งแอป (bg-moon-period ← --color-period-day ใน tokens.css) -->
+          <span v-else-if="item.kind !== 'pain'" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-moon-period">
             <FaIcon name="check" class="h-[13px] w-[17px] text-white" />
           </span>
         </div>
