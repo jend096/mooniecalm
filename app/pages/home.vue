@@ -733,12 +733,12 @@ function goToCheckin() {
             >{{ day.weekday }}</span>
             <!-- วงกลมตัวเลข (แคปซูลวันนี้พื้นขาวเหมือนวันอื่น ต่างกันที่วงกลมข้างใน):
                  สี (จาก tokens.css ผ่านชื่อสีเดิมใน tailwind.config.ts): วันนี้ = bg-moon-ink (292929 เหมือนปุ่มหลัก) / วันประจำเดือนมา = bg-moon-period (FF6E8A) / วันคาดไว้ = เส้นประ border-moon-period-predicted (FFA8E6) / วันธรรมดา = bg-moon-chip
-                 วันนี้ = วงกลมสีเดียวกับปุ่มหลัก ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
+                 วันนี้ = วงกลมสีเดียวกับปุ่มหลัก (mt-[8px] ทำให้ตัวเลขอยู่ระดับเดียวกับวันอื่น: ตัวย่อวันของวันนี้สูง 24px + 8 = 32px เท่ากับวันอื่นที่ 22px + mt-[10px]) ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
                  วันที่มีประจำเดือน = สีเข้ม ตัวเลขขาว / วันที่คาดไว้ = เส้นประ / วันธรรมดา = เทาอ่อน -->
             <span
               class="flex shrink-0 items-center justify-center rounded-full tabular-nums"
               :class="{
-                'relative mt-[5px] h-[42px] w-[42px] bg-moon-ink text-base font-medium text-moon-on-ink': day.isToday,
+                'relative mt-[8px] h-[42px] w-[42px] bg-moon-ink text-base font-medium text-moon-on-ink': day.isToday,
                 'mt-[10px] h-[42px] w-[42px] bg-moon-period text-sm font-medium text-moon-on-ink': !day.isToday && day.kind === 'logged',
                 'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-period-predicted bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'predicted',
                 'mt-[10px] h-[42px] w-[42px] bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'none'
