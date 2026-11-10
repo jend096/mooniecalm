@@ -723,26 +723,33 @@ function goToCheckin() {
             :key="day.key"
             type="button"
             :data-today="day.isToday ? '' : undefined"
-            class="flex h-[90px] shrink-0 basis-[calc((100%-52px)/5)] flex-col items-center rounded-[28px] pt-[5px] shadow-[0_1px_9px_color-mix(in_srgb,var(--color-muted)_19%,transparent)] transition active:scale-95"
-            :class="day.isToday ? 'bg-moon-coral' : 'bg-moon-card'"
+            class="flex h-[90px] shrink-0 basis-[calc((100%-52px)/5)] flex-col items-center rounded-[28px] pt-[5px] shadow-[0_1px_9px_color-mix(in_srgb,var(--color-muted)_19%,transparent)] transition active:scale-95 bg-moon-card"
             @click="onDayClick(day.date)"
           >
-            <!-- ตัวย่อวัน อา จ อ ... อยู่เหนือตัวเลข (วันนี้ = ตัวขาวใหญ่ขึ้น) -->
+            <!-- ตัวย่อวัน อา จ อ ... อยู่เหนือตัวเลข (วันนี้ = ตัวใหญ่ขึ้นนิดหน่อย สีดำ เพราะพื้นแคปซูลเป็นสีขาว) -->
             <span
               class="font-medium"
-              :class="day.isToday ? 'text-base leading-6 text-white' : 'text-sm leading-[22px]'"
+              :class="day.isToday ? 'text-base leading-6' : 'text-sm leading-[22px]'"
             >{{ day.weekday }}</span>
-            <!-- วงกลมตัวเลข: วันนี้ = ขาวนวลบนพื้นโคเรล / วันที่มีประจำเดือน = ชมพูอ่อน / วันที่คาดไว้ = เส้นประโคเรล / วันธรรมดา = เทาอ่อน -->
+            <!-- วงกลมตัวเลข (แคปซูลวันนี้พื้นขาวเหมือนวันอื่น ต่างกันที่วงกลมข้างใน):
+                 วันนี้ = วงกลมสีเดียวกับปุ่มหลัก (bg-moon-ink) ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
+                 วันที่มีประจำเดือน = สีเข้ม (bg-moon-period สีเดียวกับในปฏิทิน) ตัวเลขขาว / วันที่คาดไว้ = เส้นประโคเรล / วันธรรมดา = เทาอ่อน -->
             <span
-              class="flex shrink-0 items-center justify-center rounded-full text-sm font-medium tabular-nums"
+              class="flex shrink-0 items-center justify-center rounded-full tabular-nums"
               :class="{
-                'mt-[5px] h-[42px] w-[42px] bg-moon-bg': day.isToday,
-                'mt-[10px] h-[42px] w-[42px] bg-moon-pink-soft': !day.isToday && day.kind === 'logged',
-                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-coral bg-moon-chip': !day.isToday && day.kind === 'predicted',
-                'mt-[10px] h-[42px] w-[42px] bg-moon-chip': !day.isToday && day.kind === 'none'
+                'mt-[5px] h-[42px] w-[42px] flex-col bg-moon-ink text-base font-medium text-white': day.isToday,
+                'mt-[10px] h-[42px] w-[42px] bg-moon-period text-sm font-medium text-white': !day.isToday && day.kind === 'logged',
+                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-coral bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'predicted',
+                'mt-[10px] h-[42px] w-[42px] bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'none'
               }"
             >
-              {{ day.dayNumber }}
+              <span :class="day.isToday && day.kind === 'logged' ? 'leading-none' : ''">{{ day.dayNumber }}</span>
+              <!-- จุดบอกสีประจำเดือนใต้ตัวเลข (เฉพาะวันนี้ที่เป็นวันประจำเดือนมา) ขนาด/ระยะห่างปรับที่ h-[6px] w-[6px] mt-[3px] -->
+              <span
+                v-if="day.isToday && day.kind === 'logged'"
+                aria-hidden="true"
+                class="mt-[3px] block h-[6px] w-[6px] rounded-full bg-moon-period"
+              />
             </span>
           </button>
         </div>
