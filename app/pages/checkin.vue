@@ -871,6 +871,13 @@ async function loadGoals(keepOld = false) {
     return
   }
 
+  // ยังไม่ได้เลือกเป้าหมายเลย -> ส่งไปหน้าเลือกเป้าหมาย (onboarding/reveal) ก่อน เหมือนหน้าหลัก ไม่ปล่อยส่วน "เป้าหมายวันนี้" ว่าง
+  if ((userGoalsRes.data ?? []).length === 0) {
+    clearPageCache()
+    navigateTo('/onboarding/reveal')
+    return
+  }
+
   const goalTypeById = new Map((goalTypesRes.data ?? []).map(g => [g.id, g]))
   activeGoals.value = (userGoalsRes.data ?? [])
     .map(g => goalTypeById.get(g.goal_type_id))

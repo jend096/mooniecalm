@@ -559,6 +559,14 @@ onMounted(async () => {
     return
   }
 
+  // ยังไม่ได้เลือกเป้าหมายเลย (เช่น รีเซ็ต/ออกจากระบบก่อนเลือกเป้าหมาย) -> ส่งไปหน้าเลือกเป้าหมาย (onboarding/reveal) ก่อน ไม่ให้เข้าหน้าหลักที่การ์ดเป้าหมายว่าง
+  // เลือกเสร็จหน้านั้นจะพากลับมาหน้าหลักเอง (เช็คเฉพาะตอนดึงสำเร็จ กันเน็ตหลุดแล้วเด้งมั่ว / ไม่จำข้อมูลนี้ลง cache เพราะจะไม่ได้อยู่หน้านี้อยู่แล้ว)
+  if (!userGoalsRes.error && (userGoalsRes.data ?? []).length === 0) {
+    clearPageCache()
+    navigateTo('/onboarding/reveal')
+    return
+  }
+
   // ดึงบางอย่างไม่สำเร็จ (เช่นเน็ตหลุดช่วงสั้นๆ): ถ้ามีของที่จำไว้โชว์อยู่แล้วก็คงไว้ ไม่เอาข้อมูลโหว่ๆ ไปทับ
   const hasQueryError = [avatarRowsRes, goalTypesRes, userGoalsRes, cycleRes, checkinRes, periodRowsRes].some(r => r.error)
   if (hasQueryError && cached) {
