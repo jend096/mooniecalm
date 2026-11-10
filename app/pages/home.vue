@@ -732,16 +732,16 @@ function goToCheckin() {
               :class="day.isToday ? 'text-base leading-6' : 'text-sm leading-[22px]'"
             >{{ day.weekday }}</span>
             <!-- วงกลมตัวเลข (แคปซูลวันนี้พื้นขาวเหมือนวันอื่น ต่างกันที่วงกลมข้างใน):
-                 สีของแต่ละสถานะอ่านจากโทเค้น --day-* ใน assets/css/tokens.css (ใช้ร่วมกับหน้าปฏิทิน แก้ที่นั่นที่เดียวเปลี่ยนทั้งสองหน้า)
+                 สี (จาก tokens.css ผ่านชื่อสีเดิมใน tailwind.config.ts): วันนี้ = bg-moon-ink (292929 เหมือนปุ่มหลัก) / วันประจำเดือนมา = bg-moon-period (FF6E8A) / วันคาดไว้ = เส้นประ border-moon-period-predicted (FFA8E6) / วันธรรมดา = bg-moon-chip
                  วันนี้ = วงกลมสีเดียวกับปุ่มหลัก ตัวเลขขาว ขนาด/น้ำหนัก medium (text-base font-medium) + ถ้าวันนี้เป็นวันประจำเดือนมา มีจุดกลมเล็กสีประจำเดือนอยู่ใต้ตัวเลข
                  วันที่มีประจำเดือน = สีเข้ม ตัวเลขขาว / วันที่คาดไว้ = เส้นประ / วันธรรมดา = เทาอ่อน -->
             <span
               class="flex shrink-0 items-center justify-center rounded-full tabular-nums"
               :class="{
-                'relative mt-[5px] h-[42px] w-[42px] bg-moon-day-today text-base font-medium text-moon-day-today-text': day.isToday,
-                'mt-[10px] h-[42px] w-[42px] bg-moon-day-period text-sm font-medium text-moon-day-period-text': !day.isToday && day.kind === 'logged',
-                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-day-predicted bg-moon-day-none text-sm font-medium': !day.isToday && day.kind === 'predicted',
-                'mt-[10px] h-[42px] w-[42px] bg-moon-day-none text-sm font-medium': !day.isToday && day.kind === 'none'
+                'relative mt-[5px] h-[42px] w-[42px] bg-moon-ink text-base font-medium text-moon-on-ink': day.isToday,
+                'mt-[10px] h-[42px] w-[42px] bg-moon-period text-sm font-medium text-moon-on-ink': !day.isToday && day.kind === 'logged',
+                'mt-[10px] h-[48px] w-[48px] border-[3px] border-dashed border-moon-period-predicted bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'predicted',
+                'mt-[10px] h-[42px] w-[42px] bg-moon-chip text-sm font-medium': !day.isToday && day.kind === 'none'
               }"
             >
               {{ day.dayNumber }}
@@ -750,7 +750,7 @@ function goToCheckin() {
               <span
                 v-if="day.isToday && day.kind === 'logged'"
                 aria-hidden="true"
-                class="absolute bottom-[4px] left-1/2 block h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-moon-day-period"
+                class="absolute bottom-[4px] left-1/2 block h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-moon-period"
               />
             </span>
           </button>

@@ -207,13 +207,13 @@ onMounted(async () => {
       <!-- คำอธิบายสัญลักษณ์: อยู่ใต้โลโก้กระต่าย ชิดขวา ขนาดใหญ่ขึ้นให้อ่านง่าย (ตัวอักษรปรับที่ text-sm / วงปรับที่ h-4 w-4) -->
       <div class="mt-1 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 px-3 text-sm">
         <span class="flex items-center gap-1.5">
-          <span class="h-4 w-4 rounded-full bg-moon-day-today" /> วันนี้
+          <span class="h-4 w-4 rounded-full bg-moon-ink" /> วันนี้
         </span>
         <span class="flex items-center gap-1.5">
-          <span class="h-4 w-4 rounded-full bg-moon-day-period" /> มาแล้ว
+          <span class="h-4 w-4 rounded-full bg-moon-period" /> มาแล้ว
         </span>
         <span class="flex items-center gap-1.5">
-          <span class="h-4 w-4 rounded-full border-2 border-dashed border-moon-day-predicted" /> คาดไว้
+          <span class="h-4 w-4 rounded-full border-2 border-dashed border-moon-period-predicted" /> คาดไว้
         </span>
       </div>
       <!-- หัวตารางวันในสัปดาห์ (7 คอลัมน์เท่ากับตารางด้านล่าง) -->
@@ -253,10 +253,10 @@ onMounted(async () => {
               <span
                 class="relative flex h-10 w-10 items-center justify-center rounded-full text-base"
                 :class="[
-                  // สีของแต่ละสถานะอ่านจากโทเค้น --day-* ใน assets/css/tokens.css (ใช้ร่วมกับแถบวันหน้าหลัก แก้ที่นั่นที่เดียวเปลี่ยนทั้งสองหน้า)
-                  cell.isToday ? 'bg-moon-day-today font-medium text-moon-day-today-text' : '',
-                  !cell.isToday && cell.kind === 'logged' ? 'bg-moon-day-period font-medium text-moon-day-period-text' : '',
-                  !cell.isToday && cell.kind === 'predicted' ? 'border-2 border-dashed border-moon-day-predicted' : ''
+                  // สี (จาก tokens.css): วันนี้ = bg-moon-ink (292929 เหมือนปุ่มหลัก) / วันประจำเดือนมา = bg-moon-period (FF6E8A) / วันคาดไว้ = เส้นประ border-moon-period-predicted (FFA8E6)
+                  cell.isToday ? 'bg-moon-ink font-medium text-moon-on-ink' : '',
+                  !cell.isToday && cell.kind === 'logged' ? 'bg-moon-period font-medium text-moon-on-ink' : '',
+                  !cell.isToday && cell.kind === 'predicted' ? 'border-2 border-dashed border-moon-period-predicted' : ''
                 ]"
               >
                 {{ cell.label }}
@@ -264,7 +264,7 @@ onMounted(async () => {
                 <span
                   v-if="cell.isToday && cell.kind === 'logged'"
                   aria-hidden="true"
-                  class="absolute bottom-[4px] left-1/2 block h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-moon-day-period"
+                  class="absolute bottom-[4px] left-1/2 block h-[5px] w-[5px] -translate-x-1/2 rounded-full bg-moon-period"
                 />
               </span>
             </button>
