@@ -895,13 +895,19 @@ function goToCheckin() {
           class="relative h-[188px] flex-[170] overflow-hidden rounded-[20px] bg-moon-cream-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/snack')"
         >
-          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): วงกลมครีม -> ตัวการ์ตูน -> ข้อความ -> ฟองคำพูด -> วงกลมไอคอนถ้วย
-               ตัวการ์ตูน/ฟองคำพูดเป็นเวกเตอร์ SVG ที่ export จาก Figma เก็บไว้ที่ public/home/ -->
-          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[116px] w-[118px] rounded-full bg-moon-cream" />
-          <img src="/home/snack-person.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[78px] top-[86px] h-[101.73px] w-[84px]">
-          <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
-          <img src="/home/snack-bubble.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[64px] top-[76px] h-[38.16px] w-[41px]">
-          <span class="press-hint press-hint-food absolute bottom-[5px] left-[5px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-moon-card">
+          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): รูปเล็กๆ ข้างหลัง -> กระต่ายตัวใหญ่ -> ข้อความ -> ฟองหัวใจใหญ่ (ทับหูกระต่าย) -> วงกลมไอคอนถ้วย
+               ทุกรูปเป็นเวกเตอร์ SVG ที่ export จาก Figma (หน้า homev2) เก็บไว้ที่ public/home/
+               คลาส float-bit = รูปเล็กๆ ขยับลอยขึ้นลง/เอียงนิดๆ อยู่กับที่ (ดู CSS ด้านล่าง)
+               --float-delay = เลื่อนจังหวะให้แต่ละรูปไม่ขยับพร้อมกัน -->
+          <img src="/home/food-mark-left.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[5px] top-[79.74px] h-[17.44px] w-[18.69px]" style="--float-delay: -0.8s">
+          <!-- ใน Figma ฟองหัวใจมุมขวาบนวางซ้อนกัน 2 ชั้น (สีเลยเข้มกว่าฟองซ้ายล่าง) ทำซ้อน 2 รูปให้เหมือนกัน -->
+          <img src="/home/food-mark-right.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[127px] top-[38px] h-[17.44px] w-[18.69px]" style="--float-delay: 0s">
+          <img src="/home/food-mark-right.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[127px] top-[38px] h-[17.44px] w-[18.69px]" style="--float-delay: 0s">
+          <img src="/home/food-dot.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[150px] top-[111px] h-[8.94px] w-[9.59px]" style="--float-delay: -2.2s">
+          <img src="/home/food-rabbit.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-0 top-[35px] h-[155px] w-[155.27px] max-w-none">
+          <span class="absolute left-5 top-5 text-base font-semibold leading-6">วันนี้<br>อยากทานอะไร</span>
+          <img src="/home/food-bubble.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[95px] top-[127px] h-[49.75px] w-[51.47px]" style="--float-delay: -1.6s">
+          <span class="absolute bottom-[5px] left-[5px] flex h-[70px] w-[70px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 41.67 37.5" class="h-[38px] w-[42px] text-moon-period-predicted" fill="currentColor" aria-hidden="true">
               <path d="M 35.4167 33.3333 L 2.0833 33.3333 C 0.9375 33.3333 0 34.2708 0 35.4167 C 0 36.5625 0.9375 37.5 2.0833 37.5 L 35.4167 37.5 C 36.5625 37.5 37.5 36.5625 37.5 35.4167 C 37.5 34.2708 36.5625 33.3333 35.4167 33.3333 Z M 37.5 0 L 14.5833 0 L 14.5833 5 L 18.3542 8.0208 C 18.6042 8.2083 18.75 8.5208 18.75 8.8333 L 18.75 17.7083 C 18.75 18.2917 18.2917 18.75 17.7083 18.75 L 9.375 18.75 C 8.7917 18.75 8.3333 18.2917 8.3333 17.7083 L 8.3333 8.8333 C 8.3333 8.5208 8.4792 8.2083 8.7292 8.0208 L 12.5 5 L 12.5 0 L 8.3333 0 C 6.0417 0 4.1667 1.875 4.1667 4.1667 L 4.1667 20.8333 C 4.1667 25.4375 7.8958 29.1667 12.5 29.1667 L 25 29.1667 C 29.6042 29.1667 33.3333 25.4375 33.3333 20.8333 L 33.3333 14.5833 L 37.5 14.5833 C 39.7917 14.5833 41.6667 12.7083 41.6667 10.4167 L 41.6667 4.1667 C 41.6667 1.875 39.7917 0 37.5 0 Z M 37.5 10.4167 L 33.3333 10.4167 L 33.3333 4.1667 L 37.5 4.1667 L 37.5 10.4167 Z" />
             </svg>
@@ -913,12 +919,14 @@ function goToCheckin() {
           class="relative h-[188px] flex-[162] overflow-hidden rounded-[20px] bg-moon-lavender-soft text-left shadow-[0_2px_7px_rgba(0,0,0,0.25)] transition active:scale-[0.98]"
           @click="navigateTo('/guide')"
         >
-          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): เฟอร์นิเจอร์ (กลับด้านซ้าย-ขวา) -> วงกลมลาเวนเดอร์ -> ข้อความ -> ตัวการ์ตูน -> วงกลมไอคอน -->
-          <img src="/home/pain-furniture.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[116px] top-[81px] h-[91.9px] w-[42px] -scale-x-100">
-          <span aria-hidden="true" class="absolute bottom-[-2px] left-0 h-[114px] w-[118px] rounded-full bg-moon-lavender/[0.29]" />
-          <span class="absolute left-[22px] top-5 text-base font-semibold leading-6">ตอนนี้<br>ปวดตรงไหน</span>
-          <img src="/home/pain-character.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-[34px] top-[107px] h-[80.92px] w-[123.83px]">
-          <span class="press-hint press-hint-pain absolute bottom-[7px] left-[7px] flex h-[67px] w-[67px] items-center justify-center rounded-full bg-moon-card">
+          <!-- ลำดับชั้น (ล่างสุด -> บนสุด): ลายเส้นวาดมือด้านบน -> กระต่ายตัวใหญ่ -> ข้อความ -> ฟองคำพูดรูปขยุกขยิก -> วงกลมไอคอน
+               ทุกรูปเป็นเวกเตอร์ SVG ที่ export จาก Figma (หน้า homev2) เก็บไว้ที่ public/home/ , float-bit ทำงานเหมือนการ์ดอยากทานอะไร -->
+          <img src="/home/pain-doodles.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none left-[8px] top-0 h-[87.33px] w-[122.23px]" style="--float-delay: 0s">
+          <img src="/home/pain-rabbit.svg" alt="" aria-hidden="true" class="pointer-events-none absolute left-0 top-[35px] h-[155px] w-[155.27px] max-w-none">
+          <span class="absolute left-5 top-5 text-base font-semibold leading-6">ตอนนี้<br>ปวดตรงไหน</span>
+          <!-- ฟองขยุกขยิกชิดขวา 17px ตามแบบ Figma (ใช้ right แทน left จะได้ไม่ถูกขอบการ์ดตัดตอนหน้าจอแคบ) -->
+          <img src="/home/pain-bubble.svg" alt="" aria-hidden="true" class="float-bit pointer-events-none absolute max-w-none right-[17px] top-[143px] h-[38.16px] w-[41px]" style="--float-delay: -1.2s">
+          <span class="absolute bottom-[7px] left-[7px] flex h-[67px] w-[67px] items-center justify-center rounded-full bg-moon-card">
             <svg viewBox="0 0 35 35" class="h-[35px] w-[35px] text-moon-lavender" fill="currentColor" aria-hidden="true">
               <path d="M 29.4691 0 L 33.1466 9.66 C 36.3322 18.0367 35.3718 27.4167 30.57 35 L 18.9754 35 L 18.9754 27.8367 L 25.37 21.4433 L 23.3088 19.39 L 17.4998 25.1533 L 11.7142 19.39 L 9.6529 21.4433 L 16.0475 27.8367 L 16.0475 35 L 4.4295 35 C 2.0594 31.2635 0.593 27.0297 0.1458 22.6322 C -0.3013 18.2348 0.2831 13.794 1.8529 9.66 L 5.507 0 L 29.4691 0 Z M 18.0151 2.8933 L 16.6799 2.8933 C 13.4944 2.8933 11.8781 6.6967 14.0565 8.9833 L 15.4151 10.3833 L 11.5502 14.5833 L 13.7052 16.5433 L 15.8836 14.1867 L 17.4529 12.5067 L 21.3412 16.5667 L 23.4493 14.56 L 19.4439 10.3833 L 20.6385 9.1467 C 22.8403 6.86 21.2944 2.8933 18.0151 2.8933 Z M 18.0151 5.81 C 18.3196 5.81 18.5538 5.9733 18.6709 6.2767 C 18.8115 6.58 18.7646 6.8833 18.5304 7.1167 L 17.4295 8.26 L 16.1881 6.9533 C 15.7664 6.5333 16.0709 5.81 16.6799 5.81 L 18.0151 5.81 Z" />
             </svg>
@@ -1046,62 +1054,22 @@ function goToCheckin() {
   }
 }
 
-/* วงกลมไอคอนบนการ์ดลัด: ทำท่าเหมือนถูกกดเบาๆ เป็นจังหวะ (ยุบนิดหนึ่งแล้วเด้งกลับ) + วงคลื่นขยายออกจากวงกลม ใบ้ให้รู้ว่ากดได้
-   การ์ดสองใบเหลื่อมจังหวะกัน (ใบที่สองช้ากว่า 1.3 วิ) จะได้ไม่กะพริบพร้อมกัน */
-.press-hint {
-  animation: press-hint 2.6s ease-in-out infinite;
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-ink) 12%, transparent);
+/* รูปเล็กๆ ข้างหลังกระต่ายตัวใหญ่ในการ์ดลัด (อยากทานอะไร / ปวดตรงไหน): ขยับเบาๆ อยู่กับที่
+   ลอยขึ้น-ลงนิดหนึ่ง + เอียงซ้าย-ขวานิดหนึ่ง + พองขึ้นนิดหนึ่ง แล้วกลับมาที่เดิม วนซ้ำ (แต่ละรูปเหลื่อมจังหวะกันด้วย --float-delay)
+   วงกลมไอคอนไม่ขยับ / ปรับความเร็วที่ 3s, ระยะลอยที่ ±1.5px, ความเอียงที่ ±3deg */
+.float-bit {
+  transform-origin: center;
+  animation: float-bit 3s ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
 }
 
-.press-hint::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  border: 2px solid var(--ring);
-  opacity: 0;
-  pointer-events: none;
-  animation: press-ring 2.6s ease-out infinite;
-  animation-delay: inherit;
-}
-
-/* การ์ดอยากทานอะไร: เด้งเหมือนการ์ดปวดตรงไหนทุกอย่าง แค่วงคลื่นที่ขยายออกมาเป็นสีเหลืองตามสีการ์ด */
-.press-hint-food {
-  --ring: var(--color-yellow);
-}
-
-.press-hint-pain {
-  --ring: var(--color-lavender);
-  animation-delay: 1.3s;
-}
-
-@keyframes press-hint {
+@keyframes float-bit {
   0%,
-  55%,
   100% {
-    transform: scale(1);
+    transform: translateY(1.5px) rotate(-3deg) scale(1);
   }
-  68% {
-    transform: scale(0.9);
-  }
-  82% {
-    transform: scale(1.06);
-  }
-}
-
-@keyframes press-ring {
-  0%,
-  62% {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  68% {
-    opacity: 0.8;
-    transform: scale(0.95);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.6);
+  50% {
+    transform: translateY(-1.5px) rotate(3deg) scale(1.05);
   }
 }
 
@@ -1122,8 +1090,7 @@ function goToCheckin() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .press-hint,
-  .press-hint::after,
+  .float-bit,
   .checkin-pulse {
     animation: none;
   }
