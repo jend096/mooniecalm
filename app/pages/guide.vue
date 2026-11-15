@@ -143,6 +143,7 @@ function goToLocation(skip: boolean) {
   if (!skip && levelChoice.value === null) return
   if (skip) levelChoice.value = null
   saveError.value = ''
+  setZoom(ZOOM_MIN) // เข้าขั้นตำแหน่ง เริ่มที่ขนาดปกติเสมอ
   sheetStep.value = 'location'
 }
 
@@ -151,6 +152,168 @@ function toggleLocation(code: string) {
   selectedLocations.value = selectedLocations.value.includes(code)
     ? selectedLocations.value.filter(c => c !== code)
     : [...selectedLocations.value, code]
+}
+
+// จุดปวดบนรูปตัวคนในแผ่นเลือกตำแหน่ง (ตามฟิกม่า guide new) กดจุดแล้วเท่ากับติ๊กแถวของตำแหน่งนั้น
+// left/top = ตำแหน่งมุมซ้ายบนของรูปจุด (56x56) ในกล่องรูปตัวคนกว้าง 380 สูง 370 / ต้นขามี 2 จุด (ซ้าย-ขวา) แต่เป็นตำแหน่งเดียวกัน
+// "ปวดทั่วตัว" ไม่มีจุดบนรูป ถ้าเลือกจะทำให้ตัวคนสีเข้มขึ้นแทน
+const BODY_DOTS = [
+  { key: 'abdomen', code: 'lower_abdomen', label: 'ท้องน้อย', left: 159, top: 206 },
+  { key: 'back', code: 'lower_back', label: 'หลังส่วนล่าง', left: 159, top: 178 },
+  { key: 'thigh-right', code: 'thigh', label: 'ต้นขา', left: 181, top: 246 },
+  { key: 'thigh-left', code: 'thigh', label: 'ต้นขา', left: 139, top: 246 }
+]
+
+// ---------- ซูมรูปตัวคน (ในแผ่นเลือกตำแหน่ง) ----------
+// ซูมได้ 3 วิธี: เอานิ้วถ่างสองนิ้ว / เลื่อนเส้นด้านขวาของรูปขึ้น(ซูมเข้า)-ลง(ซูมออก) / กด Ctrl ค้างแล้วเลื่อนล้อเมาส์ (หรือถ่างสองนิ้วบนทัชแพด)
+// ซูมแล้วลากนิ้วเดียวเพื่อเลื่อนดูส่วนอื่นได้ (ยังไม่ซูม = ลากขึ้นลงเลื่อนแผ่นตามปกติ) จุดปวดและป้ายซูมไปพร้อมรูป
+// เลื่อนรูปได้แค่พอเห็นตัวคน: กรอบที่มองอยู่ห้ามหลุดออกนอกกรอบตัวคนจนเห็นขอบขาวว่างๆ (ดู panLimit)
+const ZOOM_MIN = 1
+const ZOOM_MAX = 3
+const FIGURE_W = 380 // กว้าง/สูงของกล่องรูป (ตรงกับ w-[380px] h-[370px] ในเทมเพลต)
+const FIGURE_H = 370
+// กรอบของตัวคนในกล่องรูป (พิกัดเดียวกับจุดปวด): ซ้าย-ขวา 125..248 / บนสุดที่หัว 8 ลงถึง 300 (ก่อนปลายขาที่เริ่มจางเป็นสีขาว)
+const BODY_BOX = { minX: 125, maxX: 248, minY: 8, maxY: 300 }
+const SLIDER_H = 200 // ความสูงเส้นเลื่อนซูม (px)
+const DRAG_START_PX = 6 // ลากเกินกี่พิกเซลถึงนับว่า "ลาก" (ไม่ใช่แค่กดจุด)
+
+const zoom = ref(ZOOM_MIN)
+const panX = ref(0)
+const panY = ref(0)
+const figureStyle = computed(() => ({
+  transform: `translate(${panX.value}px, ${panY.value}px) scale(${zoom.value})`
+}))
+
+// นิ้วที่แตะรูปอยู่ตอนนี้ (เก็บตำแหน่งล่าสุด + ระยะที่ขยับรวม)
+const figurePointers = new Map<number, { x: number, y: number, travel: number }>()
+let pinchStartDist = 0
+let pinchStartZoom = ZOOM_MIN
+let figureDragged = false // เพิ่งลาก/ถ่างนิ้วมา -> ปล่อยแล้วไม่นับเป็นการกดจุด
+
+// ช่วงที่เลื่อนรูปได้ในแกนหนึ่ง (คืน [ต่ำสุด, สูงสุด] ของ pan)
+// - กรอบที่มองอยู่ (กล่อง/ซูม) เล็กกว่าตัวคน -> ต้องอยู่ในกรอบตัวคนเสมอ (ไม่เห็นขอบขาวนอกตัวคน)
+// - กรอบกว้างกว่าตัวคน (ซูมน้อย) -> ตัวคนต้องอยู่กลางกรอบ ไม่เลื่อนไปชิดขอบจนมีขอบขาวข้างเดียว
+//   (ตอนเริ่มซูมยังขยับได้นิดหน่อย แล้วค่อยๆ ล็อกให้อยู่กลางเมื่อซูมเกิน 1.4 เท่า จะได้ไม่กระตุก)
+function panLimit(size: number, min: number, max: number, z: number): [number, number] {
+  const view = size / z
+  let centerLo: number
+  let centerHi: number
+  if (view >= max - min) {
+    const mid = (min + max) / 2
+    const slack = ((view - (max - min)) / 2) * Math.max(0, 1 - (z - 1) / 0.4)
+    centerLo = mid - slack
+    centerHi = mid + slack
+  } else {
+    centerLo = min + view / 2
+    centerHi = max - view / 2
+  }
+  // pan = (กลางกล่อง - จุดกลางที่มองอยู่) * ซูม  (จุดกลางมากขึ้น = pan น้อยลง)
+  return [(size / 2 - centerHi) * z, (size / 2 - centerLo) * z]
+}
+
+function clampPan() {
+  const [loX, hiX] = panLimit(FIGURE_W, BODY_BOX.minX, BODY_BOX.maxX, zoom.value)
+  const [loY, hiY] = panLimit(FIGURE_H, BODY_BOX.minY, BODY_BOX.maxY, zoom.value)
+  panX.value = Math.min(hiX, Math.max(loX, panX.value))
+  panY.value = Math.min(hiY, Math.max(loY, panY.value))
+}
+
+function setZoom(value: number) {
+  const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value))
+  zoom.value = next < 1.02 ? ZOOM_MIN : Math.round(next * 100) / 100
+  if (zoom.value === ZOOM_MIN) {
+    panX.value = 0
+    panY.value = 0
+  } else {
+    clampPan()
+  }
+}
+
+function pointerDistance(): number {
+  const [a, b] = [...figurePointers.values()]
+  return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
+}
+
+function onFigureDown(e: PointerEvent) {
+  if (figurePointers.size === 0) figureDragged = false
+  figurePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, travel: 0 })
+  if (figurePointers.size === 2) {
+    pinchStartDist = pointerDistance()
+    pinchStartZoom = zoom.value
+    figureDragged = true
+  }
+}
+
+function onFigureMove(e: PointerEvent) {
+  const p = figurePointers.get(e.pointerId)
+  if (!p) return
+  const dx = e.clientX - p.x
+  const dy = e.clientY - p.y
+  p.x = e.clientX
+  p.y = e.clientY
+
+  // สองนิ้ว: ถ่าง/หุบ = ซูม
+  if (figurePointers.size === 2) {
+    if (pinchStartDist > 0) setZoom(pinchStartZoom * (pointerDistance() / pinchStartDist))
+    return
+  }
+
+  // นิ้วเดียวตอนซูมอยู่: ลากเลื่อนรูป (ลากไกลพอถึงเริ่มเลื่อน และจับนิ้วไว้ไม่ให้หลุด)
+  if (zoom.value <= ZOOM_MIN) return
+  p.travel += Math.hypot(dx, dy)
+  if (p.travel < DRAG_START_PX) return
+  if (!figureDragged) {
+    figureDragged = true
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  }
+  panX.value += dx
+  panY.value += dy
+  clampPan()
+}
+
+function onFigureUp(e: PointerEvent) {
+  figurePointers.delete(e.pointerId)
+  if (figurePointers.size < 2) pinchStartDist = 0
+}
+
+// เพิ่งลาก/ถ่างนิ้วมา ห้ามให้การปล่อยนิ้วไปกดโดนจุดปวด/ป้ายเข้า
+function onFigureClickCapture(e: MouseEvent) {
+  if (!figureDragged) return
+  e.stopPropagation()
+  e.preventDefault()
+  figureDragged = false
+}
+
+// Ctrl + ล้อเมาส์ (ถ่างสองนิ้วบนทัชแพดก็มาเป็นแบบนี้) = ซูม ล้อเมาส์เฉยๆ ปล่อยให้เลื่อนแผ่นตามปกติ
+function onFigureWheel(e: WheelEvent) {
+  if (!e.ctrlKey) return
+  e.preventDefault()
+  setZoom(zoom.value - e.deltaY * 0.01)
+}
+
+// เส้นเลื่อนซูมด้านขวาของรูป: บนสุด = ซูมเข้าสุด / ล่างสุด = ไม่ซูม
+const sliderRef = ref<HTMLElement | null>(null)
+const sliderThumbTop = computed(() => (1 - (zoom.value - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * SLIDER_H)
+
+function zoomFromSlider(clientY: number) {
+  const box = sliderRef.value?.getBoundingClientRect()
+  if (!box) return
+  const ratio = Math.min(1, Math.max(0, 1 - (clientY - box.top) / box.height))
+  setZoom(ZOOM_MIN + ratio * (ZOOM_MAX - ZOOM_MIN))
+}
+function onSliderDown(e: PointerEvent) {
+  ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+  zoomFromSlider(e.clientY)
+}
+function onSliderMove(e: PointerEvent) {
+  if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) zoomFromSlider(e.clientY)
+}
+// ใช้คีย์บอร์ดได้ด้วย: ลูกศรขึ้น/ลง
+function onSliderKey(e: KeyboardEvent) {
+  if (e.key === 'ArrowUp' || e.key === 'ArrowRight') setZoom(zoom.value + 0.25)
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') setZoom(zoom.value - 0.25)
+  else return
+  e.preventDefault()
 }
 
 // ขั้นตำแหน่ง: "ถัดไป" (ต้องเลือกอย่างน้อย 1 จุด) -> จำระดับ+ตำแหน่งไว้ แล้วปิดแผ่นไปดูรายการคู่มือ
@@ -482,29 +645,120 @@ onMounted(async () => {
             </div>
           </template>
 
-          <!-- ขั้นที่ 2: ตำแหน่งที่ปวด (เลือกได้หลายจุด ข้ามไม่ได้) -->
+          <!-- ขั้นที่ 2: ตำแหน่งที่ปวด (เลือกได้หลายจุด ข้ามไม่ได้) ตามฟิกม่า guide new: ตัวคน + จุดปวด + แถวตำแหน่ง 2x2 -->
           <template v-else>
-            <div class="mt-7 flex items-center gap-3">
+            <div class="mt-6 flex items-center gap-3">
               <button
                 type="button"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-moon-pink-soft transition active:scale-95"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-moon-gray transition active:scale-95"
                 aria-label="กลับไปเลือกระดับปวด"
                 @click="sheetStep = 'level'"
               >
                 <FaIcon name="chevron-left" class="h-3 w-[7px] text-moon-ink" />
               </button>
-              <h2 class="text-xl font-semibold leading-7">ตำแหน่งที่ปวด</h2>
+              <h2 class="text-xl font-semibold">ตำแหน่งที่ปวด</h2>
             </div>
-            <p class="mt-[19px] text-sm text-moon-ink/50">
+            <p class="ml-11 mt-[13px] text-sm leading-[18px] text-moon-ink/50">
               เลือกได้หลายจุด
             </p>
 
-            <div class="mt-[19px] flex flex-col gap-3">
+            <!-- ตัวคน + จุดปวด: กล่องกว้าง 380 วางกลางแผ่น (พิกัดจุดคิดจากกล่องนี้) -->
+            <div
+              class="relative h-[370px] w-full select-none overflow-hidden"
+              :style="{ touchAction: zoom > 1 ? 'none' : 'pan-y' }"
+              @pointerdown="onFigureDown"
+              @pointermove="onFigureMove"
+              @pointerup="onFigureUp"
+              @pointercancel="onFigureUp"
+              @click.capture="onFigureClickCapture"
+              @wheel="onFigureWheel"
+            >
+              <!-- ชั้นที่ซูม/เลื่อน (รูป จุด เส้นชี้ ป้ายอยู่ในชั้นนี้ทั้งหมด ซูมไปพร้อมกัน) -->
+              <div class="absolute inset-0 origin-center" :style="figureStyle">
+              <div class="absolute left-1/2 top-0 h-full w-[380px] -translate-x-1/2">
+                <img
+                  src="/guide/body-silhouette.svg"
+                  alt=""
+                  width="188"
+                  height="463"
+                  class="pointer-events-none absolute left-[106px] top-[-93px] h-[463px] w-[188px] max-w-none transition"
+                  :class="selectedLocations.includes('whole_body') ? 'saturate-[1.8]' : ''"
+                >
+
+                <!-- เส้นประชี้จากจุดหลังส่วนล่างไปป้าย "ด้านหลัง" (จุดนี้อยู่ด้านหลังของร่างกาย) -->
+                <img
+                  src="/guide/leader-back.svg"
+                  alt=""
+                  width="86"
+                  height="2"
+                  class="pointer-events-none absolute left-[194px] top-[204.5px] h-[2px] w-[86px] max-w-none"
+                >
+                <button
+                  type="button"
+                  class="absolute left-[282px] top-[192px] flex h-[27px] w-[61px] items-center justify-center whitespace-nowrap rounded-full border border-moon-coral bg-moon-pink text-xs font-medium leading-[18px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition active:scale-95"
+                  aria-label="หลังส่วนล่าง (ด้านหลัง)"
+                  @click="toggleLocation('lower_back')"
+                >
+                  ด้านหลัง
+                </button>
+
+                <!-- จุดปวด: กดได้ (ปุ่มกดเล็ก 28px อยู่กลางจุด ไม่ให้จุดที่ซ้อนกันบังกัน) / จุดที่เลือกแล้วเป็นวงมีรัศมี -->
+                <button
+                  v-for="dot in BODY_DOTS"
+                  :key="dot.key"
+                  type="button"
+                  class="absolute h-7 w-7"
+                  :style="{ left: `${dot.left + 14}px`, top: `${dot.top + 14}px` }"
+                  :aria-label="dot.label"
+                  :aria-pressed="selectedLocations.includes(dot.code)"
+                  @click="toggleLocation(dot.code)"
+                >
+                  <img
+                    :src="selectedLocations.includes(dot.code) ? '/guide/dot-on.svg' : '/guide/dot-off.svg'"
+                    alt=""
+                    width="56"
+                    height="56"
+                    class="pointer-events-none absolute -left-[14px] -top-[14px] h-14 w-14 max-w-none"
+                  >
+                </button>
+              </div>
+              </div>
+
+              <!-- เส้นเลื่อนซูม (ด้านขวาของรูป): เลื่อนขึ้น = ซูมเข้า / เลื่อนลง = ซูมออก -->
+              <div
+                ref="sliderRef"
+                class="absolute right-0 top-[85px] z-10 w-8 cursor-pointer touch-none"
+                :style="{ height: `${SLIDER_H}px` }"
+                role="slider"
+                tabindex="0"
+                aria-label="ซูมรูป"
+                aria-orientation="vertical"
+                :aria-valuemin="ZOOM_MIN"
+                :aria-valuemax="ZOOM_MAX"
+                :aria-valuenow="zoom"
+                @pointerdown.stop="onSliderDown"
+                @pointermove="onSliderMove"
+                @keydown="onSliderKey"
+              >
+                <span class="absolute left-1/2 top-0 h-full w-1 -translate-x-1/2 rounded-full bg-moon-pink-soft" />
+                <span
+                  class="absolute left-1/2 w-1 -translate-x-1/2 rounded-full bg-moon-period"
+                  :style="{ top: `${sliderThumbTop}px`, height: `${SLIDER_H - sliderThumbTop}px` }"
+                />
+                <span
+                  class="absolute left-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-moon-period bg-moon-card shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+                  :style="{ top: `${sliderThumbTop}px` }"
+                />
+              </div>
+            </div>
+
+            <!-- แถวตำแหน่ง 2x2 -->
+            <div class="mt-[9px] grid grid-cols-2 gap-x-[18px] gap-y-[27px]">
               <button
                 v-for="loc in PAIN_LOCATIONS"
                 :key="loc.code"
                 type="button"
-                class="flex items-center justify-between gap-3 rounded-2xl border bg-moon-card px-5 py-4 text-left transition active:scale-[0.98]"
+                class="flex h-14 items-center justify-between gap-2 rounded-2xl border bg-moon-card px-5 text-left transition active:scale-[0.98]"
                 :class="selectedLocations.includes(loc.code) ? 'border-moon-period' : 'border-moon-pink-soft'"
                 @click="toggleLocation(loc.code)"
               >
@@ -513,7 +767,7 @@ onMounted(async () => {
                   class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2"
                   :class="selectedLocations.includes(loc.code) ? 'border-moon-period bg-moon-period' : 'border-moon-pink-soft bg-moon-card'"
                 >
-                  <FaIcon v-if="selectedLocations.includes(loc.code)" name="check" class="h-3 w-3 text-white" />
+                  <FaIcon v-if="selectedLocations.includes(loc.code)" name="check" class="h-3.5 w-3.5 text-white" />
                 </span>
               </button>
             </div>
@@ -521,7 +775,7 @@ onMounted(async () => {
             <button
               type="button"
               :disabled="isSaving || selectedLocations.length === 0"
-              class="btn-primary mt-[32px] w-full"
+              class="btn-primary mt-[27px] w-full"
               @click="finishSheet"
             >
               ถัดไป
