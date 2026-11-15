@@ -4,7 +4,7 @@ import { CYCLE_LENGTH_DAYS, DEFAULT_MENSTRUAL_CYCLE_DAYS } from '~/utils/cycle-c
 import { AVATAR_SLOT_COUNT } from '~/utils/login-route'
 import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
-import { daysBetween, estimateCycleLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
+import { daysBetween, estimateCycleLength, dropStrayRows, estimatePeriodLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
 import { isCycleFinished } from '~/utils/goal-claim'
 // ตัวจำข้อมูลสั้นๆ: กลับมาหน้านี้ภายใน 30 วิ -> โชว์ข้อมูลเดิมทันที แล้วแอบดึงของใหม่ตามหลัง
 import { clearPageCache, readPageCache, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
@@ -112,6 +112,9 @@ function dayInCycle(d: Date): number | null {
   return ((diffDays % cycleLength) + cycleLength) % cycleLength
 }
 
+// จำนวนวันที่ประจำเดือนมาที่ใช้จริง: เรียนรู้จากรอบล่าสุดที่กดหมดไว้ (ยังไม่เคยกดหมด ใช้ค่าที่กรอกตอน onboarding หรือ 5)
+const effectivePeriodDays = computed(() => estimatePeriodLength(allRows.value, periodDurationDays.value ?? 5))
+
 const hasPeriodData = computed(() => !!lastPeriodDate.value && !!periodDurationDays.value && !!cycleDurationDays.value)
 
 // แถบวัน: วันนี้ ± 15 วัน เลื่อนดูได้ ใช้ตัวตัดสินสีตัวเดียวกับหน้าปฏิทิน (สีทึบ = มาจริง, เส้นประ = คาดไว้)
@@ -127,7 +130,7 @@ const periodStrip = computed(() => {
       dayNumber: d.getDate(),
       weekday: WEEKDAY_SHORT[d.getDay()],
       isToday: i === STRIP_RADIUS,
-      kind: getDayKind(d, allRows.value, periodDurationDays.value ?? 5, effectiveCycleDays.value)
+      kind: getDayKind(d, allRows.value, effectivePeriodDays.value, effectiveCycleDays.value)
     }
   })
 })
@@ -146,7 +149,12 @@ const periodStatusText = computed(() => {
   // รอบล่าสุดที่บันทึก: ดูว่าผู้ใช้กด "หมดแล้ว" ไปหรือยัง / วันนี้ยังอยู่ในช่วงมีประจำเดือนไหม
   // (ต้องเช็คก่อนสูตรเดิมด้านล่าง เพราะสูตรเดิมนับแค่จากจำนวนวันที่ตั้งไว้ ไม่รู้ว่าผู้ใช้กดหมดไปแล้ว)
   const latestRow = allRows.value.at(-1)
-  if (latestRow) {
+  // แถวสมมติจาก onboarding ยังไม่ใช่ประจำเดือนที่มาจริง -> บอกว่ารอยืนยัน (ไม่นับว่าอยู่ในช่วงประจำเดือน)
+  if (latestRow?.assumed && !prediction.value?.isLate) {
+    const sinceAssumed = daysBetween(parseLocalDate(latestRow.cycle_start_date), startOfDay(new Date()))
+    if (sinceAssumed >= 0 && sinceAssumed < effectivePeriodDays.value) return 'รอยืนยันว่าประจำเดือนมาแล้วหรือยัง'
+  }
+  if (latestRow && !latestRow.assumed) {
     const today = startOfDay(new Date())
     const sinceStart = daysBetween(parseLocalDate(latestRow.cycle_start_date), today)
 
@@ -161,7 +169,7 @@ const periodStatusText = computed(() => {
     // ยังไม่ถึงวันหมด (ใช้ getRowEnd ตัวเดียวกับปฏิทิน จึงตรงกันและขยายต่อได้ถ้ายังไม่หมด)
     const stillInPeriod =
       sinceStart >= 0 &&
-      daysBetween(today, getRowEnd(latestRow, periodDurationDays.value ?? 5)) >= 0
+      daysBetween(today, getRowEnd(latestRow, effectivePeriodDays.value)) >= 0
     if (stillInPeriod) {
       return `อยู่ในช่วงประจำเดือน (วันที่ ${sinceStart + 1})`
     }
@@ -170,7 +178,7 @@ const periodStatusText = computed(() => {
   const todayCycleDay = dayInCycle(new Date())
   if (todayCycleDay === null || !periodDurationDays.value || !cycleDurationDays.value) return ''
 
-  if (todayCycleDay < periodDurationDays.value) {
+  if (todayCycleDay < effectivePeriodDays.value) {
     return `อยู่ในช่วงประจำเดือน (วันที่ ${todayCycleDay + 1})`
   }
 
@@ -188,9 +196,9 @@ const stripRef = ref<HTMLElement | null>(null) // กล่องแถบวั
 
 // แถวที่ใช้แสดงผล: ถ้ายังไม่เคยบันทึกในตาราง ให้ใช้วันเริ่มจาก onboarding เป็นรอบแรก
 const allRows = computed<PeriodRow[]>(() => {
-  if (savedRows.value.length > 0) return savedRows.value
+  if (savedRows.value.length > 0) return dropStrayRows(savedRows.value) // ตัดแถวที่กดซ้ำ/กดผิดออก ไม่ให้ขึ้นสี
   if (profileLastPeriod.value) {
-    return [{ cycle_start_date: profileLastPeriod.value, confirmed_end_date: null, predicted_start_date: null }]
+    return [{ cycle_start_date: profileLastPeriod.value, confirmed_end_date: null, predicted_start_date: null, assumed: true }]
   }
   return []
 })
@@ -210,7 +218,7 @@ async function loadPeriodRows() {
     .eq('user_id', profileId.value)
     .order('cycle_start_date', { ascending: true })
   savedRows.value = (data ?? []) as PeriodRow[]
-  lastPeriodDate.value = savedRows.value.at(-1)?.cycle_start_date ?? profileLastPeriod.value
+  lastPeriodDate.value = dropStrayRows(savedRows.value).at(-1)?.cycle_start_date ?? profileLastPeriod.value
 }
 
 // ---------- ลากแถบวันด้วยเมาส์ (บนมือถือปัดนิ้วได้อยู่แล้ว) ----------
@@ -328,7 +336,7 @@ function dismissPrompt(code: string) {
 // ตอนนี้ควรถามอะไร (ตัดสินด้วย getPeriodPrompt ที่ไฟล์ period-prediction.ts)
 const currentPrompt = computed(() => {
   if (!hasPeriodData.value || allRows.value.length === 0) return null
-  const prompt = getPeriodPrompt(allRows.value, periodDurationDays.value ?? 5, effectiveCycleDays.value)
+  const prompt = getPeriodPrompt(allRows.value, effectivePeriodDays.value, effectiveCycleDays.value)
 
   // "หมดหรือยัง" ต้องมีแถวจริงในตาราง (มี id) ถึงจะบันทึกวันหมดได้
   // ถ้ายังไม่เคยบันทึกเลย allRows คือแถวสมมติจาก onboarding -> ไม่ถาม
@@ -346,7 +354,7 @@ const visiblePrompt = computed(() => {
 
 // ผู้ใช้กด "หมดแล้ว" -> บันทึกวันหมดเป็นวันนี้ลงรอบล่าสุด
 async function confirmPeriodEndToday() {
-  const row = savedRows.value.at(-1)
+  const row = allRows.value.at(-1) // รอบล่าสุดที่นับจริง (ไม่ใช่แถวที่กดซ้ำ)
   if (!row?.id) return
   const authed = await getAuthedSupabaseClient()
   const { error } = await authed
@@ -368,7 +376,9 @@ async function onPromptPrimary() {
   } else if (code === 'period_arrival_popup') {
     // เปิดเมนูของวันนี้ ให้ผู้ใช้กด "ประจำเดือนมาวันนี้" (โค้ดบันทึกอยู่ที่เมนูนั้นที่เดียว)
     dismissPrompt(code)
-    openDay(startOfDay(new Date()))
+    // ถ้ายังเป็นแถวสมมติจาก onboarding ให้เปิดเมนูของ "วันที่กรอกไว้" เพื่อบันทึกเป็นวันที่มาจริง
+    const assumedRow = allRows.value.at(-1)?.assumed ? allRows.value.at(-1) : null
+    openDay(assumedRow ? parseLocalDate(assumedRow.cycle_start_date) : startOfDay(new Date()))
   } else if (code === 'pre_period_info') {
     dismissPrompt(code) // แค่รับทราบ
   }
@@ -447,7 +457,7 @@ function applySnapshot(snap: HomeSnapshot) {
   // ถ้ามีรอบประจำเดือนที่บันทึกไว้ ให้ใช้วันเริ่มรอบล่าสุดแทนค่าจากโปรไฟล์
   savedRows.value = snap.periodRows
   if (savedRows.value.length > 0) {
-    lastPeriodDate.value = savedRows.value.at(-1)!.cycle_start_date
+    lastPeriodDate.value = dropStrayRows(savedRows.value).at(-1)!.cycle_start_date
   }
 
   for (const row of snap.avatarRows) {
@@ -963,7 +973,7 @@ function goToCheckin() {
       :rows="savedRows"
       :all-rows="allRows"
       :profile-id="profileId"
-      :period-days="periodDurationDays ?? 5"
+      :period-days="effectivePeriodDays"
       :cycle-days="effectiveCycleDays"
       @close="selectedDate = null"
       @changed="onPeriodChanged"

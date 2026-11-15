@@ -52,6 +52,7 @@ export interface PeriodRow {
   cycle_start_date: string // วันที่ประจำเดือนมาจริง
   confirmed_end_date: string | null // วันที่หมดจริง (null = ยังไม่ได้บอก)
   predicted_start_date: string | null // วันที่ระบบเคยคาดไว้ตอนนั้น (null = ไม่มีข้อมูล)
+  assumed?: boolean // true = แถวสมมติจากวันที่กรอกตอน onboarding (ยังไม่เคยกด "มาแล้ว") ไม่ใช่ข้อมูลจริงในตาราง
 }
 
 // 'logged'    = มาจริง (บันทึกแล้ว)             -> วงสีทึบ
@@ -59,7 +60,7 @@ export interface PeriodRow {
 // 'none'      = วันธรรมดา
 export type DayKind = 'logged' | 'predicted' | 'none'
 
-const MAX_PREDICTED_CYCLES = 12 // คาดล่วงหน้าสูงสุดกี่รอบ
+const MAX_PREDICTED_CYCLES = 1 // คาดล่วงหน้ากี่รอบ (1 = เฉพาะรอบหน้ารอบเดียว ไม่ให้เส้นประเต็มปฏิทิน)
 
 // ประจำเดือนที่ "ยังไม่กดบอกว่าหมด" ยอมให้ขยายต่อได้สูงสุดกี่วัน (นับวันเริ่มเป็นวันที่ 1)
 // กันไม่ให้รอบเก่าที่ไม่เคยกดหมด ถูกแรเงายาวไปเรื่อยๆ
@@ -85,10 +86,11 @@ export function getRowEnd(row: PeriodRow, periodDays: number, today: Date = star
   const hardLimit = new Date(start)
   hardLimit.setDate(hardLimit.getDate() + MAX_PERIOD_DAYS - 1)
 
-  // กรณี 2: วันนี้อยู่หลังวันสุดท้ายที่ตั้งไว้ และยังไม่เลยเพดาน
-  const isPastExpectedEnd = daysBetween(expectedEnd, today) > 0
+  // กรณี 2: ยังไม่กดหมด และยังไม่เลยเพดาน -> สีทึบถึง "วันนี้" เท่านั้น
+  // (วันที่ยังมาไม่ถึงในช่วงที่ตั้งไว้ ไม่ใช่ของจริง ให้เป็นเส้นประแทน ดูใน getDayKind ข้อ 1.6)
+  // ถ้าเลยวันสุดท้ายที่ตั้งไว้แล้วก็ขยายต่อถึงวันนี้เหมือนเดิม จนกว่าจะเลยเพดาน
   const isWithinLimit = daysBetween(today, hardLimit) >= 0
-  if (isPastExpectedEnd && isWithinLimit) return new Date(today)
+  if (isWithinLimit && daysBetween(start, today) >= 0) return new Date(today)
 
   // กรณี 3
   return expectedEnd
@@ -103,15 +105,34 @@ export function getDayKind(
   if (rows.length === 0) return 'none'
 
   // 1) มาจริง: วันนี้อยู่ระหว่าง "วันเริ่ม" ถึง "วันหมด" ของแถวไหนสักแถว -> สีทึบ (ชนะเส้นประเสมอ)
+  // แถวสมมติจาก onboarding ข้ามไป (ผู้ใช้ยังไม่ได้ยืนยันว่ามา) ไปเป็นเส้นประในข้อ 1.5 แทน
   for (const row of rows) {
+    if (row.assumed) continue
     const start = parseLocalDate(row.cycle_start_date)
     const end = getRowEnd(row, periodDays)
     if (daysBetween(start, date) >= 0 && daysBetween(date, end) >= 0) return 'logged'
   }
 
+  // 1.5) แถวสมมติจาก onboarding: วันที่กรอกไว้ = เส้นประ จนกว่าผู้ใช้จะกด "มาแล้ว" (ถึงจะกลายเป็นแถวจริง = สีทึบ)
+  for (const row of rows) {
+    if (!row.assumed) continue
+    const diff = daysBetween(parseLocalDate(row.cycle_start_date), date)
+    if (diff >= 0 && diff < periodDays) return 'predicted'
+  }
+
+  // 1.6) แถวจริงที่ยังไม่กดหมด: วันที่ยังมาไม่ถึงในช่วงที่ตั้งไว้ = เส้นประ (ยังเป็นแค่การคาด)
+  for (const row of rows) {
+    if (row.assumed || row.confirmed_end_date) continue
+    const diff = daysBetween(parseLocalDate(row.cycle_start_date), date)
+    if (diff >= 0 && diff < periodDays) return 'predicted'
+  }
+
   // 2) เส้นประของรอบเก่า: วันที่ระบบเคยคาดไว้ (เก็บไว้ในแถวนั้น ต่อให้มาจริงคนละวันก็ยังอยู่)
   for (const row of rows) {
     if (!row.predicted_start_date) continue
+    // ถ้าที่คาดไว้ใกล้กับวันที่มาจริง (คลาดไม่เกิน 2 วัน) ไม่ต้องเก็บเส้นประเก่า เพราะวงทึบอยู่ตรงนั้นแล้ว
+    const drift = daysBetween(parseLocalDate(row.predicted_start_date), parseLocalDate(row.cycle_start_date))
+    if (Math.abs(drift) <= 2) continue
     const diff = daysBetween(parseLocalDate(row.predicted_start_date), date)
     if (diff >= 0 && diff < periodDays) return 'predicted'
   }
@@ -164,6 +185,37 @@ export function estimateCycleLength(starts: string[], fallback: number): number 
   return Math.round(total / recent.length)
 }
 
+// ระยะห่างขั้นต่ำระหว่างวันเริ่มสองรอบ ถ้าใกล้กว่านี้ ระบบถือว่าแถวหลังเป็นการกดซ้ำ/กดผิด ไม่นับเป็นรอบใหม่
+export const MIN_CYCLE_GAP_DAYS = 21
+
+// ตัดแถวที่ "กดซ้ำ/กดผิด" ออก: แถวที่วันเริ่มห่างจากแถวก่อนหน้า (ที่นับแล้ว) ไม่ถึง 21 วัน
+// เรียงจากเก่าไปใหม่ เก็บแถวแรกไว้เสมอ ใช้กับทุกอย่างที่ต้องแสดงสี/คำนวณ (แถวในฐานข้อมูลยังอยู่ ลบได้ที่เมนูตอนกดวัน)
+export function dropStrayRows(rows: PeriodRow[]): PeriodRow[] {
+  const sorted = [...rows].sort((a, b) => a.cycle_start_date.localeCompare(b.cycle_start_date))
+  const kept: PeriodRow[] = []
+  for (const row of sorted) {
+    const prev = kept.at(-1)
+    if (prev && daysBetween(parseLocalDate(prev.cycle_start_date), parseLocalDate(row.cycle_start_date)) < MIN_CYCLE_GAP_DAYS) continue
+    kept.push(row)
+  }
+  return kept
+}
+
+// ประมาณ "ประจำเดือนมากี่วัน" จากรอบล่าสุดที่ผู้ใช้กดวันหมดไว้แล้ว
+// fallback = ค่าที่กรอกตอน onboarding (ใช้เมื่อยังไม่เคยกดหมดเลย)
+// นับวันเริ่มเป็นวันที่ 1 จึงบวก 1 / เก็บเฉพาะ 2-10 วัน (วันเดียวหรือเกิน 10 วันมักเกิดจากกดผิด/กดซ้ำ จึงข้าม)
+export function estimatePeriodLength(rows: PeriodRow[], fallback: number): number {
+  const ended = rows
+    .filter(r => !r.assumed && r.confirmed_end_date)
+    .sort((a, b) => a.cycle_start_date.localeCompare(b.cycle_start_date))
+  for (let i = ended.length - 1; i >= 0; i--) {
+    const row = ended[i]!
+    const len = daysBetween(parseLocalDate(row.cycle_start_date), parseLocalDate(row.confirmed_end_date!)) + 1
+    if (len >= 2 && len <= 10) return len
+  }
+  return fallback
+}
+
 // ===== ตัดสินว่า "ตอนนี้ควรเด้งป๊อปอัพอะไรให้ผู้ใช้" =====
 // ผลลัพธ์: null = ไม่ต้องถามอะไร  |  { code, days? } = ควรเด้งป๊อปอัพนี้
 // code ใช้ชื่อเดียวกับ notif_code ในตาราง notification_types (ทีหลังผูกกับระบบแจ้งเตือนได้เลย)
@@ -195,6 +247,11 @@ export function getPeriodPrompt(
     cycleDays,
     today
   )
+  // ---------- แถวสมมติจาก onboarding: ถึงวันที่กรอกไว้แล้ว -> ถามว่ามาหรือยัง (ยังไม่ถาม "หมดหรือยัง") ----------
+  // ถ้ากด "ยังไม่มา" วันนี้ก็ไม่ถามซ้ำ พรุ่งนี้ถามใหม่ และวันยังเป็นเส้นประอยู่
+  if (latest.assumed) {
+    return sinceStart >= 0 ? { code: 'period_arrival_popup' } : null
+  }
   // ---------- ขั้น 2: ถามว่า "ประจำเดือนหมดหรือยัง" ----------
   // ยังไม่เคยกดว่าประจำเดือนหมด
   const hasNoEndDate = !latest.confirmed_end_date

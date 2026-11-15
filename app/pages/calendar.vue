@@ -9,7 +9,7 @@ import { clearPageCache, readPageCache, readProfileId, toCacheJson, writePageCac
 //  3) เส้นประของรอบเก่าไม่หายไป ถ้าบันทึกไว้ว่ามาไม่ตรงที่คาด (เก็บใน predicted_start_date)
 import type { PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
-import { buildMonthCells, daysBetween, estimateCycleLength, getDayKind, startOfDay } from '~/utils/period-prediction'
+import { buildMonthCells, daysBetween, estimateCycleLength, dropStrayRows, estimatePeriodLength, getDayKind, startOfDay } from '~/utils/period-prediction'
 
 // ---------- ข้อมูลที่ต้องใช้ ----------
 const isLoading = ref(true)
@@ -21,12 +21,15 @@ const savedRows = ref<PeriodRow[]>([]) // แถวจากตาราง peri
 
 // ถ้ายังไม่เคยบันทึกในตาราง ให้ใช้วันที่จาก onboarding เป็นรอบแรก (แสดงอย่างเดียว แก้/ลบไม่ได้)
 const allRows = computed<PeriodRow[]>(() => {
-  if (savedRows.value.length > 0) return savedRows.value
+  if (savedRows.value.length > 0) return dropStrayRows(savedRows.value) // ตัดแถวที่กดซ้ำ/กดผิดออก ไม่ให้ขึ้นสี
   if (profileLastPeriod.value) {
-    return [{ cycle_start_date: profileLastPeriod.value, confirmed_end_date: null, predicted_start_date: null }]
+    return [{ cycle_start_date: profileLastPeriod.value, confirmed_end_date: null, predicted_start_date: null, assumed: true }]
   }
   return []
 })
+
+// จำนวนวันที่ประจำเดือนมาที่ใช้จริง: เรียนรู้จากรอบล่าสุดที่กดหมดไว้ (ยังไม่เคยกดหมด ใช้ค่าจากโปรไฟล์)
+const effectivePeriodDays = computed(() => estimatePeriodLength(allRows.value, periodDurationDays.value))
 
 // ความยาวรอบที่ใช้จริง: เฉลี่ยจากรอบที่ผู้ใช้บันทึกไว้ (ถ้ายังไม่พอ ใช้ค่าจากโปรไฟล์)
 const effectiveCycleDays = computed(() =>
@@ -55,7 +58,7 @@ const months = computed(() => {
           ? {
               date,
               label: date.getDate(),
-              kind: getDayKind(date, allRows.value, periodDurationDays.value, effectiveCycleDays.value),
+              kind: getDayKind(date, allRows.value, effectivePeriodDays.value, effectiveCycleDays.value),
               isToday: daysBetween(today, date) === 0
             }
           : null
@@ -280,7 +283,7 @@ onMounted(async () => {
       :rows="savedRows"
       :all-rows="allRows"
       :profile-id="profileId"
-      :period-days="periodDurationDays"
+      :period-days="effectivePeriodDays"
       :cycle-days="effectiveCycleDays"
       @close="closeSheet"
       @changed="onChanged"

@@ -5,7 +5,7 @@
 // ทำเสร็จแล้วส่งสัญญาณ changed กลับไปให้หน้าที่เรียกใช้ไปโหลดข้อมูลใหม่เอง
 import type { PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
-import { daysBetween, getRowEnd, parseLocalDate, predictNextPeriod, startOfDay } from '~/utils/period-prediction'
+import { MIN_CYCLE_GAP_DAYS, daysBetween, getRowEnd, parseLocalDate, predictNextPeriod, startOfDay } from '~/utils/period-prediction'
 
 const props = defineProps<{
   date: Date // วันที่ที่ผู้ใช้กด
@@ -64,7 +64,8 @@ async function logStart() {
   const latest = props.allRows.map(r => r.cycle_start_date).sort().at(-1) ?? null
   let predictedStr: string | null = null
   let drift: number | null = null
-  if (latest && dateStr > latest) {
+  // ห่างจากรอบล่าสุดไม่ถึง 21 วัน = ไม่ใช่รอบใหม่ (น่าจะกดซ้ำ/กดผิด) ไม่จดวันที่คาดไว้ กันเส้นประเก่าเกินมา
+  if (latest && daysBetween(parseLocalDate(latest), props.date) >= 21) {
     const predicted = predictNextPeriod(latest, props.cycleDays).predictedDate
     predictedStr = getLocalDateString(predicted)
     drift = daysBetween(predicted, props.date) // บวก = มาช้า, ลบ = มาเร็ว
@@ -81,6 +82,12 @@ async function logStart() {
   if (error) {
     // 23505 = วันนี้บันทึกไปแล้ว (ชนกับ UNIQUE)
     errorText.value = error.code === '23505' ? 'วันนี้บันทึกไว้แล้ว' : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ'
+    return
+  }
+
+  // ห่างจากรอบล่าสุดไม่ถึง 21 วัน = ระบบไม่นับเป็นรอบใหม่ (ไม่ขึ้นสี) บอกผู้ใช้ให้ชัด จะได้ไม่งง
+  if (latest && daysBetween(parseLocalDate(latest), props.date) > 0 && daysBetween(parseLocalDate(latest), props.date) < MIN_CYCLE_GAP_DAYS) {
+    emit('changed', 'บันทึกแล้ว แต่ห่างจากรอบก่อนไม่ถึง 21 วัน ระบบจึงไม่นับเป็นรอบใหม่')
     return
   }
 
