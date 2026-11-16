@@ -6,6 +6,7 @@ import type { PeriodPromptCode, PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
 import { daysBetween, estimateCycleLength, dropStrayRows, estimatePeriodLength, getDayKind, getPeriodPrompt, getRowEnd } from '~/utils/period-prediction'
 import { isCycleFinished } from '~/utils/goal-claim'
+import { logPeriodStart } from '~/utils/log-period-start'
 // ตัวจำข้อมูลสั้นๆ: กลับมาหน้านี้ภายใน 30 วิ -> โชว์ข้อมูลเดิมทันที แล้วแอบดึงของใหม่ตามหลัง
 import { clearPageCache, readPageCache, toCacheJson, writePageCache, writeProfileId } from '~/utils/page-cache'
 
@@ -374,11 +375,22 @@ async function onPromptPrimary() {
   if (code === 'period_end_popup') {
     await confirmPeriodEndToday()
   } else if (code === 'period_arrival_popup') {
-    // เปิดเมนูของวันนี้ ให้ผู้ใช้กด "ประจำเดือนมาวันนี้" (โค้ดบันทึกอยู่ที่เมนูนั้นที่เดียว)
+    // กด "มาแล้ว" = บันทึกว่าประจำเดือนมา "วันนี้" ทันที ไม่เปิดเมนูซ้อนถามซ้ำ
+    // ถ้ายังเป็นแถวสมมติจาก onboarding วันที่กรอกไว้จะถูกเก็บเป็นเส้นประ (ไม่ลากสีจากวันนั้นมาถึงวันนี้)
+    // ถ้ามาจริงเป็นวันอื่น ให้ปิดป๊อปอัพนี้แล้วกดที่วันนั้นในแถบวันเอง
     dismissPrompt(code)
-    // ถ้ายังเป็นแถวสมมติจาก onboarding ให้เปิดเมนูของ "วันที่กรอกไว้" เพื่อบันทึกเป็นวันที่มาจริง
-    const assumedRow = allRows.value.at(-1)?.assumed ? allRows.value.at(-1) : null
-    openDay(assumedRow ? parseLocalDate(assumedRow.cycle_start_date) : startOfDay(new Date()))
+    if (profileId.value === null) return
+    const result = await logPeriodStart({
+      profileId: profileId.value,
+      date: startOfDay(new Date()),
+      allRows: allRows.value,
+      cycleDays: effectiveCycleDays.value
+    })
+    if (!result.ok) {
+      periodMessage.value = result.message
+      return
+    }
+    await onPeriodChanged(result.message)
   } else if (code === 'pre_period_info') {
     dismissPrompt(code) // แค่รับทราบ
   }

@@ -5,7 +5,8 @@
 // ทำเสร็จแล้วส่งสัญญาณ changed กลับไปให้หน้าที่เรียกใช้ไปโหลดข้อมูลใหม่เอง
 import type { PeriodRow } from '~/utils/period-prediction'
 // import ตรงๆ เพื่อให้ชัวร์ (ฟังก์ชันใหม่ที่เพิ่งเพิ่ม Nuxt บางทียังไม่รู้จักจนกว่าจะรีสตาร์ต dev server)
-import { MIN_CYCLE_GAP_DAYS, daysBetween, getRowEnd, parseLocalDate, predictNextPeriod, startOfDay } from '~/utils/period-prediction'
+import { daysBetween, getRowEnd, parseLocalDate, startOfDay } from '~/utils/period-prediction'
+import { logPeriodStart } from '~/utils/log-period-start'
 
 const props = defineProps<{
   date: Date // วันที่ที่ผู้ใช้กด
@@ -57,44 +58,20 @@ async function logStart() {
   isSaving.value = true
   errorText.value = ''
 
-  const dateStr = getLocalDateString(props.date)
-
-  // จดวันที่ระบบคาดไว้ "ก่อนบันทึก" (บันทึกแล้วระบบคำนวณใหม่ ค่าเดิมจะหาย)
-  // ทำเฉพาะตอนวันที่กดอยู่หลังรอบล่าสุด (ถ้าย้อนไปแก้รอบเก่า ไม่มีวันที่คาดไว้ให้เทียบ)
-  const latest = props.allRows.map(r => r.cycle_start_date).sort().at(-1) ?? null
-  let predictedStr: string | null = null
-  let drift: number | null = null
-  // ห่างจากรอบล่าสุดไม่ถึง 21 วัน = ไม่ใช่รอบใหม่ (น่าจะกดซ้ำ/กดผิด) ไม่จดวันที่คาดไว้ กันเส้นประเก่าเกินมา
-  if (latest && daysBetween(parseLocalDate(latest), props.date) >= 21) {
-    const predicted = predictNextPeriod(latest, props.cycleDays).predictedDate
-    predictedStr = getLocalDateString(predicted)
-    drift = daysBetween(predicted, props.date) // บวก = มาช้า, ลบ = มาเร็ว
-  }
-
-  const authed = await getAuthedSupabaseClient()
-  const { error } = await authed.from('period_cycles').insert({
-    user_id: props.profileId,
-    cycle_start_date: dateStr,
-    predicted_start_date: predictedStr
+  // กติกาบันทึก (เส้นประที่คาดไว้ / กฎ 21 วัน / ข้อความมาช้า-เร็ว) อยู่ใน utils/log-period-start.ts ที่เดียว
+  const result = await logPeriodStart({
+    profileId: props.profileId,
+    date: props.date,
+    allRows: props.allRows,
+    cycleDays: props.cycleDays
   })
 
   isSaving.value = false
-  if (error) {
-    // 23505 = วันนี้บันทึกไปแล้ว (ชนกับ UNIQUE)
-    errorText.value = error.code === '23505' ? 'วันนี้บันทึกไว้แล้ว' : 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ'
+  if (!result.ok) {
+    errorText.value = result.message
     return
   }
-
-  // ห่างจากรอบล่าสุดไม่ถึง 21 วัน = ระบบไม่นับเป็นรอบใหม่ (ไม่ขึ้นสี) บอกผู้ใช้ให้ชัด จะได้ไม่งง
-  if (latest && daysBetween(parseLocalDate(latest), props.date) > 0 && daysBetween(parseLocalDate(latest), props.date) < MIN_CYCLE_GAP_DAYS) {
-    emit('changed', 'บันทึกแล้ว แต่ห่างจากรอบก่อนไม่ถึง 21 วัน ระบบจึงไม่นับเป็นรอบใหม่')
-    return
-  }
-
-  // เกิน 2 วันถึงแจ้ง เพราะคลาดเคลื่อน 1-2 วันถือเป็นเรื่องปกติ
-  if (drift !== null && drift > 2) emit('changed', `บันทึกแล้ว มาช้ากว่าที่คาดไว้ ${drift} วัน`)
-  else if (drift !== null && drift < -2) emit('changed', `บันทึกแล้ว มาเร็วกว่าที่คาดไว้ ${-drift} วัน`)
-  else emit('changed', 'บันทึกแล้ว')
+  emit('changed', result.message)
 }
 
 // ---------- ปุ่ม 2: ประจำเดือนหมดวันนี้ ----------
