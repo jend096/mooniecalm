@@ -24,7 +24,7 @@ export const PAIN_LOCATIONS: { code: string, label: string }[] = [
   { code: 'lower_abdomen', label: 'ท้องน้อย' },
   { code: 'lower_back', label: 'หลังส่วนล่าง' },
   { code: 'thigh', label: 'ต้นขา' },
-  { code: 'whole_body', label: 'ปวดทั่วตัว' }
+  { code: 'whole_body', label: 'ไม่ระบุจุดปวด' } // รหัสเดิม whole_body (ข้อมูลเช็คอินเก่าใช้อยู่) แค่เปลี่ยนป้ายที่ผู้ใช้เห็น
 ]
 
 // ป้ายชื่อของรหัสเก่าที่เลิกให้เลือกแล้ว แต่ข้อมูลเก่าอาจยังมีอยู่ (ฐานข้อมูลยังยอมรับรหัสนี้)
@@ -87,17 +87,39 @@ export function splitSteps(text: string | null): string[] {
     .filter(Boolean)
 }
 
+// "ไม่ระบุจุดปวด" (รหัส whole_body) = ผู้ใช้ไม่อยากเลือกจุด -> แสดงคู่มือ "ทุกอัน"
+// คู่มือที่ไม่ผูกกับตำแหน่งไหนเลย (body_area มีแต่ whole_body เช่น กดจุด SP6 / ฝึกหายใจ) ขึ้นก่อน แล้วตามด้วยที่เหลือ
+export const UNSPECIFIED_LOCATION = 'whole_body'
+
+function isGeneralGuide(guide: GuideItem): boolean {
+  const areas = guide.body_area ?? []
+  return areas.length > 0 && areas.every(area => area === UNSPECIFIED_LOCATION)
+}
+
 // คู่มือของจุดที่ปวด (เลือกได้หลายจุด) เรียงด้วย sortGuides แล้ว
 // locations = [] แปลว่าไม่ได้ระบุจุด -> คืนคู่มือทั้งหมด
 // เลือกหลายจุด = รวมคู่มือของทุกจุดที่เลือก (อันไหนใช้ได้หลายจุด เช่น ท่าแมว-วัว จะโผล่แค่ครั้งเดียว)
+// เลือก "ไม่ระบุจุดปวด" = คืนคู่มือทั้งหมด: เลือกอย่างเดียว -> อันที่ไม่ผูกตำแหน่งขึ้นก่อน / เลือกคู่กับจุดอื่น -> อันของจุดนั้นขึ้นก่อน แล้วค่อยไล่ที่เหลือ
 export function filterGuidesByLocation(
   guides: GuideItem[],
   locations: string[],
   painLevel: number | null,
   goalCodes: string[]
 ): GuideItem[] {
-  const inArea = locations.length
-    ? guides.filter(g => (g.body_area ?? []).some(area => locations.includes(area)))
-    : guides
-  return sortGuides(inArea, painLevel, goalCodes)
+  const showAll = locations.length === 0 || locations.includes(UNSPECIFIED_LOCATION)
+  const inArea = showAll
+    ? guides
+    : guides.filter(g => (g.body_area ?? []).some(area => locations.includes(area)))
+  const sorted = sortGuides(inArea, painLevel, goalCodes)
+
+  if (locations.includes(UNSPECIFIED_LOCATION)) {
+    // เลือก "ไม่ระบุจุดปวด" คู่กับจุดอื่น (เช่น ท้องน้อย): คู่มือที่ผูกกับจุดที่เลือกขึ้นก่อน
+    const otherLocations = locations.filter(code => code !== UNSPECIFIED_LOCATION)
+    const matchesChosen = (g: GuideItem) => (g.body_area ?? []).some(area => otherLocations.includes(area))
+    const first = sorted.filter(matchesChosen)
+    const rest = sorted.filter(g => !matchesChosen(g))
+    // ที่เหลือเรียงแบบเลือก "ไม่ระบุจุดปวด" อย่างเดียว: อันที่ไม่ผูกตำแหน่ง (กดจุด/หายใจ) ขึ้นก่อน แล้วค่อยไล่ตามเดิม
+    return [...first, ...rest.filter(isGeneralGuide), ...rest.filter(g => !isGeneralGuide(g))]
+  }
+  return sorted
 }
