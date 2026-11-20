@@ -22,7 +22,7 @@ const tabs: { key: 'home' | 'checkin' | 'symptoms' | 'summary' | 'hospital', lab
   { key: 'checkin', label: 'เช็คอิน', icon: 'clipboard-check', to: '/checkin' },
   { key: 'symptoms', label: 'บันทึก', icon: 'square-plus', to: '/symptoms' },
   { key: 'summary', label: 'สรุปเดือน', icon: 'chart-line', to: null },
-  { key: 'hospital', label: 'รพ.ใกล้ฉัน', icon: 'location-dot', to: null }
+  { key: 'hospital', label: 'รพ.ใกล้ฉัน', icon: 'location-dot', to: '/hospital' }
 ]
 
 </script>

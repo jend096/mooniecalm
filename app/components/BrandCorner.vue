@@ -14,7 +14,7 @@ const path = computed(() => route.path.replace(/\/+$/, '') || '/')
 const HIDDEN = new Set(['/', '/onboarding/loading', '/calendar', '/onboarding/signup'])
 const LOGO_SIZE = 42 // ขนาดโลโก้รอง (px) พี่เบอร์รี่ว่าตัวเล็กไปไม่ชัด จึงขยายจาก 34
 // หน้าที่มีปุ่มย้อนกลับกลมซ้ายบน (กลางปุ่มอยู่ที่ 44px จากขอบบน) จัดโลโก้ให้กึ่งกลางเท่าปุ่ม (top = 44 - ครึ่งหนึ่งของโลโก้)
-const WITH_BACK_BUTTON = new Set(['/checkin', '/guide', '/snack', '/symptoms'])
+const WITH_BACK_BUTTON = new Set(['/checkin', '/guide', '/snack', '/symptoms', '/hospital'])
 
 const visible = computed(() => !HIDDEN.has(path.value))
 // หน้า onboarding มีแถบความคืบหน้าอยู่ใต้โลโก้ (ขอบบนแถบอยู่ราว 56px) เลยยกโลโก้ขึ้นให้ไม่ทับแถบ
