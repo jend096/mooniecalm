@@ -36,6 +36,8 @@ const routeError = ref('')
 // ---------- ช่องค้นหา ----------
 const query = ref('')
 const searchOpen = ref(false)
+// กำลังพิมพ์อยู่ (ช่องค้นหาโฟกัส) -> ซ่อนแถบเมนูล่างชั่วคราว กันมันลอยตามคีย์บอร์ดบน iPhone แล้วหน้าดูสั่น
+const searchFocused = ref(false)
 const remoteResults = ref<Hospital[]>([])
 const isSearching = ref(false)
 let searchTimer: ReturnType<typeof setTimeout> | undefined
@@ -305,9 +307,9 @@ function goBack() {
           autocomplete="off"
           placeholder="ค้นหาโรงพยาบาล คลินิก"
           aria-label="ค้นหาโรงพยาบาล คลินิก"
-          class="min-w-0 flex-1 bg-transparent text-[15px] leading-[21px] text-moon-ink outline-none placeholder:text-moon-hint"
-          @focus="searchOpen = true"
-          @blur="closeSearch"
+          class="min-w-0 flex-1 bg-transparent text-base leading-[21px] text-moon-ink outline-none placeholder:text-moon-hint"
+          @focus="searchOpen = true; searchFocused = true"
+          @blur="closeSearch(); searchFocused = false"
           @keydown.enter.prevent="pickFirstSuggestion"
         >
       </label>
@@ -459,7 +461,7 @@ function goBack() {
       ข้อมูลจาก OpenStreetMap บางแห่งอาจยังไม่มีเบอร์โทรหรือเวลาทำการ ถ้ามีอาการรุนแรงให้โทร 1669 ได้ทันที
     </p>
 
-    <BottomNav active="hospital" />
+    <BottomNav v-show="!searchFocused" active="hospital" />
   </div>
 </template>
 
