@@ -30,6 +30,8 @@ const selectedKeys = ref<string[]>([])
 const painByKey = ref<Record<string, PainPoint[]>>({})
 const details = ref<CycleDetails | null>(null)
 const pickerOpen = ref(false)
+const NOTES_PREVIEW = 3
+const notesExpanded = ref(false)
 let loadToken = 0
 
 const selectedCycles = computed(() => cycles.value.filter(c => selectedKeys.value.includes(c.key)))
@@ -44,6 +46,10 @@ const series = computed(() => selectedCycles.value.map((c, i) => ({
 const chartDays = computed(() => Math.max(5, ...selectedCycles.value.map(c => c.length)))
 
 const stats = computed(() => computePainStats(primary.value ? (painByKey.value[primary.value.key] ?? []) : []))
+const shownNotes = computed(() => {
+  const all = details.value?.notes ?? []
+  return notesExpanded.value ? all : all.slice(0, NOTES_PREVIEW)
+})
 const subtitle = computed(() => primary.value ? `ของเดือน ${primary.value.fullLabel}` : '')
 
 // ---------- ดึงข้อมูล ----------
@@ -71,6 +77,7 @@ function applySelection(keys: string[]) {
   pickerOpen.value = false
   selectedKeys.value = keys
   details.value = null
+  notesExpanded.value = false
   void loadSelection()
 }
 
@@ -289,26 +296,40 @@ function goBack() {
         <section class="mt-6 flex flex-col gap-3">
           <h2 class="text-lg">อาการเพิ่มเติมที่พบรอบนี้</h2>
           <div class="flex flex-col gap-4 rounded-card bg-moon-card p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
-            <p v-if="!details.flow.length && !details.symptoms.length" class="py-2 text-center text-xs text-moon-muted">
-              ยังไม่มีอาการเพิ่มเติมที่บันทึกในเดือนนี้
+            <p v-if="!details.extras.length" class="py-2 text-center text-xs text-moon-muted">
+              ยังไม่มีอาการเพิ่มเติมที่บันทึกตลอดรอบนี้
             </p>
-            <div v-if="details.flow.length">
-              <p class="text-sm font-medium leading-[22px]">ปริมาณเลือดประจำเดือน</p>
+            <div v-for="g in details.extras" :key="g.title">
+              <p class="text-sm font-medium leading-[22px]">{{ g.title }}</p>
               <div class="mt-2 flex flex-wrap gap-2">
-                <span v-for="f in details.flow" :key="f.code" class="rounded-full bg-moon-chip px-4 py-2 text-sm">
-                  {{ f.label }}({{ f.count }})
-                </span>
-              </div>
-            </div>
-            <div v-if="details.symptoms.length">
-              <p class="text-sm font-medium leading-[22px]">อาการที่บันทึก</p>
-              <div class="mt-2 flex flex-wrap gap-2">
-                <span v-for="s in details.symptoms" :key="s.label" class="rounded-full bg-moon-chip px-4 py-2 text-sm">
-                  {{ s.label }}({{ s.count }})
+                <span v-for="it in g.items" :key="it.code" class="flex items-center gap-[6px] rounded-full bg-moon-chip px-4 py-2 text-sm">
+                  <span v-if="it.dot" class="h-[10px] w-[10px] shrink-0 rounded-full" :style="{ background: it.dot }" />
+                  <template v-if="g.title === 'ยาแก้ปวด'">{{ it.label }}</template>
+                  <template v-else>{{ it.label }}({{ it.count }})</template>
                 </span>
               </div>
             </div>
           </div>
+        </section>
+
+        <!-- บันทึกเพิ่มเติม (Notes): เฉพาะวันที่พิมพ์ข้อความไว้ ไม่มีเลย = ซ่อนทั้งส่วน -->
+        <section v-if="details.notes.length" class="mt-6 flex flex-col gap-3">
+          <h2 class="text-lg">บันทึกเพิ่มเติม (Notes)</h2>
+          <ul class="flex flex-col gap-2">
+            <li v-for="n in shownNotes" :key="n.date" class="rounded-2xl bg-moon-cream-soft p-4 shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
+              <p class="text-xxs text-moon-muted">{{ n.dateText }}</p>
+              <p class="mt-1 whitespace-pre-line break-words text-sm leading-[21px]">{{ n.text }}</p>
+            </li>
+          </ul>
+          <button
+            v-if="details.notes.length > NOTES_PREVIEW"
+            type="button"
+            class="self-center rounded-full bg-moon-pink px-5 py-2 text-sm font-medium transition active:scale-95"
+            :aria-expanded="notesExpanded"
+            @click="notesExpanded = !notesExpanded"
+          >
+            {{ notesExpanded ? 'ย่อลง' : `ดูทั้งหมด (${details.notes.length})` }}
+          </button>
         </section>
       </template>
 

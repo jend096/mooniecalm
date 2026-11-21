@@ -9,7 +9,7 @@ import { getAuthedSupabaseClient } from '~/utils/supabase-authed-client'
 import { dropStrayRows, getRowEnd, daysBetween, parseLocalDate, startOfDay, type PeriodRow } from '~/utils/period-prediction'
 import { getLocalDateString } from '~/utils/date-helpers'
 import { THAI_MONTHS } from '~/utils/thai-calendar'
-import { FLOW_AMOUNT_OPTIONS } from '~/utils/extra-logs'
+import { DISCHARGE_COLOR_OPTIONS, FLOW_AMOUNT_OPTIONS, FLOW_COLOR_OPTIONS, MOOD_OPTIONS, type ExtraOption } from '~/utils/extra-logs'
 import { SNACK_CATEGORY_LABEL } from '~/utils/snack-picker'
 
 export const MAX_COMPARE_MONTHS = 3
@@ -25,6 +25,7 @@ export interface CycleOption {
   key: string // วันเริ่มรอบ YYYY-MM-DD (ใช้เป็นตัวระบุ)
   start: string
   end: string // วันหมดของรอบ YYYY-MM-DD
+  cycleEnd: string // วันสุดท้ายของ "ทั้งรอบ" = วันก่อนรอบถัดไปเริ่ม (รอบล่าสุด = วันนี้) ใช้กับอาการเพิ่มเติมจากหน้าบันทึก
   length: number // จำนวนวันที่มีประจำเดือน (นับวันเริ่มเป็นวันที่ 1)
   ended: boolean // ผู้ใช้กดบอกวันหมดแล้วหรือยัง
   chipLabel: string // เช่น "ก.ย. 2569"
@@ -41,16 +42,21 @@ function rangeTextOf(start: Date, end: Date): string {
 
 // แปลงแถว period_cycles เป็นตัวเลือกเดือน เรียงใหม่สุดก่อน (ข้ามแถวสมมติจาก onboarding กับแถวที่กดซ้ำ/กดผิด)
 export function buildCycleOptions(rows: PeriodRow[], periodDays: number, today: Date = startOfDay(new Date())): CycleOption[] {
-  return dropStrayRows(rows)
-    .filter(r => !r.assumed)
-    .map((row) => {
+  const real = dropStrayRows(rows).filter(r => !r.assumed)
+  return real
+    .map((row, i) => {
       const start = parseLocalDate(row.cycle_start_date)
       const end = getRowEnd(row, periodDays, today)
+      const next = real[i + 1]
+      const cycleEnd = next ? parseLocalDate(next.cycle_start_date) : new Date(today)
+      if (next) cycleEnd.setDate(cycleEnd.getDate() - 1)
+      if (cycleEnd.getTime() < end.getTime()) cycleEnd.setTime(end.getTime())
       const yearBE = start.getFullYear() + 543
       return {
         key: row.cycle_start_date,
         start: row.cycle_start_date,
         end: getLocalDateString(end),
+        cycleEnd: getLocalDateString(cycleEnd),
         length: Math.max(1, daysBetween(start, end) + 1),
         ended: !!row.confirmed_end_date,
         chipLabel: `${SHORT_THAI_MONTHS[start.getMonth()]} ${yearBE}`,
@@ -143,8 +149,32 @@ export interface CycleDetails {
   guides: UsageRow[]
   snackTotal: { total: number, felt: number, percent: number }
   snackCategories: UsageRow[]
-  flow: { code: string, label: string, count: number }[]
-  symptoms: { label: string, count: number }[]
+  notes: NoteEntry[] // ข้อความบันทึก (notes) ของวันที่พิมพ์ไว้ตลอดทั้งรอบ เรียงตามวันที่ (ว่าง = ซ่อนส่วนนี้)
+  extras: ExtraGroup[] // อาการเพิ่มเติมจากหน้า "บันทึก" ตลอดทั้งรอบ (ว่าง = ไม่มีบันทึก)
+}
+
+export interface NoteEntry {
+  date: string // YYYY-MM-DD
+  dateText: string // เช่น "12 พ.ย. (วันที่ 2)"
+  text: string
+}
+
+// 1 หมวดของอาการเพิ่มเติม เช่น "ปริมาณเลือดประจำเดือน" -> ปริมาณมาก(3) ปริมาณน้อย(2)
+export interface ExtraGroup {
+  title: string
+  items: { code: string, label: string, count: number, dot?: string }[]
+}
+
+function countChoices(rows: Record<string, unknown>[], field: string, options: ExtraOption[]): ExtraGroup['items'] {
+  const counts = new Map<string, number>()
+  for (const row of rows) {
+    const code = row[field] as string | null
+    if (code) counts.set(code, (counts.get(code) ?? 0) + 1)
+  }
+  return options
+    .map(o => ({ code: o.code, label: o.label, count: counts.get(o.code) ?? 0, dot: o.dot }))
+    .filter(o => o.count > 0)
+    .sort((a, b) => b.count - a.count)
 }
 
 // ผลหลังทำตามคู่มือ/ของว่าง + อาการเพิ่มเติม ของรอบเดียว
@@ -156,8 +186,8 @@ export async function loadCycleDetails(profileId: number, cycle: CycleOption): P
     authed.from('pain_relief_guides').select('id, title'),
     authed.from('snack_logs').select('snack_id, felt_better').eq('user_id', profileId).gte('log_date', cycle.start).lte('log_date', cycle.end),
     authed.from('snack_items').select('id, category'),
-    authed.from('daily_body_logs').select('flow_amount').eq('user_id', profileId).gte('log_date', cycle.start).lte('log_date', cycle.end),
-    authed.from('symptom_logs').select('symptom_id').eq('user_id', profileId).gte('log_date', cycle.start).lte('log_date', cycle.end),
+    authed.from('daily_body_logs').select('log_date, flow_amount, flow_color, discharge_color, mood, medication_count, notes').eq('user_id', profileId).gte('log_date', cycle.start).lte('log_date', cycle.cycleEnd),
+    authed.from('symptom_logs').select('symptom_id').eq('user_id', profileId).gte('log_date', cycle.start).lte('log_date', cycle.cycleEnd),
     authed.from('symptom_types').select('id, label')
   ])
   for (const res of [guideLogs, guideRefs, snackLogs, snackRefs, bodyLogs, symptomLogs, symptomRefs]) {
@@ -196,32 +226,53 @@ export async function loadCycleDetails(profileId: number, cycle: CycleOption): P
     .sort((a, b) => b.total - a.total || b.percent - a.percent)
   const snackSum = snackCategories.reduce((s, c) => ({ total: s.total + c.total, felt: s.felt + c.felt }), { total: 0, felt: 0 })
 
-  // ปริมาณเลือด: นับจำนวนวัน เรียงมาก -> น้อย
-  const flowCount = new Map<string, number>()
-  for (const row of bodyLogs.data ?? []) {
-    const code = row.flow_amount as string | null
-    if (code) flowCount.set(code, (flowCount.get(code) ?? 0) + 1)
-  }
-  const flow = [...FLOW_AMOUNT_OPTIONS].reverse()
-    .map(o => ({ code: o.code, label: o.label, count: flowCount.get(o.code) ?? 0 }))
-    .filter(o => o.count > 0)
-
-  // อาการอื่นๆ: นับจำนวนวัน เรียงบ่อยสุดก่อน
+  // อาการเพิ่มเติมจากหน้า "บันทึก" ตลอดทั้งรอบ: นับเป็นจำนวนวันของแต่ละตัวเลือก (หมวดที่ไม่มีบันทึกจะไม่โชว์)
+  const body = (bodyLogs.data ?? []) as Record<string, unknown>[]
   const symptomLabel = new Map((symptomRefs.data ?? []).map(s => [s.id as number, s.label as string]))
   const symptomCount = new Map<number, number>()
   for (const row of symptomLogs.data ?? []) {
     symptomCount.set(row.symptom_id as number, (symptomCount.get(row.symptom_id as number) ?? 0) + 1)
   }
-  const symptoms = [...symptomCount.entries()]
-    .map(([id, count]) => ({ label: symptomLabel.get(id) ?? 'อาการ', count }))
-    .sort((a, b) => b.count - a.count)
+  const medDays = body.filter(r => (r.medication_count as number) > 0)
+  const pills = medDays.reduce((sum, r) => sum + (r.medication_count as number), 0)
+
+  const startDate = parseLocalDate(cycle.start)
+  const notes: NoteEntry[] = body
+    .filter(r => typeof r.notes === 'string' && (r.notes as string).trim() !== '')
+    .map((r) => {
+      const date = r.log_date as string
+      const d = parseLocalDate(date)
+      return {
+        date,
+        dateText: `${d.getDate()} ${SHORT_THAI_MONTHS[d.getMonth()]} (วันที่ ${daysBetween(startDate, d) + 1})`,
+        text: (r.notes as string).trim()
+      }
+    })
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  const extras: ExtraGroup[] = [
+    { title: 'ปริมาณเลือดประจำเดือน', items: countChoices(body, 'flow_amount', FLOW_AMOUNT_OPTIONS) },
+    { title: 'สีเลือดประจำเดือน', items: countChoices(body, 'flow_color', FLOW_COLOR_OPTIONS) },
+    { title: 'สีตกขาว', items: countChoices(body, 'discharge_color', DISCHARGE_COLOR_OPTIONS) },
+    { title: 'อารมณ์', items: countChoices(body, 'mood', MOOD_OPTIONS) },
+    {
+      title: 'อาการที่บันทึก',
+      items: [...symptomCount.entries()]
+        .map(([id, count]) => ({ code: String(id), label: symptomLabel.get(id) ?? 'อาการ', count }))
+        .sort((a, b) => b.count - a.count)
+    },
+    {
+      title: 'ยาแก้ปวด',
+      items: medDays.length ? [{ code: 'med', label: `กินยา ${pills} เม็ด · ${medDays.length} วัน`, count: medDays.length }] : []
+    }
+  ].filter(g => g.items.length > 0)
 
   return {
     guideTotal: { ...guideSum, percent: percentOf(guideSum.felt, guideSum.total) },
     guides,
     snackTotal: { ...snackSum, percent: percentOf(snackSum.felt, snackSum.total) },
     snackCategories,
-    flow,
-    symptoms
+    notes,
+    extras
   }
 }
