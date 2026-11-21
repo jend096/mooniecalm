@@ -406,23 +406,24 @@ function goBack() {
         <div class="min-w-0 flex-1">
           <p class="text-[15px] font-semibold leading-5">{{ h.name }}</p>
           <p class="mt-1 text-xs leading-[17px] text-moon-muted">{{ subline(h) }}</p>
-          <p class="mt-1 text-xs leading-[17px] text-moon-muted">
-            เบอร์โทร: {{ h.phone ?? 'ยังไม่มีข้อมูลเบอร์' }}
-          </p>
-
           <div class="flex gap-2 pt-[10px]">
+            <!-- ปุ่มโทร: ไม่โชว์ตัวเลขเบอร์ ถ้ามีเบอร์ในระบบกดแล้วเด้งไปหน้าโทรออกของมือถือทันที (tel:) -->
             <a
               v-if="h.phone"
               :href="`tel:${h.phone}`"
-              class="flex items-center justify-center rounded-full bg-moon-ink px-4 py-[6px] text-[13px] font-medium leading-[17px] text-moon-on-ink transition active:scale-95"
+              class="flex items-center justify-center gap-[6px] rounded-full bg-moon-ink px-4 py-[6px] text-[13px] font-medium leading-[17px] text-moon-on-ink transition active:scale-95"
+              :aria-label="`โทรหา ${h.name}`"
             >
+              <FaIcon name="phone" class="h-3 w-3" />
               โทร
             </a>
+            <!-- ไม่มีเบอร์: ปุ่มสีเทา กดไม่ได้ -->
             <span
               v-else
-              class="flex items-center justify-center rounded-full bg-moon-chip px-4 py-[6px] text-[13px] font-medium leading-[17px] text-moon-hint"
+              class="flex items-center justify-center gap-[6px] rounded-full bg-moon-chip px-4 py-[6px] text-[13px] font-medium leading-[17px] text-moon-hint"
               aria-disabled="true"
             >
+              <FaIcon name="phone" class="h-3 w-3" />
               โทร
             </span>
             <button
